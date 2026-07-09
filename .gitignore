@@ -1,0 +1,9 @@
+.venv/
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+mermaid_renders/
+estudos/
+.gemini/
