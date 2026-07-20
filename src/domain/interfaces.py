@@ -36,10 +36,24 @@ class MessageProviderProtocol(ABC):
 
 class StateRepositoryProtocol(Protocol):
     """
-    Protocolo para o repositório que guardará os estados (ex: SQLite).
+    Protocolo para o repositório que guardará os metadados de estado (PostgreSQL).
     """
-    def mark_message_sent(self, cart_id: str, message_type: str, sent_at: datetime) -> None:
+    # Para Carrinhos Abandonados
+    def mark_cart_email_sent(self, cart_id: str, email_type: str, sent_at: datetime) -> None:
         ...
         
-    def has_received_message(self, cart_id: str, message_type: str) -> bool:
+    def has_cart_received_email(self, cart_id: str, email_type: str) -> bool:
+        ...
+        
+    def mark_cart_abandoned_72h(self, cart_id: str) -> None:
+        ...
+        
+    def is_cart_abandoned_72h(self, cart_id: str) -> bool:
+        ...
+        
+    # Para Pedidos (Orders)
+    def mark_order_email_sent(self, order_id: str, email_type: str, sent_at: datetime) -> None:
+        ...
+        
+    def has_order_received_email(self, order_id: str, email_type: str) -> bool:
         ...

@@ -10,3 +10,12 @@ Eles **nunca** instanciam clientes HTTP ou Bancos de Dados diretamente; eles rec
 ## 🚨 Diretiva de Manutenção (Para IA)
 > [!IMPORTANT]
 > Se você criar uma nova rotina (ex: `payment_reminder.py` para boletos a vencer), **DEVE** atualizar este arquivo `README.md` explicando o fluxo lógico que foi implementado e quais as dependências injetadas que este novo worker utiliza.
+
+## Dependências
+- **`src/domain/`**: Workers interagem exclusivamente com as interfaces (Protocolos) definidas no Domínio.
+- **Injeção de Instâncias (Em Tempo de Execução)**: O Worker espera receber instâncias concretas do cliente Yampi (`core/client.py`), o controle de estado (`core/db.py` ou similares) e do provedor de mensageria (`ports/`).
+
+## Future Updates (Pontos a serem modificados e melhorados)
+- Implementar processamento assíncrono real (`asyncio`) nos Workers para lidar paralelamente com dezenas ou centenas de carrinhos abandonados, em vez de processamento sequencial bloqueante.
+- Adicionar a capacidade de gerar relatórios consolidados sobre quantos disparos de carrinho abandonado reverteram em vendas na mesma janela de dia.
+- Mudar para um sistema de Filas de Mensagens (ex: Celery, RabbitMQ ou AWS SQS) para enfileirar as ações dos Workers, em vez de depender de processamento *inline* longo caso o volume da loja cresça enormemente.

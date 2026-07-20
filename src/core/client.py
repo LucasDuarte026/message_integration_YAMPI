@@ -227,7 +227,7 @@ class YampiClient:
         if include:
             params["include"] = ",".join(include)
         
-        return self.get_paginated_data("abandoned-carts", params=params)
+        return self.get_paginated_data("checkout/carts", params=params)
 
 # Demonstração de Uso
 if __name__ == "__main__":

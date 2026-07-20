@@ -17,7 +17,7 @@ class SQLiteStateRepository(StateRepositoryProtocol):
         
     def _init_db(self):
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS messages_sent (
@@ -36,7 +36,7 @@ class SQLiteStateRepository(StateRepositoryProtocol):
 
     def mark_message_sent(self, cart_id: str, message_type: str, sent_at: datetime) -> None:
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     'INSERT OR IGNORE INTO messages_sent (cart_id, message_type, sent_at) VALUES (?, ?, ?)',
@@ -48,7 +48,7 @@ class SQLiteStateRepository(StateRepositoryProtocol):
 
     def has_received_message(self, cart_id: str, message_type: str) -> bool:
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(self.db_path, timeout=30.0) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     'SELECT 1 FROM messages_sent WHERE cart_id = ? AND message_type = ?',

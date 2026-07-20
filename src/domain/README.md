@@ -12,3 +12,10 @@ Ele não deve conter implementações concretas (acesso a rede, banco de dados o
 > Se você modificar os contratos aqui ou adicionar novas interfaces, **DEVE**:
 > 1. Garantir que todas as implementações concretas (em `core` ou `ports`) sejam atualizadas para respeitar a nova assinatura.
 > 2. Atualizar este arquivo `README.md` para explicar o propósito do novo contrato.
+
+## Dependências
+- **Nenhuma**: O `domain` é a camada mais interna e pura da aplicação. Ele não depende de nenhuma outra pasta (core, ports, workers) e nem de bibliotecas externas (exceto recursos nativos de tipagem do Python como `typing` e `abc`).
+
+## Future Updates (Pontos a serem modificados e melhorados)
+- Evoluir os Protocolos para definir não apenas assinaturas de métodos, mas especificar também as classes de dados de resposta (Data Transfer Objects - DTOs) nativos (ex: Usar `dataclasses` ou `Pydantic` para padronizar o retorno dos métodos do cliente Yampi no nível de Domínio).
+- Documentar de forma nativa e estrita (via Docstrings nas interfaces) quais *Exceptions* devem ser lançadas e esperadas pelas camadas superiores para reforçar a robustez do tratamento de falhas.

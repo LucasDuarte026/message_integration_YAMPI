@@ -21,6 +21,16 @@ class DryRunMessageProvider(MessageProviderProtocol):
         logger.info("="*40)
         logger.info(f"[DRY-RUN] Enviando Email para: {email}")
         logger.info(f"[DRY-RUN] Assunto: {subject}")
-        logger.info(f"[DRY-RUN] Corpo HTML:\n{html_body}")
         logger.info("="*40)
+        
+        # Salva o arquivo HTML localmente para inspeção visual do desenvolvedor
+        file_path = "temp_email_output.html"
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(html_body)
+            logger.info(f"[DRY-RUN] E-mail de teste salvo com sucesso!")
+            logger.info(f"[DRY-RUN] Acesse: file:///home/luska/Documents/projects/message_integration/{file_path} no seu navegador!")
+        except Exception as e:
+            logger.error(f"[DRY-RUN] Erro ao salvar o HTML do e-mail localmente: {e}")
+            
         return True

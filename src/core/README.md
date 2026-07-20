@@ -11,3 +11,12 @@ O diretório `core` abriga os componentes básicos de infraestrutura interna que
 ## 🚨 Diretiva de Manutenção (Para IA)
 > [!IMPORTANT]
 > Se você modificar, adicionar ou remover qualquer arquivo de infraestrutura neste diretório, **DEVE** atualizar este arquivo `README.md` imediatamente para refletir essas mudanças arquiteturais.
+
+## Dependências
+- **Nenhuma no Nível de Regras de Negócio**: O `core` não depende de workers ou ports (embora instancie a conexão HTTP que as interfaces definem).
+- **Externas**: Bibliotecas como `requests` para requisições HTTP, biblioteca nativa do `sqlite3` e gerência de variáveis de ambiente.
+
+## Future Updates (Pontos a serem modificados e melhorados)
+- Expandir o `client.py` para suportar *Retries* exponenciais usando bibliotecas como `tenacity` em caso de instabilidade na Yampi.
+- Migrar o `db.py` de SQLite para uma solução mais escalável via ORM assíncrono (ex: SQLAlchemy ou Tortoise ORM) caso o deploy se torne Serverless, o que impediria o uso fácil de um banco de dados em arquivo local.
+- Adicionar validações mais robustas no `config.py` (usando pydantic) no carregamento das variáveis de ambiente.

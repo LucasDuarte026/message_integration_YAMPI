@@ -1,0 +1,62 @@
+from flask import Flask, request
+
+app = Flask(__name__)
+
+# Token de verificação que você digitará no painel da Meta
+# Você pode alterá-lo para qualquer valor de sua preferência
+VERIFY_TOKEN = "rodolfo_hulk_tasmania"
+
+@app.route("/webhook", methods=["GET", "POST"])
+def webhook():
+    """
+    Endpoint principal para receber eventos e validações de Webhook da Meta API.
+    """
+    # 1. Validação exigida pela Meta no momento de cadastrar o Webhook (GET)
+    if request.method == "GET":
+        mode = request.args.get("hub.mode")
+        token = request.args.get("hub.verify_token")
+        challenge = request.args.get("hub.challenge")
+        
+        if mode == "subscribe" and token == VERIFY_TOKEN:
+            print("\n[INFO] Webhook verificado com sucesso pela Meta!")
+            return challenge, 200
+        else:
+            print("\n[WARNING] Falha na verificação: tokens não coincidem.")
+            return "Forbidden", 403
+            
+    # 2. Recebimento dos eventos de mensagem e atualizações de status (POST)
+    elif request.method == "POST":
+        data = request.json
+        print("\n[INFO] Evento do WhatsApp recebido:")
+        
+        # Estrutura básica para logar os dados principais no terminal
+        try:
+            entry = data.get("entry", [{}])[0]
+            changes = entry.get("changes", [{}])[0]
+            value = changes.get("value", {})
+            
+            # Se for uma mensagem recebida do cliente
+            if "messages" in value:
+                message = value["messages"][0]
+                sender = message.get("from")
+                text = message.get("text", {}).get("body", "[Mensagem sem texto]")
+                print(f"-> Mensagem de {sender}: '{text}'")
+                
+            # Se for uma atualização de status (sent, delivered, read, failed)
+            elif "statuses" in value:
+                status = value["statuses"][0]
+                recipient = status.get("recipient_id")
+                status_type = status.get("status")
+                print(f"-> Status do envio para {recipient}: '{status_type}'")
+                
+        except Exception as e:
+            # Caso o payload mude, loga o JSON completo para análise
+            print(f"Erro ao extrair dados do payload: {e}")
+            print(data)
+
+        return "EVENT_RECEIVED", 200
+
+if __name__ == "__main__":
+    print("Iniciando servidor de Webhook local na porta 5000...")
+    print(f"Configure o token de verificação na Meta como: '{VERIFY_TOKEN}'")
+    app.run(port=5000)

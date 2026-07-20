@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Worker Abandoned Carts",
+            "type": "python",
+            "request": "launch",
+            "program": "src/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "abandoned-carts"
+            ],
+            "envFile": "${workspaceFolder}/.env",
+            "preLaunchTask": "Start Database",
+            "python": "${workspaceFolder}/.venv/bin/python3"
+        },
+        {
+            "name": "Python: Worker Orders",
+            "type": "python",
+            "python": "${workspaceFolder}/.venv/bin/python3",
+            "request": "launch",
+            "program": "src/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "orders"
+            ],
+            "envFile": "${workspaceFolder}/.env",
+            "preLaunchTask": "Start Database"
+        }
+    ]
+}

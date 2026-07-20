@@ -1,0 +1,38 @@
+services:
+  # Serviço do Banco de Dados PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: message_integration_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mysecretpassword}
+      POSTGRES_DB: ${DB_NAME:-message_integration}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # - ./init-scripts:/docker-entrypoint-initdb.d # documento para iniciar o db já com essas coisas
+
+      # Serviço da Aplicação (Configurado em modo ocioso para permitir execuções manuais do main.py)
+      # O webhook_server foi desativado por padrão (Feature Futura de WPP Meta Message)
+  app:
+    build: .
+    container_name: message_integration_app
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      # Sobrescreve a DATABASE_URL para apontar para o container 'db' em vez de 'localhost'
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-mysecretpassword}@db:5432/${DB_NAME:-message_integration}
+    env_file:
+      # Carrega as variáveis de credenciais do arquivo .env local (Yampi tokens, etc.)
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - ./logs:/app/logs
+      - ./src:/app/src
+
+volumes:
+  pgdata:
