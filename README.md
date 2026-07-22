@@ -17,6 +17,7 @@ O objetivo principal é a recuperação de carrinhos abandonados da plataforma *
 6. [Executando os Testes](#-executando-os-testes)
 7. [Diretório de Logs de Depuração](#-diretório-de-logs-de-depuração)
 8. [Estrutura de Diretórios](#-estrutura-de-diretórios)
+9. [Versionamento e Roadmap](#-versionamento-e-roadmap)
 
 ---
 
@@ -230,3 +231,18 @@ Abaixo está o mapeamento dos principais componentes do projeto:
 ├── requirements.txt                  # Dependências do Python
 └── state.db                          # Banco de dados SQLite persistente (gerado na execução)
 ```
+
+---
+
+## 📌 9. Versionamento e Roadmap (Semantic Versioning)
+
+Este projeto adota estritamente o padrão **[Semantic Versioning (SemVer 2.0.0)](https://semver.org/lang/pt-BR/)** no formato `MAJOR.MINOR.PATCH`:
+
+- **MAJOR (`X.0.0`)** — **Big Changes / Breaking Changes**: Mudanças estruturais grandes ou incompatíveis na arquitetura, modelos de banco de dados ou contratos de APIs.
+  - **`v1.0.0` (Atual / Baseline)**: Sistema legado dockerizado com tabelas separadas (`cart_states`, `order_states`) e fluxo inicial de e-mails/WhatsApp.
+  - **`v2.0.0` (Próxima / Planejada)**: Refatoração completa para máquina de estados dupla (STG/STC), tabela unificada `email_status_table` com locking, e consumo de arquivos JSON em lotes de 100 (especificada em `04_refactor_logic_emails.md`).
+- **MINOR (`1.X.0`)** — **Novas Funcionalidades (Non-breaking)**: Adição de novos provedores (ex: novos canais de mensagem, novas regras de cupons) de forma retrocompatível.
+- **PATCH (`1.0.X`)** — **Bug Fixes / Ajustes Pequenos**: Correções de bugs, pequenas melhorias de performance ou ajustes de formatação sem alterar regras de negócio.
+
+Os registros de cada versão e histórico de alterações estão centralizados no arquivo [`CHANGELOG.md`](file:///home/luska/Documents/projects/message_integration/CHANGELOG.md) e controlados via Git Tags (ex: `git tag v1.0.0`).
+
