@@ -50,11 +50,19 @@ class AbandonedCartProcessor:
                 logger.info("Nenhum carrinho qualificado para processamento nesta rodada.")
                 return
                 
-            logger.info(f"Iniciando processamento assíncrono para {len(eligible_carts)} carrinhos com até {self.config.MAX_WORKERS} workers...")
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
-                executor.map(self._process_cart_concurrently, eligible_carts)
-                
-            logger.info("Processamento assíncrono finalizado.")
+            if self.config.MAX_WORKERS <= 1: # util no modo debug
+                logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_carts)} carrinhos um a um...")
+                for idx, cart in enumerate(eligible_carts, 1):
+                    if getattr(self.config, "INTERACTIVE_DEBUG", False):
+                        input(f"\n[DEBUG CART {idx}/{len(eligible_carts)}] Pressione ENTER para processar o Carrinho ID {cart.get('id')}...")
+                    logger.info(f">>> Processando Carrinho {idx}/{len(eligible_carts)}")
+                    self._process_cart_concurrently(cart)
+            else:
+                logger.info(f"Iniciando processamento assíncrono para {len(eligible_carts)} carrinhos com até {self.config.MAX_WORKERS} workers...")
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
+                    executor.map(self._process_cart_concurrently, eligible_carts)
+                    
+            logger.info("Processamento finalizado.")
         except Exception as e:
             logger.error(f"Erro no processamento concorrente de carrinhos: {e}")
             

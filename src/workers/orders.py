@@ -47,11 +47,19 @@ class OrderProcessor:
                 logger.info("Nenhum pedido qualificado para processamento nesta rodada.")
                 return
                 
-            logger.info(f"Iniciando processamento assíncrono para {len(eligible_orders)} pedidos com até {self.config.MAX_WORKERS} workers...")
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
-                executor.map(self._process_order_concurrently, eligible_orders)
+            if self.config.MAX_WORKERS <= 1: # util no modo debug
+                logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_orders)} pedidos um a um...")
+                for idx, order in enumerate(eligible_orders, 1):
+                    if getattr(self.config, "INTERACTIVE_DEBUG", False):
+                        input(f"\n[DEBUG ORDER {idx}/{len(eligible_orders)}] Pressione ENTER para processar o Pedido ID {order.get('id')}...")
+                    logger.info(f">>> Processando Pedido {idx}/{len(eligible_orders)}")
+                    self._process_order_concurrently(order)
+            else:
+                logger.info(f"Iniciando processamento assíncrono para {len(eligible_orders)} pedidos com até {self.config.MAX_WORKERS} workers...")
+                with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
+                    executor.map(self._process_order_concurrently, eligible_orders)
                 
-            logger.info("Processamento assíncrono finalizado.")
+            logger.info("Processamento finalizado.")
         except Exception as e:
             logger.error(f"Erro no processamento concorrente de pedidos: {e}")
 
@@ -68,8 +76,8 @@ class OrderProcessor:
             except ValueError:
                 return True, False
             
-        now = datetime.utcnow()
-        days_since_creation = (now - created_at).total_seconds() / (3600 * 24)
+        now_utc3 = datetime.utcnow() - timedelta(hours=3)
+        days_since_creation = (now_utc3 - created_at).total_seconds() / (3600 * 24)
         if days_since_creation > 14:
             return False, False
             

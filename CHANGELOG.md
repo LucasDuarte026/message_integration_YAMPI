@@ -24,6 +24,20 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [2.1.0] - 2026-07-21 (Depuração Interativa e Suporte a .env)
+
+### Adicionado
+- **Configuração de Depuração VS Code (.vscode)**:
+  - Integração nativa com `.env` via `envFile` em `launch.json`.
+  - Perfis padronizados em `launch.json` e limpeza de tasks em `tasks.json`.
+- **Modo Interativo por Item no Debug (`debug_main.py`)**:
+  - Limite de processamento reduzido para até 10 itens por execução (`orders` e `abandoned-carts`).
+  - Navegação interativa síncrona `ENTER` passo a passo para cada pedido e carrinho (`INTERACTIVE_DEBUG`).
+- **Persistência de Logs de Debug (`logs/app.log`)**:
+  - `debug_main.py` atualizado para gravar saídas diretamente em `logs/app.log`.
+
+---
+
 ## [1.0.0] - 2026-07-21 (Versão Atual / Baseline Estável)
 
 ### Adicionado

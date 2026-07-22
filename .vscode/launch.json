@@ -2,30 +2,63 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Worker Abandoned Carts",
+            "name": "Python: Main (Todos os Workers)",
             "type": "python",
             "request": "launch",
-            "program": "src/main.py",
+            "program": "${workspaceFolder}/src/main.py",
+            "args": [
+                "all"
+            ],
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Main (Abandoned Carts)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
             "args": [
                 "abandoned-carts"
             ],
+            "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
-            "preLaunchTask": "Start Database",
-            "python": "${workspaceFolder}/.venv/bin/python3"
+            "console": "integratedTerminal",
+            "justMyCode": true
         },
         {
-            "name": "Python: Worker Orders",
+            "name": "Python: Main (Orders)",
             "type": "python",
-            "python": "${workspaceFolder}/.venv/bin/python3",
             "request": "launch",
-            "program": "src/main.py",
-            "console": "integratedTerminal",
+            "program": "${workspaceFolder}/src/main.py",
             "args": [
                 "orders"
             ],
+            "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
-            "preLaunchTask": "Start Database"
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Debug Mock Runner (Síncrono)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/debug_main.py",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: Webhook Server",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/webhook_server.py",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }

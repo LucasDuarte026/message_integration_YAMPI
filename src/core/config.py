@@ -26,6 +26,7 @@ class Config:
     SMTP_PASSWORD: Optional[str] = None
     SMTP_FROM: Optional[str] = None
     MAX_WORKERS: int = 10
+    INTERACTIVE_DEBUG: bool = False
     APP_VERSION: str = "unknown"
 
 def load_config() -> Config:
