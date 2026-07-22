@@ -11,7 +11,6 @@ from src.core.config import load_config
 from src.core.client import YampiClient
 from src.ports.postgres_repo import PostgresStateRepository
 from src.ports.message_provider import DryRunMessageProvider
-from src.ports.whatsapp_meta_provider import WhatsAppMetaProvider
 from src.ports.smtp_email_provider import SMTPEmailProvider
 from src.workers.abandoned_cart import AbandonedCartProcessor
 from src.workers.orders import OrderProcessor
@@ -34,6 +33,7 @@ def get_dependencies(mock_mode: bool = True):
     logger.info("Carregando configurações...")
     config = load_config()
     
+    logger.info(f"=== Message Integration (v{config.APP_VERSION}) ===")
     logger.info("Inicializando dependências do sistema (Spec-Driven)...")
     
     api_client = YampiClient(

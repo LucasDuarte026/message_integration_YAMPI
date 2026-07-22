@@ -98,10 +98,13 @@ CREATE INDEX IF NOT EXISTS idx_email_status_cpf_sku ON email_status_table (cpf, 
 
 ### 4.1 Referência Temporal
 
+**IMPORTANTE (Fuso Horário):** Todos os cálculos, timestamps e registros no banco de dados **devem** ser feitos no fuso horário **UTC-3 (Horário de Brasília / São Paulo)**. Como a API da Yampi também costuma retornar dados nesse fuso, usar UTC-3 garante que não haja defasagem no disparo de cupons. No código Python, deve-se extrair o `now` usando compensação de -3 horas ou timezone apropriado.
+
 Todos os cálculos temporais de STG usam:
 
 ```python
-diff_pedido = now() - data_pedido
+now_utc3 = datetime.utcnow() - timedelta(hours=3)
+diff_pedido = now_utc3 - data_pedido
 ```
 
 ### 4.2 Tabela de Transições

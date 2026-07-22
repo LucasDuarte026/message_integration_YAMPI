@@ -19,10 +19,6 @@ class SMTPEmailProvider(MessageProviderProtocol):
         self.password = password
         self.from_addr = from_addr or user or "recuperacao@sualoja.com"
 
-    def send_whatsapp_message(self, phone_number: str, message: str) -> bool:
-        logger.warning("SMTPEmailProvider não suporta envio de WhatsApp.")
-        return False
-
     def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
         try:
             msg = MIMEMultipart("alternative")
