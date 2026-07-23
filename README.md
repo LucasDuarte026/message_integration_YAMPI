@@ -7,21 +7,22 @@ O objetivo principal é a recuperação de carrinhos abandonados da plataforma *
 
 ## 📋 Sumário
 
-1. [Visão Geral](#-visão-geral)
-2. [Arquitetura do Projeto](#-arquitetura-do-projeto)
-3. [Pré-requisitos e Instalação](#-pré-requisitos-e-instalação)
-4. [Configuração (Variáveis de Ambiente)](#-configuração-variáveis-de-ambiente)
-5. [Como Utilizar](#-como-utilizar)
+1. [Visão Geral](#visão-geral)
+2. [Arquitetura do Projeto](#arquitetura-do-projeto)
+3. [Documentação do Projeto e Diretrizes de IA](#documentação-do-projeto-e-diretrizes-de-ia)
+4. [Pré-requisitos e Instalação](#pré-requisitos-e-instalação)
+5. [Configuração (Variáveis de Ambiente)](#configuração-variáveis-de-ambiente)
+6. [Como Utilizar](#como-utilizar)
    - [Execução do Worker (Recuperação de Carrinho)](#execução-do-worker-recuperação-de-carrinho)
    - [Servidor de Webhook (WhatsApp/Meta)](#servidor-de-webhook-whatsappmeta)
-6. [Executando os Testes](#-executando-os-testes)
-7. [Diretório de Logs de Depuração](#-diretório-de-logs-de-depuração)
-8. [Estrutura de Diretórios](#-estrutura-de-diretórios)
-9. [Versionamento e Roadmap](#-versionamento-e-roadmap)
+7. [Executando os Testes](#executando-os-testes)
+8. [Logs e Depuração (Auditoria)](#logs-e-depuração-auditoria)
+9. [Estrutura de Diretórios](#estrutura-de-diretórios)
+10. [Versionamento e Roadmap](#versionamento-e-roadmap-semantic-versioning)
 
 ---
 
-## 🔍 Visão Geral
+## Visão Geral
 
 O sistema funciona buscando ciclicamente os carrinhos abandonados diretamente da API da Yampi. Ele filtra os registros com base em regras de tempo (idade de abandono do carrinho) e verifica no banco de dados SQLite local (`state.db`) se o cliente já recebeu a notificação correspondente. Isso garante que cada cliente receba exatamente um e-mail de lembrete por carrinho abandonado, evitando disparos duplicados ou spam.
 
@@ -37,17 +38,43 @@ O sistema funciona buscando ciclicamente os carrinhos abandonados diretamente da
 
 ---
 
-## 🏛️ Arquitetura do Projeto
+## Arquitetura do Projeto
 
 O projeto segue os princípios da Clean/Hexagonal Architecture:
-- **Domínio (`src/domain/`)**: Contém os contratos e interfaces ([interfaces.py](file:///home/luska/Documents/projects/message_integration/src/domain/interfaces.py)). Nada fora desta pasta depende de implementações de rede, banco de dados ou APIs de terceiros.
-- **Core (`src/core/`)**: Infraestrutura base interna do sistema, como o cliente HTTP para a Yampi ([client.py](file:///home/luska/Documents/projects/message_integration/src/core/client.py)), o repositório de estado SQLite ([db.py](file:///home/luska/Documents/projects/message_integration/src/core/db.py)) e as configurações ([config.py](file:///home/luska/Documents/projects/message_integration/src/core/config.py)).
-- **Adaptadores/Ports (`src/ports/`)**: Conexões com serviços de terceiros que implementam as interfaces do domínio ([smtp_email_provider.py](file:///home/luska/Documents/projects/message_integration/src/ports/smtp_email_provider.py), [whatsapp_meta_provider.py](file:///home/luska/Documents/projects/message_integration/src/ports/whatsapp_meta_provider.py) e [message_provider.py](file:///home/luska/Documents/projects/message_integration/src/ports/message_provider.py)).
-- **Workers (`src/workers/`)**: Regras de negócio e lógica de orquestração de use cases, como o processador de carrinhos abandonados ([abandoned_cart.py](file:///home/luska/Documents/projects/message_integration/src/workers/abandoned_cart.py)). Eles recebem todas as dependências por Injeção de Dependência no construtor.
+- **Domínio (`src/domain/`)**: Contém os contratos e interfaces ([interfaces.py](./src/domain/interfaces.py)). Nada fora desta pasta depende de implementações de rede, banco de dados ou APIs de terceiros.
+- **Core (`src/core/`)**: Infraestrutura base interna do sistema, como o cliente HTTP para a Yampi ([client.py](./src/core/client.py)), o repositório de estado SQLite ([db.py](./src/core/db.py)) e as configurações ([config.py](./src/core/config.py)).
+- **Adaptadores/Ports (`src/ports/`)**: Conexões com serviços de terceiros que implementam as interfaces do domínio ([smtp_email_provider.py](./src/ports/smtp_email_provider.py), [whatsapp_meta_provider.py](./src/ports/whatsapp_meta_provider.py) e [message_provider.py](./src/ports/message_provider.py)).
+- **Workers (`src/workers/`)**: Regras de negócio e lógica de orquestração de use cases, como o processador de carrinhos abandonados ([abandoned_cart.py](./src/workers/abandoned_cart.py)). Eles recebem todas as dependências por Injeção de Dependência no construtor.
 
 ---
 
-## 🛠️ Pré-requisitos e Instalação
+## Documentação do Projeto e Diretrizes de IA
+
+O projeto adota uma abordagem de **Spec-Driven Development (SDD)**, onde a documentação é tratada como código de primeira classe. A base de documentação do repositório está estruturada principalmente em duas pastas: **`.gemini/`** e **`docs/`**.
+
+### 1. Pasta `.gemini/` (Diretrizes de Agentes e Auto-documentação)
+Esta pasta contém as regras comportamentais e diretivas estritas de desenvolvimento para assistentes de IA (como Antigravity, Gemini e Claude) e desenvolvedores:
+- **[`.gemini/GEMINI.md`](./.gemini/GEMINI.md)**: Define o código de conduta do assistente de IA. Estabelece o idioma oficial em Português (Brasil), a **Regra de Ouro do Git** (a IA pode apenas executar comandos consultivos de leitura, nunca mutações como `commit` ou `push`), padrões de versão (SemVer 2.0.0), alterações cirúrgicas e o uso de diagramas Mermaid.
+- **[`.gemini/auto_documentation_rules.md`](./.gemini/auto_documentation_rules.md)**: Define as regras de auto-documentação contínua. Exige que qualquer alteração de código seja acompanhada da atualização síncrona do arquivo `README.md` do diretório ("braço") correspondente em `src/`.
+
+### 2. Pasta `docs/` (Arquitetura, Casos de Uso e Operação)
+Esta pasta armazena a documentação técnica e funcional de suporte:
+- **[`docs/architecture.md`](./docs/architecture.md)**: Mapa mental e índice navegável dos braços do sistema (`src/domain/`, `src/core/`, `src/ports/`, `src/workers/`), detalhando as camadas da Clean/Hexagonal Architecture.
+- **[`docs/project_dependency_tree.md`](./docs/project_dependency_tree.md)**: Diagrama visual e hierárquico da árvore de dependências da arquitetura.
+- **[`docs/project_overview.md`](./docs/project_overview.md)**: Guia funcional cobrindo casos de uso (recuperação de carrinho, atualização de pedidos), fluxo de execução sequencial e decisões arquiteturais.
+- **[`docs/email_state_machine.md`](./docs/email_state_machine.md)**: Especificação formal da máquina de estados dupla (STG/STC), schema do banco e concorrência.
+- **[`docs/future_implementations.md`](./docs/future_implementations.md)**: Roadmap de refatorações futuras e débitos técnicos.
+- **[`docs/docker_cheatsheet.md`](./docs/docker_cheatsheet.md)**: Guia prático de comandos e rotinas para gerenciamento de containers Docker.
+
+### 🚨 Diretivas Obrigatórias de Auto-Documentação e Manutenção
+> [!IMPORTANT]
+> **REGRAS PARA INÍCIO DE SESSÃO / NOVOS CHATS DA IA E DESENVOLVEDORES:**
+> 1. **Consulta Obrigatória**: Sempre que um novo chat ou sessão for iniciado com assistentes de IA, o assistente **DEVE obrigatoriamente carregar e consultar o conteúdo das pastas `.gemini/` e `docs/`**, bem como o `README.md` local do módulo em que atuará, antes de planejar, propor ou executar qualquer alteração no código-fonte.
+> 2. **Sincronia de Documentação (Regra Estrita)**: Sempre que for feita uma modificação no sistema (criação, alteração ou exclusão de arquivos), a documentação correspondente (este `README.md`, os da pasta `docs/` e os arquivos README marginais nas subpastas) deve sofrer atualizações respectivas a essas mudanças imediatamente, mantendo a estrutura em árvore (`Geral -> docs -> Específico da subpasta`).
+
+---
+
+## Pré-requisitos e Instalação
 
 ### Opção A: Execução Local (Python Nativo)
 - **Python 3.8+**
@@ -57,7 +84,7 @@ O projeto segue os princípios da Clean/Hexagonal Architecture:
    ```bash
    source .venv/bin/activate
    ```
-2. Instale as dependências listadas no arquivo [requirements.txt](file:///home/luska/Documents/projects/message_integration/requirements.txt):
+2. Instale as dependências listadas no arquivo [requirements.txt](./requirements.txt):
    ```bash
    pip install -r requirements.txt
    ```
@@ -72,9 +99,9 @@ O projeto segue os princípios da Clean/Hexagonal Architecture:
 
 ---
 
-## ⚙️ Configuração (Variáveis de Ambiente)
+## Configuração (Variáveis de Ambiente)
 
-O arquivo [config.py](file:///home/luska/Documents/projects/message_integration/src/core/config.py) carrega as configurações da aplicação com base nas variáveis de ambiente. Defina-as no terminal antes da execução ou crie um arquivo `.env` (se houver suporte local):
+O arquivo [config.py](./src/core/config.py) carrega as configurações da aplicação com base nas variáveis de ambiente. Defina-as no terminal antes da execução ou crie um arquivo `.env` (se houver suporte local):
 
 | Variável | Descrição | Padrão | Obrigatória? |
 | :--- | :--- | :--- | :--- |
@@ -99,7 +126,7 @@ O arquivo [config.py](file:///home/luska/Documents/projects/message_integration/
 
 ---
 
-## 🚀 Como Utilizar
+## Como Utilizar
 
 ### Opção A: Usando Docker (Recomendado) 🐳
 
@@ -134,14 +161,14 @@ O arquivo [config.py](file:///home/luska/Documents/projects/message_integration/
 
 ### Execução do Worker (Recuperação de Carrinho)
 
-O orquestrador principal do projeto é o [main.py](file:///home/luska/Documents/projects/message_integration/src/main.py). Você pode executá-lo através da CLI passando comandos específicos.
+O orquestrador principal do projeto é o [main.py](./src/main.py). Você pode executá-lo através da CLI passando comandos específicos.
 
 #### 1. Modo Dry-Run (Simulado)
 Por padrão, a execução utiliza mocks de e-mail e de WhatsApp para exibir os envios diretamente no terminal sem gerar custos de API ou enviar e-mails reais:
 ```bash
 python src/main.py abandoned-carts
 ```
-*Durante o Dry-Run, o corpo HTML dos e-mails gerados é salvo localmente no arquivo `temp_email_output.html` na raiz do projeto para validação visual.*
+*Durante o Dry-Run, o corpo HTML dos e-mails gerados é salvo localmente no arquivo `tests/temp_email_output.html` para validação visual.*
 
 #### 2. Modo Produção (Envio de E-mail Real via SMTP)
 Para disparar e-mails reais para os clientes utilizando as credenciais SMTP definidas, passe a flag `--production`:
@@ -167,15 +194,15 @@ Para rodar o servidor Flask que escuta os eventos em tempo real do WhatsApp da M
    ngrok http 5000
    ```
 4. Configure a URL gerada pelo ngrok finalizada em `/webhook` nas configurações do Webhook da Meta Business Cloud API.
-5. Utilize o Token de Verificação padrão: `rodolfo_hulk_tasmania` (configurado em [webhook_server.py](file:///home/luska/Documents/projects/message_integration/src/webhook_server.py#L7)).
+5. Utilize o Token de Verificação padrão: `rodolfo_hulk_tasmania` (configurado em [webhook_server.py](./src/webhook_server.py#L7)).
 
 ---
 
-## 🧪 Executando os Testes
+## Executando os Testes
 
 Os testes unitários cobrem a validação de regras de negócios de elegibilidade (cutoff de 2 horas e limite de 48 horas), tratamento de carrinhos elegíveis, ignorados, repetidos e tratamento de mocks de rede e persistência.
 
-Para executar os testes contidos na pasta [tests](file:///home/luska/Documents/projects/message_integration/tests), use o interpretador do ambiente virtual:
+Para executar os testes contidos na pasta [tests](./tests), use o interpretador do ambiente virtual:
 
 ```bash
 ./.venv/bin/python -m unittest discover -s tests
@@ -183,16 +210,16 @@ Para executar os testes contidos na pasta [tests](file:///home/luska/Documents/p
 
 ---
 
-## 📁 Logs e Depuração (Auditoria)
+## Logs e Depuração (Auditoria)
 
 ### Logs de Execução (Console e Arquivo)
-A aplicação possui um sistema de logging configurado em [main.py](file:///home/luska/Documents/projects/message_integration/src/main.py). O tempo de abandono dos carrinhos em horas é registrado durante a análise.
+A aplicação possui um sistema de logging configurado em [main.py](./src/main.py). O tempo de abandono dos carrinhos em horas é registrado durante a análise.
 *   **Caminho local:** `logs/app.log` (mapeado via volume no Docker Compose).
 *   **Visualização em tempo real:** `tail -f logs/app.log`
 
 ### Depuração Interativa (VS Code)
 Para acompanhar a execução do código passo a passo (incluindo chamadas internas/filhas) de maneira visual:
-*   Use as configurações do [launch.json](file:///home/luska/Documents/projects/message_integration/.vscode/launch.json) integradas no VS Code. Basta acessar a aba "Run and Debug", escolher o perfil correspondente ao worker e pressionar **F5** após definir seus breakpoints.
+*   Use as configurações do [launch.json](./.vscode/launch.json) integradas no VS Code. Basta acessar a aba "Run and Debug", escolher o perfil correspondente ao worker e pressionar **F5** após definir seus breakpoints.
 
 ### Auditoria de Templates de E-mail
 A cada execução do worker de carrinhos abandonados, os e-mails HTML gerados dinamicamente para cada carrinho são salvos localmente:
@@ -201,14 +228,21 @@ A cada execução do worker de carrinhos abandonados, os e-mails HTML gerados di
 
 ---
 
-## 📂 Estrutura de Diretórios
+## Estrutura de Diretórios
 
 Abaixo está o mapeamento dos principais componentes do projeto:
 
 ```bash
+├── .gemini/                          # Diretrizes comportamentais de IA e regras de auto-documentação
+│   ├── GEMINI.md                     # Código de conduta do assistente, Git em modo leitura, SemVer
+│   └── auto_documentation_rules.md   # Regras de manutenção síncrona dos README.md locais
 ├── docs/                             # Documentação geral do sistema
 │   ├── architecture.md               # Detalhes da arquitetura de especificação e camadas
-│   └── future_implementations.md     # Débitos técnicos e roadmap de novas features
+│   ├── project_dependency_tree.md    # Árvore visual e conceitual de dependências
+│   ├── project_overview.md           # Guia funcional completo e decisões de design
+│   ├── email_state_machine.md        # Especificação técnica da Máquina de Estados (STG/STC)
+│   ├── future_implementations.md     # Débitos técnicos e roadmap de novas features
+│   └── docker_cheatsheet.md          # Guia de rotinas e comandos Docker
 ├── emails/                           # Diretório de auditoria contendo HTMLs de envios passados
 ├── estudos/                          # Documentações e relatórios de estudos de mercado/CPaaS
 ├── src/                              # Código-fonte principal
@@ -234,7 +268,7 @@ Abaixo está o mapeamento dos principais componentes do projeto:
 
 ---
 
-## 📌 9. Versionamento e Roadmap (Semantic Versioning)
+## Versionamento e Roadmap (Semantic Versioning)
 
 Este projeto adota estritamente o padrão **[Semantic Versioning (SemVer 2.0.0)](https://semver.org/lang/pt-BR/)** no formato `MAJOR.MINOR.PATCH`:
 
@@ -244,5 +278,5 @@ Este projeto adota estritamente o padrão **[Semantic Versioning (SemVer 2.0.0)]
 - **MINOR (`1.X.0`)** — **Novas Funcionalidades (Non-breaking)**: Adição de novos provedores (ex: novos canais de mensagem, novas regras de cupons) de forma retrocompatível.
 - **PATCH (`1.0.X`)** — **Bug Fixes / Ajustes Pequenos**: Correções de bugs, pequenas melhorias de performance ou ajustes de formatação sem alterar regras de negócio.
 
-Os registros de cada versão e histórico de alterações estão centralizados no arquivo [`CHANGELOG.md`](file:///home/luska/Documents/projects/message_integration/CHANGELOG.md) e controlados via Git Tags (ex: `git tag v1.0.0`).
+Os registros de cada versão e histórico de alterações estão centralizados no arquivo [`CHANGELOG.md`](./CHANGELOG.md) e controlados via Git Tags (ex: `git tag v1.0.0`).
 

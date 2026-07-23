@@ -1,21 +1,32 @@
 # Macros e Constantes de Negócio
 
 # ==========================================
-# Timers STG (Pedidos) - em segundos
+# Timers STG (Pedidos)
 # ==========================================
-MACRO_STG_01_TIMER_02 = 30 * 60      # 30 minutos (Null -> 1, Null -> 2, Null -> 4, 2 -> 4)
-MACRO_STG_04_TIMER_05 = 24 * 60 * 60 # 24 horas (4 -> 5)
-MACRO_STG_05_TIMER_06 = 48 * 60 * 60 # 48 horas (5 -> 6)
-MACRO_STG_06_TIMER_07 = 72 * 60 * 60 # 72 horas (6 -> 7)
-MACRO_STG_07_TIMER_08 = 96 * 60 * 60 # 96 horas (7 -> 8)
+MACRO_TIMEOUT_PAGAMENTO_SEG = 30 * 60  # 30 minutos em segundos
+MACRO_CUPOM_PEDIDO_1_HORAS = 24        # 24 horas
+MACRO_CUPOM_PEDIDO_2_HORAS = 48        # 48 horas
+MACRO_CUPOM_PEDIDO_3_HORAS = 72        # 72 horas
+MACRO_PERDIDO_PEDIDO_HORAS = 96        # 96 horas
+
+MACRO_STG_01_TIMER_02 = MACRO_TIMEOUT_PAGAMENTO_SEG
+MACRO_STG_04_TIMER_05 = MACRO_CUPOM_PEDIDO_1_HORAS * 3600
+MACRO_STG_05_TIMER_06 = MACRO_CUPOM_PEDIDO_2_HORAS * 3600
+MACRO_STG_06_TIMER_07 = MACRO_CUPOM_PEDIDO_3_HORAS * 3600
+MACRO_STG_07_TIMER_08 = MACRO_PERDIDO_PEDIDO_HORAS * 3600
 
 # ==========================================
-# Timers STC (Carrinhos) - em segundos
+# Timers STC (Carrinhos)
 # ==========================================
-MACRO_STC_00_TIMER_15 = 4 * 60 * 60  # 4 horas (Null -> 15)
-MACRO_STC_15_TIMER_16 = 24 * 60 * 60 # 24 horas (15 -> 16)
-MACRO_STC_16_TIMER_17 = 48 * 60 * 60 # 48 horas (16 -> 17)
-MACRO_STC_17_TIMER_18 = 96 * 60 * 60 # 96 horas (17 -> 18)
+MACRO_CUPOM_CARRINHO_1_HORAS = 4       # 4 horas (lembrete 15)
+MACRO_CUPOM_CARRINHO_2_HORAS = 24      # 24 horas (cupom 16)
+MACRO_CUPOM_CARRINHO_3_HORAS = 48      # 48 horas (cupom 17)
+MACRO_PERDIDO_CARRINHO_HORAS = 96      # 96 horas (carrinho perdido 18)
+
+MACRO_STC_00_TIMER_15 = MACRO_CUPOM_CARRINHO_1_HORAS * 3600
+MACRO_STC_15_TIMER_16 = MACRO_CUPOM_CARRINHO_2_HORAS * 3600
+MACRO_STC_16_TIMER_17 = MACRO_CUPOM_CARRINHO_3_HORAS * 3600
+MACRO_STC_17_TIMER_18 = MACRO_PERDIDO_CARRINHO_HORAS * 3600
 
 # ==========================================
 # Intervalos de Execução (Worker)

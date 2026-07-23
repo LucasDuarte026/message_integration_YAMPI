@@ -1,7 +1,7 @@
 # Diagrama de Estados — STG (Pedidos)
 
 **Data de Criação:** 2026-07-21  
-**Referência:** [04_refactor_logic_emails.md](file:///home/luska/Documents/projects/message_integration/project_decisions/04_refactor_logic_emails.md)
+**Referência:** [email_state_machine.md](../../docs/email_state_machine.md)
 
 ---
 

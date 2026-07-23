@@ -13,16 +13,17 @@ Este documento serve como o "Manual do Usuário" e o "Manual do Desenvolvedor" c
 
 ## 2. Casos de Uso (Use Cases)
 
-### 2.1 Recuperação de Carrinho Abandonado (Abandoned Cart)
+### 2.1 Recuperação de Carrinho Abandonado (Abandoned Cart - Fluxo STC)
 - **Problema:** Clientes adicionam produtos ao carrinho, mas saem antes de finalizar a compra.
 - **Ação do Sistema:** O sistema consulta a API da Yampi regularmente buscando por carrinhos recém-abandonados (baseando-se em uma janela de horas específica). 
-- **Verificação:** Consulta um banco de dados local (SQLite/Postgres) para verificar se o cliente já foi notificado.
-- **Execução:** Caso não tenha sido, despacha uma mensagem (via provedor de mensagem como WhatsApp ou Email) incentivando o retorno à loja.
+- **Verificação de Estado (STC):** Consulta o banco de dados unificado (`email_status_table`) verificando a coluna `stc` (Status Carrinho). Se `pedido_id` não for nulo (ou seja, já virou pedido), pula.
+- **Execução:** Caso o `stc` permita (ex: transição null→15, 15→16, 16→17), despacha uma mensagem (via provedor SMTP/WhatsApp) contendo o cupom correspondente e o link `simulate_url` para incentivar o retorno à loja, avançando o estado da coluna `stc`.
 
-### 2.2 Atualização de Pedidos (Orders Update)
-- **Problema:** Clientes precisam estar informados do status de envio e processamento dos seus pedidos.
-- **Ação do Sistema:** Atua reativamente (via webhooks) ou ativamente consultando status recentes.
-- **Execução:** Envia atualizações via provedor de mensagem informando sobre pagamentos confirmados, mercadorias despachadas, etc.
+### 2.2 Atualização de Pedidos (Orders Update - Fluxo STG)
+- **Problema:** Clientes precisam estar informados do status de envio, ou serem incentivados a pagar (PIX/Boleto pendente), ou receber cupons de recuperação (pedido travado).
+- **Ação do Sistema:** O sistema consulta pedidos recentes na API e avalia contra o estado local.
+- **Verificação de Estado (STG):** Consulta a coluna `stg` (Status Global). Verifica a diferença de tempo (`diff`) desde a `data_pedido` ou status da Yampi.
+- **Execução:** Dispara emails correspondentes à transição (ex: Email 1 para pagamento aprovado, Email 2 para incentivo ao PIX, ou Cupons 1, 2, 3 para pedidos não pagos após 24h, 48h, 72h) e avança a máquina de estados `stg`. Evita disparos nos estados terminais definidos pela [Lógica de E-mails](./email_state_machine.md).
 
 ---
 
@@ -49,34 +50,37 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 ---
 
 ## 4. Quem Executa e Onde Consulta
-- **Quem Executa (Regras de Negócio):** O diretório `src/workers/` possui os orquestradores (como `AbandonedCartProcessor`). Eles são o "cérebro" das tarefas individuais.
+- **Quem Executa (Regras de Negócio):** O diretório `src/workers/` possui os orquestradores (`AbandonedCartProcessor` e `OrderProcessor`). Eles são o "cérebro" das tarefas individuais, operando de forma concorrente via *ThreadPoolExecutor* para alta vazão.
 - **Onde Consulta (Fonte de Dados):**
   - **Externa:** API da Yampi consumida via `src/core/client.py`.
-  - **Interna (Estado):** Banco de Dados, consultado via `src/core/db.py` (SQLite local) ou `src/ports/postgres_repo.py` para controle do que já foi enviado.
+  - **Interna (Estado):** Banco de Dados PostgreSQL unificado (`email_status_table`) com suporte a travas de concorrência (`FOR UPDATE`), consultado via `src/ports/postgres_repo.py` para controle da máquina de estados dupla (STG para Pedidos e STC para Carrinhos). (A infraestrutura suporta SQLite para fallback, mas a arquitetura-alvo orienta Postgres).
 - **O Que Fornece (Saída/Output):** 
-  - Comunicações enviadas via provedores de mensagens implementados em `src/ports/` (ex: WhatsApp Meta, SMTP Email, Mocks para testes locais).
+  - Comunicações enviadas via provedores de mensagens implementados em `src/ports/` (ex: SMTP Email com TLS/SSL, WhatsApp Meta, Mocks para testes locais).
 
 ---
 
 ## 5. Decisões de Projeto
 
-- **Infraestrutura Desacoplada:** Ao usar os contratos de `src/domain/interfaces.py`, o projeto pode trocar de provedor de mensagem (Zenvia, Twilio, Meta) alterando apenas uma linha no orquestrador principal sem que o Worker perceba.
-- **Tolerância a Falhas e Duplicidade:** O uso estrito do `StateRepositoryProtocol` (o DB local/Remoto) atua como um *Idempotency Key Store*, assegurando que gargalos de API ou retentativas não spammem o cliente final com o mesmo alerta duas vezes.
-- **Auto-documentação (Spec-Driven):** Exigência de que regras e contratos guiem o desenvolvimento, sendo documentados e mantidos por IA em tempo real. Cada pasta possui seu próprio documento que reitera as limitações de modificação do módulo.
+- **Infraestrutura Desacoplada:** Ao usar os contratos de `src/domain/interfaces.py`, o projeto pode trocar de provedor de mensagem (SMTP, Meta) alterando apenas a injeção no orquestrador principal sem que o Worker perceba.
+- **Tolerância a Falhas e Duplicidade:** O uso estrito do banco de dados relacional atua como uma máquina de estados (STG/STC). As transações garantem que gargalos de API ou execuções paralelas de workers não gerem duplicidade ou *race conditions*.
+- **Auto-documentação Estrita:** Exigência de que regras e contratos guiem o desenvolvimento. 
+> [!CAUTION]
+> **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**
+> Sempre que for feito uma modificação no código-fonte, a documentação (tanto este overview geral quanto os READMEs marginais em `src/`) deve sofrer atualizações imediatas respectivas a essas mudanças para refletir o comportamento real do sistema em produção.
 
 ---
 
 ## 6. Logs e Depuração
 
 ### Fluxo de Logs
-O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [main.py](file:///home/luska/Documents/projects/message_integration/src/main.py).
+O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [main.py](../src/main.py).
 - **Destinos da Saída:** Console (`sys.stdout`) e arquivo em disco (`logs/app.log`).
 - **Nível de Logs:** `INFO`.
 - **Rastreamento de Regras:** O worker de carrinhos calcula e loga a idade de abandono em horas (`Analisando carrinho [id]: abandonado há [X.XX] horas. Regra aplicada: [fase]`), facilitando o rastreamento das regras aplicadas para cada fase de recuperação.
 
 ### Depuração Interativa
 Para rastrear a execução linha por linha e acompanhar a pilha de chamadas e objetos (incluindo chamadas de funções filhas) de forma visual:
-*   **Depurador em IDE (VS Code):** Configurado no arquivo [.vscode/launch.json](file:///home/luska/Documents/projects/message_integration/.vscode/launch.json) para que o desenvolvedor possa colocar breakpoints no código e debugar de forma gráfica os comandos `abandoned-carts` e `orders` rodando localmente.
+*   **Depurador em IDE (VS Code):** Configurado no arquivo [.vscode/launch.json](../.vscode/launch.json) para que o desenvolvedor possa colocar breakpoints no código e debugar de forma gráfica os comandos `abandoned-carts` e `orders` rodando localmente.
 
 ### Mapeamento no Docker
-Para persistência local e facilidade de depuração no ambiente host, o [docker-compose.yml](file:///home/luska/Documents/projects/message_integration/docker-compose.yml) mapeia a pasta local `./logs` para `/app/logs` dentro do container da aplicação. Isso permite visualizar a execução em tempo real rodando comandos como `tail -f logs/app.log`.
+Para persistência local e facilidade de depuração no ambiente host, o [docker-compose.yml](../docker-compose.yml) mapeia a pasta local `./logs` para `/app/logs` dentro do container da aplicação. Isso permite visualizar a execução em tempo real rodando comandos como `tail -f logs/app.log`.

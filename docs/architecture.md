@@ -3,8 +3,10 @@
 Este documento descreve a infraestrutura não-monolítica e orientada a especificações (Spec-Driven Development) deste projeto. 
 Ele serve como guia principal e mapa mental para agentes de IA e desenvolvedores que trabalham nesta base de código.
 
-## 🚨 Diretiva Crítica de Manutenção (Para Agentes de IA)
+## 🚨 Diretiva Crítica de Manutenção (Para Agentes de IA e Desenvolvedores)
 > [!CAUTION]
+> **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**
+> Sempre que for feito uma modificação, a documentação deve sofrer atualizações respectivas a essas mudanças.
 > **SEMPRE QUE UM ARQUIVO FOR MODIFICADO, ADICIONADO OU REMOVIDO NESTE PROJETO:**
 > Você **DEVE** atualizar imediatamente o arquivo `README.md` local do respectivo diretório onde a mudança ocorreu. Caso a mudança afete o fluxo geral, você deve atualizar este arquivo `architecture.md`. 
 > A consistência e veracidade da documentação é um requisito estrito da nossa arquitetura Spec-Driven. Nunca escreva código sem documentar a mudança nos arquivos de documentação da pasta.
@@ -19,14 +21,16 @@ O coração da aplicação. Não possui implementações, apenas contratos (`Pro
 Fornece os blocos de construção internos da nossa infraestrutura:
 - Conexão e tratamento bruto com a API Yampi (`client.py`)
 - Gerenciamento de credenciais via variáveis de ambiente (`config.py`)
-- Repositório de estado / persistência local SQLite (`db.py`)
+- Repositório de estado / persistência local e relacional (`db.py` e `macros.py`)
 
 ### 3. [`src/ports/`](../src/ports/README.md) (Adaptadores Externos)
 Onde as implementações de terceiros (que não são o nosso sistema core) vivem. Eles implementam os contratos do `domain`.
-- Exemplo: Provedores de envio de mensagens via WhatsApp/Email (Zenvia, Twilio, Mocks).
+- Exemplo: Provedores de envio de mensagens via WhatsApp/Email (SMTP, Mocks).
+- Exemplo: Implementação do banco de dados relacional (PostgreSQL via `postgres_repo.py`).
 
 ### 4. [`src/workers/`](../src/workers/README.md) (Regras de Negócio e Use Cases)
-Os sub-programas que executam as atividades (ex: Recuperação de Carrinho Abandonado). Os workers são isolados, não instanciam conexões e devem receber todas as dependências (Core e Ports) injetadas no construtor pelo Orquestrador.
+Os sub-programas que executam as atividades (ex: Recuperação de Carrinho Abandonado e Atualização de Pedidos). Os workers são isolados, não instanciam conexões e devem receber todas as dependências (Core e Ports) injetadas no construtor pelo Orquestrador.
+> **NOTA:** A lógica de estado (STG e STC) processada pelos workers é estritamente regida pela **[Lógica e Máquina de Estados de E-mails](./email_state_machine.md)**. Qualquer mudança na regra de negócio deve primeiro ser modelada naquele documento.
 
 ### 5. `src/main.py` (Orquestrador / Ponto de Entrada)
 É quem junta tudo. Ele importa as configurações, cria a instância do banco de dados, a instância da API, e as passa como dependência para o Worker desejado. É desenhado para ser executado via CLI (ex: `crontab`).

@@ -12,8 +12,6 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # - ./init-scripts:/docker-entrypoint-initdb.d # documento para iniciar o db já com essas coisas
-
       # Serviço da Aplicação (Configurado em modo ocioso para permitir execuções manuais do main.py)
       # O webhook_server foi desativado por padrão (Feature Futura de WPP Meta Message)
   app:

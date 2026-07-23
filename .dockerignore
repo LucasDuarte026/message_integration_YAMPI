@@ -6,4 +6,4 @@ __pycache__/
 .agent/
 .gemini/
 emails/
-temp_email_output.html
+tests/

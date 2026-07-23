@@ -7,8 +7,10 @@ Ele não deve conter implementações concretas (acesso a rede, banco de dados o
 ## Arquivos e Responsabilidades
 - **`interfaces.py`**: Define os contratos estritos que o resto do sistema **DEVE** seguir. Contém as assinaturas do `YampiClientProtocol`, `MessageProviderProtocol` e `StateRepositoryProtocol`. O sistema se comunica através dessas interfaces.
 
-## 🚨 Diretiva de Manutenção (Para IA)
+## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]
+> **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**
+> Sempre que for feito uma modificação, a documentação deve sofrer atualizações respectivas a essas mudanças.
 > Se você modificar os contratos aqui ou adicionar novas interfaces, **DEVE**:
 > 1. Garantir que todas as implementações concretas (em `core` ou `ports`) sejam atualizadas para respeitar a nova assinatura.
 > 2. Atualizar este arquivo `README.md` para explicar o propósito do novo contrato.

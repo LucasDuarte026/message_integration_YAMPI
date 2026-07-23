@@ -9,7 +9,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased / 2.0.0] - Planejado (Refatoração de Lógica de E-mails)
 
-### Adicionado / Em Planejamento (Especificação em [04_refactor_logic_emails.md](file:///home/luska/Documents/projects/message_integration/project_decisions/04_refactor_logic_emails.md))
+### Adicionado / Em Planejamento (Especificação em [email_state_machine.md](./docs/email_state_machine.md))
 - **Tabela Unificada (`email_status_table`)**: Substituição das tabelas separadas `cart_states` e `order_states` por esquema unificado por `cart_id`.
 - **Máquina de Estados Dupla**:
   - **STG (Status Global)**: Controle do fluxo de pedidos (`null, 1, 2, 3, 4, 5, 6, 7, 8, 95, 96, 97`).

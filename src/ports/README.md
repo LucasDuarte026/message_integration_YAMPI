@@ -5,9 +5,13 @@ Baseado nos conceitos de Hexagonal Architecture (Ports and Adapters), este diret
 
 ## Arquivos e Responsabilidades
 - **`message_provider.py`**: Implementa o provedor de mensageria da aplicação. Atualmente, possui a classe `DryRunMessageProvider` que serve como Mock para simular disparos no terminal sem gerar custos de API.
+- **`postgres_repo.py`**: Implementa o `StateRepositoryProtocol` conectando-se a um banco de dados PostgreSQL. Ele faz `upsert` das informações (pedidos e carrinhos), mantendo os estados atualizados (STG e STC) utilizando travas transacionais (`FOR UPDATE`) para evitar concorrência.
+- **`smtp_email_provider.py`**: Implementa o `MessageProviderProtocol` conectando-se via SMTP para despachar as mensagens de e-mail formatadas nativamente aos clientes, permitindo configurações SSL/TLS explícitas.
 
-## 🚨 Diretiva de Manutenção (Para IA)
+## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]
+> **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**
+> Sempre que for feito uma modificação, a documentação deve sofrer atualizações respectivas a essas mudanças.
 > Se você criar um novo adaptador (ex: `ZenviaMessageProvider` ou `TwilioMessageProvider`) neste diretório, **DEVE** adicionar sua descrição, propósito e arquivo a este `README.md` no mesmo instante.
 
 ## Dependências

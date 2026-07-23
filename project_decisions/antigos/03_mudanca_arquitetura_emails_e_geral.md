@@ -104,7 +104,7 @@ casos do cupom (sempre com 10% de desconto)
    5  - caso o status(STG) seja 4 e tenha passado 24 horas desde o pedido e envia o email cupom 1 
    6  - caso o status(STG) seja 5 e tenha passado 48 horas desde o pedido e envia o email cupom 2 
    7  - caso o status(STG) seja 6 e tenha passado 72 horas desde o pedido e envia o email cupom 3 
-   8  - cliente perdido (não pagou o pedido dentro do prazo de 30 minutos e já recebeu todos os cupons)
+   8  - caso tenha passado 96 horas e seja status 7 -> cliente perdido (não a pagou o pedido dentro do prazo de 30 minutos e já recebeu todos os cupons)
    95, 96 ou 97 - caso de recuperação de client. 90 + (o caso anterior) Envia um email agradecendo por não ter desistido - "email recompra" (não será feito agora, deixar como future implementation) 
 
 
