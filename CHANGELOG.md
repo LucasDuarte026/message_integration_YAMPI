@@ -7,6 +7,16 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.1.0] - 2026-07-24 (Ajuste de Controle de Rastreio por Estado)
+
+### Alterado / Corrigido
+- **Ajuste de Valores de Controle e Nível de Logging de Rastreio (`src/services/email_builders/base_builder.py`)**:
+  - Removido o log falso-positivo de `ERROR` durante o preenchimento de e-mails em estágios pré-envio (`STG != 3`, ex: `STG 1` de confirmação de pagamento).
+  - **Valor de Controle Pré-envio (`STG != 3`)**: Quando o código de rastreio não está presente no payload da Yampi em fases iniciais, assume `'Aguardando envio'` e registra apenas log em nível `DEBUG`.
+  - **Validação Estrita de Envio (`STG 3`)**: Na transição para `STG 3` (envio/rastreio), o código de rastreio passa a ser verificado de forma obrigatória. Se não for encontrado na Yampi, assume o fallback `'Disponível em breve'` e dispara um log explícito de erro `[RASTREIO OBRIGATÓRIO]`.
+
+---
+
 ## [3.0.0] - 2026-07-23 (Versão de Semi Produção / Protótipo 1)
 
 ### Adicionado / Refatorado

@@ -57,16 +57,33 @@ class BaseEmailBuilder(ABC):
         shipments = event.order_data.get('shipments', {}).get('data', [])
         shipment_data = shipments[0] if isinstance(shipments, list) and len(shipments) > 0 else {}
         
-        tracking_code = (
+        found_code = (
             event.order_data.get('track_code') or 
             event.order_data.get('tracking_code') or 
             shipment_data.get('track_code') or 
-            shipment_data.get('tracking_code') or 
-            'Disponível em breve'
+            shipment_data.get('tracking_code')
         )
         
-        if tracking_code == 'Disponível em breve':
-            logger.error(f"[RASTREIO] Pedido ID: # {event.order_id} (Nº {event.order_number}): Código de rastreio 'Disponível em breve'.")
+        is_tracking_stg = getattr(event, 'new_stg', None) == 3
+        
+        if is_tracking_stg:
+            if found_code:
+                tracking_code = found_code
+            else:
+                tracking_code = 'Disponível em breve'
+                logger.error(
+                    f"[RASTREIO OBRIGATÓRIO] Pedido ID: # {event.order_id} (Nº {event.order_number}): "
+                    f"Transição para STG 3 (rastreio), mas o código de rastreio não foi encontrado na Yampi."
+                )
+        else:
+            if found_code:
+                tracking_code = found_code
+            else:
+                tracking_code = 'Aguardando envio'
+                logger.debug(
+                    f"[RASTREIO] Pedido ID: # {event.order_id} (Nº {event.order_number}): "
+                    f"Código de rastreio ausente no STG={getattr(event, 'new_stg', None)} (esperado). Definido como 'Aguardando envio'."
+                )
         
         tracking_url = (
             event.order_data.get('track_url') or 
