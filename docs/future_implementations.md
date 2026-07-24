@@ -11,7 +11,7 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
   - `cancelled` (Pedido Cancelado/Perdido) → validar se `status_id = 6`.
   - `shipped` (Em transporte/Despachado) → validar se `status_id = 7`.
   - `delivered` (Entregue) → validar se `status_id = 9`.
-  - `refunded` (Reembolsado) → validar se `status_id = 12`.
+  - `refunded` (Reembolsado) → validar se `status_id = 12` e checar se devem ir definitivamente para STG 8 (Morto/Terminal) ou se em algum cenário de negócio devem receber comunicações (cupons, reagendamento, etc).
 - **Payload Real de Despacho (`shipments`)**:
   Capturar amostra real de um pedido com status `shipped` para validar os nomes exatos das chaves `tracking_code` e `tracking_url` dentro de `shipments.data[0]`.
 
@@ -60,3 +60,11 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
   - Caso o disparo por e-mail falhe ou retorne *bounce*, acionar automaticamente um canal alternativo (WhatsApp via Meta Cloud API ou SMS) configurado na porta de mensageria (`MessageProviderProtocol`).
 - **Definição Final do Provedor CPaaS**:
   - Analisar a pesquisa do artefato de CPaaS e integrar a API vencedora utilizando o contrato `MessageProviderProtocol`.
+
+---
+
+## 5. Talvez Necessários (Message Brokers)
+
+- **Desacoplamento Assíncrono via Fila (RabbitMQ / Redis / Kafka)**:
+  - O pipeline de e-mail atual roda de forma síncrona por simplicidade. Porém, em cenários de alta escalabilidade (milhares de transições de STG simultâneas), pode ser necessário implementar um Message Broker assíncrono.
+  - O Worker de Pedidos apenas publicaria um evento (ex: `OrderTransitionEvent`) em uma fila, e um Worker de Notificações isolado consumiria essas mensagens para disparar os e-mails em segundo plano sem bloquear a esteira principal.

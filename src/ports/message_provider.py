@@ -17,10 +17,17 @@ class DryRunMessageProvider(MessageProviderProtocol):
         logger.info(f"[DRY-RUN] Assunto: {subject}")
         logger.info("="*40)
         
-        # Salva o arquivo HTML localmente em tests/ para inspeção visual do desenvolvedor
-        target_dir = "tests"
+        # Salva o arquivo HTML localmente em emails/ para inspeção visual sem sobrescrever
+        target_dir = "emails"
         os.makedirs(target_dir, exist_ok=True)
-        file_path = os.path.join(target_dir, "temp_email_output.html")
+        
+        # Gera um nome de arquivo seguro e único baseado no tempo e email
+        import time
+        import re
+        safe_email = re.sub(r'[^a-zA-Z0-9_\-]', '_', email)
+        filename = f"{int(time.time())}_{safe_email}.html"
+        file_path = os.path.join(target_dir, filename)
+        
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(html_body)

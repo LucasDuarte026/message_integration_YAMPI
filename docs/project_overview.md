@@ -78,9 +78,10 @@ O sistema utiliza o módulo de logging nativo do Python configurado globalmente 
 - **Nível de Logs:** `INFO`.
 - **Rastreamento de Regras:** O worker de carrinhos calcula e loga a idade de abandono em horas (`Analisando carrinho [id]: abandonado há [X.XX] horas. Regra aplicada: [fase]`), facilitando o rastreamento das regras aplicadas para cada fase de recuperação.
 
-### Depuração Interativa
+### Depuração Interativa e Execução Rápida
 Para rastrear a execução linha por linha e acompanhar a pilha de chamadas e objetos (incluindo chamadas de funções filhas) de forma visual:
 *   **Depurador em IDE (VS Code):** Configurado no arquivo [.vscode/launch.json](../.vscode/launch.json) para que o desenvolvedor possa colocar breakpoints no código e debugar de forma gráfica os comandos `abandoned-carts` e `orders` rodando localmente.
+*   **Execução via Script:** Utilize o `./run_local.sh all` para executar a aplicação no terminal. Ele já carrega as variáveis do `.env`. Por padrão, roda em modo de teste (salvando os emails na pasta `emails/` e `tests/`). Adicione `--production` no final se quiser disparar emails reais.
 
 ### Mapeamento no Docker
-Para persistência local e facilidade de depuração no ambiente host, o [docker-compose.yml](../docker-compose.yml) mapeia a pasta local `./logs` para `/app/logs` dentro do container da aplicação. Isso permite visualizar a execução em tempo real rodando comandos como `tail -f logs/app.log`.
+Para persistência local e facilidade de depuração no ambiente host, o [docker-compose.yml](../docker-compose.yml) mapeia a pasta local `./logs_from_container` para `/app/logs` dentro do container da aplicação. Isso permite visualizar a execução em tempo real rodando comandos como `tail -f logs_from_container/app.log`.

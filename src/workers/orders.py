@@ -15,6 +15,8 @@ from src.core.macros import (
     MACRO_PRECHECK_ORDERS_MAX_DAYS
 )
 from src.domain.interfaces import YampiClientProtocol, MessageProviderProtocol, StateRepositoryProtocol
+from src.domain.events import OrderTransitionEvent
+from src.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class OrderProcessor:
         self.api_client = api_client
         self.message_provider = message_provider
         self.state_repo = state_repo
+        self.notification_service = NotificationService(message_provider, config)
         
     def process(self) -> None:
         logger.info("Iniciando processamento de pedidos (STG)...")
@@ -100,14 +103,6 @@ class OrderProcessor:
         logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Idade <= {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
         return True, True
 
-    def _read_template(self, template_name: str) -> str:
-        template_path = os.path.join("src", "templates", "emails", f"{template_name}.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Erro ao ler template {template_path}: {e}")
-            return ""
 
     def _get_cart_id(self, order: Dict[str, Any]) -> Optional[str]:
         metadata = order.get('metadata', {}).get('data', [])
@@ -117,6 +112,14 @@ class OrderProcessor:
         return None
 
     def _process_order_concurrently(self, order: Dict[str, Any]) -> None:
+        try:
+            self._process_order_logic(order)
+        except Exception as e:
+            order_id = str(order.get('id', 'N/A'))
+            order_number = str(order.get('number', 'N/A'))
+            logger.error(f"[Worker Pedidos] Erro fatal e não tratado ao processar pedido ID: # {order_id} (Nº {order_number}): {e}", exc_info=True)
+
+    def _process_order_logic(self, order: Dict[str, Any]) -> None:
         order_id = str(order.get('id', ''))
         order_number = str(order.get('number', 'N/A'))
         cart_id = self._get_cart_id(order)
@@ -148,17 +151,6 @@ class OrderProcessor:
             if price > highest_price and item_sku:
                 highest_price = price
                 sku = item_sku
-                
-            title = item.get("name") or item.get("title") or "Produto"
-            qty = int(item.get("quantity", 1))
-            items_html += f"""
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155;"><strong>{title}</strong></td>
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155; text-align: center;">{qty}</td>
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155; text-align: right;">R$ {price:.2f}</td>
-            </tr>
-            """
-
         # FASE 1: LEITURA E VINCULAÇÃO ATÔMICA
         row = self.state_repo.upsert_from_order(cart_id, order_id, order_number, data_pedido, cpf, sku)
         if not row:
@@ -193,14 +185,16 @@ class OrderProcessor:
             f"Diff: {diff_seconds:.0f}s ({diff_hours:.2f}h)"
         )
 
+        is_refunded = alias == 'refunded'
+        
         new_stg = None
         template_name = None
         subject = ""
 
-        # REGRA PRIORITÁRIA 1: Cancelado / Reembolsado na Yampi -> STG 8 (Terminal)
-        if is_cancelled:
+        # REGRA PRIORITÁRIA 1: Reembolsado na Yampi -> STG 8 (Terminal)
+        if is_refunded:
             new_stg = 8
-            logger.debug(f"[REGRA APLICADA] STG {stg} -> 8: Pedido ID: # {order_id} (Nº {order_number}) foi cancelado/reembolsado na Yampi (alias='{alias}').")
+            logger.debug(f"[REGRA APLICADA] STG {stg} -> 8: Pedido ID: # {order_id} (Nº {order_number}) foi reembolsado na Yampi (alias='{alias}').")
         
         # REGRA PRIORITÁRIA 2: Em Transporte / En enviado (on_carriage / shipped) -> STG 3 + envio_rastreio
         elif is_on_carriage:
@@ -223,7 +217,7 @@ class OrderProcessor:
                 subject = f"Pagamento Confirmado: Pedido # {order_number}"
                 logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) mudou para pago (alias='{alias}'). Encerra esteira de cobrança.")
 
-        # REGRA 4: Status pendentes (waiting_payment, created, authorized) ou não-pagos
+        # REGRA 4: Status pendentes (waiting_payment, created, authorized) ou cancelados
         else:
             if stg is None:
                 if diff_seconds <= MACRO_TIMEOUT_PAGAMENTO_SEG:
@@ -234,10 +228,12 @@ class OrderProcessor:
                             subject = f"Finalize seu pagamento: Pedido # {order_number}"
                             logger.debug(f"[REGRA APLICADA] STG None -> 2: Pedido ID: # {order_id} (Nº {order_number}) pendente com delay cumprido ({diff_seconds:.0f}s >= {MACRO_DELAY_ORDER_PIX_EMAIL_SEG}s).")
                         else:
-                            logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) pendente aguardando delay de segurança ({diff_seconds:.0f}s < {MACRO_DELAY_ORDER_PIX_EMAIL_SEG}s). Nenhum e-mail enviado ainda.")
+                            logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) pendente aguardando delay de segurança ({diff_seconds:.0f}s < {MACRO_DELAY_ORDER_PIX_EMAIL_SEG}s).")
+                    elif is_cancelled:
+                        logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) cancelado precocemente. Aguardando timeout de 30min para ir ao STG 4.")
                 else:
                     new_stg = 4
-                    logger.debug(f"[REGRA APLICADA] STG None -> 4: Pedido ID: # {order_id} (Nº {order_number}) ultrapassou timeout ({diff_seconds:.0f}s > {MACRO_TIMEOUT_PAGAMENTO_SEG}s) e não foi pago.")
+                    logger.debug(f"[REGRA APLICADA] STG None -> 4: Pedido ID: # {order_id} (Nº {order_number}) ultrapassou timeout ({diff_seconds:.0f}s > {MACRO_TIMEOUT_PAGAMENTO_SEG}s) sem pagamento.")
             elif stg == 2:
                 if diff_seconds > MACRO_TIMEOUT_PAGAMENTO_SEG:
                     new_stg = 4
@@ -267,56 +263,14 @@ class OrderProcessor:
 
         if new_stg is not None:
             if template_name and email:
-                html_body = self._read_template(template_name)
-                if html_body:
-                    value_total = float(order.get('value_total') or order.get('value_products') or 0.0)
-                    total_value_str = f"{value_total:.2f}"
-                    recovery_url = order.get('checkout_url') or order.get('public_url') or order.get('reorder_url') or ""
-
-                    shipments = order.get('shipments', {}).get('data', [])
-                    shipment_data = shipments[0] if isinstance(shipments, list) and len(shipments) > 0 else {}
-                    
-                    tracking_code = (
-                        order.get('track_code') or 
-                        order.get('tracking_code') or 
-                        shipment_data.get('track_code') or 
-                        shipment_data.get('tracking_code') or 
-                        'Disponível em breve'
-                    )
-                    
-                    if tracking_code == 'Disponível em breve':
-                        logger.error(f"[RASTREIO] Pedido ID: # {order_id} (Nº {order_number}): Código de rastreio 'Disponível em breve'.")
-                    
-                    tracking_url = (
-                        order.get('track_url') or 
-                        order.get('tracking_url') or 
-                        shipment_data.get('track_url') or 
-                        shipment_data.get('tracking_url') or 
-                        '#'
-                    )
-
-                    html_body = html_body.replace("{name}", name)
-                    html_body = html_body.replace("{order_id}", order_number)
-                    html_body = html_body.replace("{items_html}", items_html)
-                    html_body = html_body.replace("{total_value}", total_value_str)
-                    html_body = html_body.replace("{total_value:.2f}", total_value_str)
-                    html_body = html_body.replace("{recovery_url}", recovery_url)
-                    html_body = html_body.replace("{tracking_code}", tracking_code)
-                    html_body = html_body.replace("{tracking_url}", tracking_url)
-                    
-                    # Salvar HTML localmente
-                    folder_path = os.path.join("emails", f"order_{order_id}")
-                    file_path = os.path.join(folder_path, f"email_stg_{new_stg}.html")
-                    try:
-                        os.makedirs(folder_path, exist_ok=True)
-                        with open(file_path, "w", encoding="utf-8") as f:
-                            f.write(html_body)
-                    except Exception as e:
-                        logger.error(f"[Worker Pedidos] Falha ao criar HTML para o pedido ID: # {order_id} (Nº {order_number}): {e}")
-
-                    recipient_email = self.config.TEST_EMAIL_RECIPIENT  # Em prod, usar `email`
-                    self.message_provider.send_email_message(recipient_email, subject, html_body)
-                    logger.info(f"[Worker Pedidos] E-mail STG {new_stg} enviado para pedido ID: # {order_id} (Nº {order_number})")
+                event = OrderTransitionEvent(
+                    order_id=order_id,
+                    order_number=order_number,
+                    new_stg=new_stg,
+                    customer_data=customer_data,
+                    order_data=order
+                )
+                self.notification_service.handle_transition(event, template_name)
 
             # FASE 3: GRAVAÇÃO ATÔMICA
             self.state_repo.update_stg(cart_id, new_stg)

@@ -33,17 +33,17 @@ MACRO_TAMANHO_PAGINA = 100               # itens por página na consulta à API 
 # --- Timers de Pedido (STG) — referência: data_pedido ---
 MACRO_TIMEOUT_PAGAMENTO_SEG = 1800       # 30 min — janela máxima de incentivo de pagamento inicial
 MACRO_DELAY_ORDER_PIX_EMAIL_SEG = 300    # 5 min — gordurinha/delay mínimo antes de disparar o Email 2 (PIX)
-MACRO_CUPOM_PEDIDO_1_HORAS = 24          # STG 4→5 — email cupom 1 (10%)
-MACRO_CUPOM_PEDIDO_2_HORAS = 48          # STG 5→6 — email cupom 2 (15%)
-MACRO_CUPOM_PEDIDO_3_HORAS = 72          # STG 6→7 — email cupom 3 (20%)
+MACRO_CUPOM_PEDIDO_1_HORAS = 12          # STG 4→5 — email cupom 1 (10%)
+MACRO_CUPOM_PEDIDO_2_HORAS = 14          # STG 5→6 — email cupom 2 (15%)
+MACRO_CUPOM_PEDIDO_3_HORAS = 16          # STG 6→7 — email cupom 3 (20%)
 
-MACRO_PERDIDO_PEDIDO_HORAS = 96          # STG 7→8 — cliente perdido
+MACRO_PERDIDO_PEDIDO_HORAS = 18          # STG 7→8 — cliente perdido
 
 # --- Timers de Carrinho Abandonado (STC) — referência: data_carrinho ---
-MACRO_CUPOM_CARRINHO_1_HORAS = 4         # STC null→15 — email cupom 4 + link recuperação
-MACRO_CUPOM_CARRINHO_2_HORAS = 24        # STC 15→16  — email cupom 5 + link recuperação
-MACRO_CUPOM_CARRINHO_3_HORAS = 48        # STC 16→17  — email cupom 6 + link recuperação
-MACRO_PERDIDO_CARRINHO_HORAS = 96        # STC 17→18  — cliente perdido
+MACRO_CUPOM_CARRINHO_1_HORAS = 14        # STC null→15 — email cupom 4 + link recuperação
+MACRO_CUPOM_CARRINHO_2_HORAS = 16        # STC 15→16  — email cupom 5 + link recuperação
+MACRO_CUPOM_CARRINHO_3_HORAS = 18        # STC 16→17  — email cupom 6 + link recuperação
+MACRO_PERDIDO_CARRINHO_HORAS = 20        # STC 17→18  — cliente perdido
 ```
 
 ---
@@ -115,12 +115,12 @@ diff_pedido = now_utc3 - data_pedido
 | `null` | `2` | `diff ≤ 30 min` e pagamento **pendente** (`waiting_payment`, `created`, `authorized`) | Enviar email, marcar STG=2 | **Email 2**: Confirmação de pedido + incentivo ao pagamento + PIX/QR Code |
 | `null` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado | Marcar STG=4 (sem email nessa transição, o cupom 1 sai em 24h) | — |
 | `2, 4, 5, 6, 7` | `3` | Pagamento aprovado (`paid`, `in_separation`, `invoiced`) | Enviar email, marcar STG=3 | **Email 3**: Confirmação de pagamento |
-| Qualquer | `8` | Pedido cancelado ou reembolsado (`cancelled`, `refunded`) | Marcar STG=8 | — (cancelado / perdido) |
-| `2` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado | Marcar STG=4 | — |
-| `4` | `5` | `diff > 24h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=5 | **Email Cupom 1**: desconto 10% |
-| `5` | `6` | `diff > 48h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=6 | **Email Cupom 2**: desconto 15% |
-| `6` | `7` | `diff > 72h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=7 | **Email Cupom 3**: desconto 20% |
-| `7` | `8` | `diff > 96h` e pagamento **NÃO** aprovado | Marcar STG=8 | — (cliente perdido, terminal) |
+| Qualquer | `8` | Pedido reembolsado (`refunded`) | Marcar STG=8 | — (cliente perdido/reembolsado) |
+| `2` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado (incluindo `cancelled` por PIX expirado) | Marcar STG=4 | — |
+| `4` | `5` | `diff > 12h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=5 | **Email Cupom 1**: desconto 10% |
+| `5` | `6` | `diff > 14h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=6 | **Email Cupom 2**: desconto 15% |
+| `6` | `7` | `diff > 16h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=7 | **Email Cupom 3**: desconto 20% |
+| `7` | `8` | `diff > 18h` e pagamento **NÃO** aprovado | Marcar STG=8 | — (cliente perdido, terminal) |
 
 ### 4.3 Estados Terminais (STG)
 
@@ -174,23 +174,26 @@ diff_carrinho = now() - data_carrinho
 | `null` | `15` | `diff > 4h` | Enviar email, marcar STC=15 | **Email Cupom 4**: desconto + link `simulate_url` |
 | `15` | `16` | `diff > 24h` | Enviar email, marcar STC=16 | **Email Cupom 5**: desconto + link `simulate_url` |
 | `16` | `17` | `diff > 48h` | Enviar email, marcar STC=17 | **Email Cupom 6**: desconto + link `simulate_url` |
-| `17` | `18` | `diff > 96h` | Marcar STC=18 | — (cliente perdido, terminal) |
+| `17` | `18` | `diff > 20h` | Marcar STC=18 | — (cliente perdido, terminal) |
 
 ### 5.4 Estados Terminais (STC)
 
 | STC | Significado |
 |---|---|
-| `18` | Cliente perdido (esgotou cadeia de cupons de carrinho, 96h) |
+| `18` | Cliente perdido (esgotou cadeia de cupons de carrinho, 20h) |
 | `85` | Conversão de carrinho abandonado → pedido (future implementation) |
 | `86` | Conversão de carrinho abandonado → pedido (future implementation) |
 | `87` | Conversão de carrinho abandonado → pedido (future implementation) |
 
 ### 5.5 Emails de Carrinho vs Emails de Pedido
 
-Os emails cupons 4, 5 e 6 (STC) são **estruturalmente similares** aos cupons 1, 2 e 3 (STG), com duas diferenças:
-
+Os emails cupons 4, 5 e 6 (STC) são para **carrinhos** e possuem:
 1. **Texto**: Menção explícita de que o carrinho foi abandonado.
 2. **Botão de ação**: O link do botão aponta para `simulate_url` (link de recuperação do checkout Yampi), levando o cliente de volta ao carrinho com produtos e dados preenchidos.
+
+Já os cupons 1, 2 e 3 (STG) são para **pedidos** não pagos:
+1. **Texto**: Focam em informar que o pagamento não foi concluído e oferecem um cupom para um **novo pedido**.
+2. **Sem botão de recuperação**: Não apontam de volta ao pedido, pois o PIX/Boleto original pode já ter sido cancelado/vencido.
 
 ---
 
@@ -337,12 +340,12 @@ O `FOR UPDATE` garante que apenas um worker por vez modifica cada linha, evitand
 | Email 1 | Confirmação + Pagamento | STG null→1 | Pagamento aprovado de primeira | Confirmação da compra + aviso de rastreio futuro |
 | Email 2 | Incentivo ao Pagamento | STG null→2 | Pedido ≤30 min, pagamento pendente | Confirmação do pedido + apelo + PIX/QR Code |
 | Email 3 | Confirmação Tardia | STG 2→3 | Pagamento aprovado após Email 2 | Idêntico ao Email 1 |
-| Cupom 1 | Cupom Pedido 10% | STG 4→5 | >24h desde pedido | Cupom 10% de desconto |
-| Cupom 2 | Cupom Pedido 15% | STG 5→6 | >48h desde pedido | Cupom 15% de desconto |
-| Cupom 3 | Cupom Pedido 20% | STG 6→7 | >72h desde pedido | Cupom 20% de desconto |
-| Cupom 4 | Cupom Carrinho + Link | STC null→15 | >4h desde carrinho | Cupom + botão `simulate_url` |
-| Cupom 5 | Cupom Carrinho + Link | STC 15→16 | >24h desde carrinho | Cupom + botão `simulate_url` |
-| Cupom 6 | Cupom Carrinho + Link | STC 16→17 | >48h desde carrinho | Cupom + botão `simulate_url` |
+| Cupom 1 | Cupom Pedido 10% | STG 4→5 | >12h desde pedido | Cupom 10% de desconto |
+| Cupom 2 | Cupom Pedido 15% | STG 5→6 | >14h desde pedido | Cupom 15% de desconto |
+| Cupom 3 | Cupom Pedido 20% | STG 6→7 | >16h desde pedido | Cupom 20% de desconto |
+| Cupom 4 | Cupom Carrinho + Link | STC null→15 | >14h desde carrinho | Cupom + botão `simulate_url` |
+| Cupom 5 | Cupom Carrinho + Link | STC 15→16 | >16h desde carrinho | Cupom + botão `simulate_url` |
+| Cupom 6 | Cupom Carrinho + Link | STC 16→17 | >18h desde carrinho | Cupom + botão `simulate_url` |
 
 ---
 
@@ -443,7 +446,7 @@ Conforme verificado em `estudos/yampi_api/pedidos.json` e documentação oficial
 |---|---|---|---|---|
 | `3` | `"waiting_payment"` | `"Aguardando pagamento"` | Transiciona para STG `2` (se `diff ≤ 30min`) ou STG `4` (se `diff > 30min`) | **Confirmado ✓** (via `pedidos.json`) |
 | `4` | `"paid"` | `"Pagamento aprovado"` | Transiciona para STG `1` (se de primeira) ou STG `3` (se após incentivo) | **Confirmado ✓** (via `pedidos.json`) |
-| `6` | `"cancelled"` | `"Cancelado"` | Transiciona para STG `8` (Cliente Perdido / Pedido Cancelado) | **A Confirmar** (a validar em endpoint `/checkout/statuses`) |
+| `6` | `"cancelled"` | `"Cancelado"` | Ignorado no precheck, permitindo que a regra temporal do STG 4 e subsequentes trate o pedido como não aprovado, guiando o cliente para re-compra. | **Confirmado ✓** (via nova regra de pipeline) |
 | `7` | `"shipped"` | `"Em transporte"` | Dispara E-mail de Rastreio | **A Confirmar** (a validar em endpoint `/checkout/statuses`) |
 | `9` | `"delivered"` | `"Entregue"` | Pedido finalizado com sucesso | **A Confirmar** (a validar em endpoint `/checkout/statuses`) |
 | `12` | `"refunded"` | `"Reembolsado"` | Pedido reembolsado | **A Confirmar** (a validar em endpoint `/checkout/statuses`) |

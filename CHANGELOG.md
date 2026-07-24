@@ -7,24 +7,28 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
-## [Unreleased / 2.0.0] - Planejado (Refatoração de Lógica de E-mails)
+## [3.0.0] - 2026-07-23 (Versão de Semi Produção / Protótipo 1)
 
-### Adicionado / Em Planejamento (Especificação em [email_state_machine.md](./docs/email_state_machine.md))
+### Adicionado / Refatorado
+- **Daemon Autônomo e Resiliente (`src/daemon.py`)**:
+  - Implementado loop infinito que processa carrinhos e pedidos a cada 5 minutos.
+  - Modo Dry-Run ativado por padrão em produção simulada para extração segura de dados via HTMLs.
 - **Tabela Unificada (`email_status_table`)**: Substituição das tabelas separadas `cart_states` e `order_states` por esquema unificado por `cart_id`.
 - **Máquina de Estados Dupla**:
   - **STG (Status Global)**: Controle do fluxo de pedidos (`null, 1, 2, 3, 4, 5, 6, 7, 8, 95, 96, 97`).
   - **STC (Status Carrinho)**: Controle do fluxo de carrinhos abandonados (`null, 15, 16, 17, 18, 85, 86, 87`).
-- **Timers Temporais Absolutos**: Cálculos temporais baseados diretamente em `data_pedido` (STG) ou `data_carrinho` (STC).
+- **Timers Temporais Absolutos e Customizados**: Cálculos temporais baseados diretamente em `data_pedido` (STG) ou `data_carrinho` (STC). Janelas relaxadas para garantir melhor aderência.
 - **Processamento Assíncrono em Lote**: Produtor consulta Yampi e divide resultados em arquivos JSON de 100 itens (`orders/` e `carts/`), consumidos e deletados por workers paralelos.
 - **Locking Concorrente**: Leitura e gravação no banco com `SELECT FOR UPDATE` para evitar corrupção por acesso simultâneo.
 - **Bloco de Macros (`MACRO_*`)**: Configuração centralizada no topo dos arquivos de código para prazos, tamanhos de lote e intervalos.
-- **Diagramas de Estado Mermaid**:
-  - `project_decisions/diagramas/stateDiagramOrders.md`
-  - `project_decisions/diagramas/stateDiagramAbandonedCarts.md`
+- **Evolução Docker**:
+  - `healthcheck` adicionado no PostgreSQL para prevenir que a aplicação suba antes do banco, eliminando o erro de *Connection refused*.
+  - Exportação de logs e e-mails mapeados diretamente no container (`logs_from_container/` e `emails_from_container/`).
+  - O arquivo `VERSION` agora é injetado no container, resolvendo o bug `vunknown`.
 
 ---
 
-## [2.2.0] - 2026-07-23 (Adição de order_number, Estrutura do Banco e Sistema de Logging)
+## [2.2.1] - 2026-07-23 (Adição de order_number, Logging e Baseline Estável de E-mails)
 
 ### Adicionado
 - **Nova Coluna `order_number` em `email_status_table`**:

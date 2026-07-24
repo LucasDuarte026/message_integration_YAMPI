@@ -128,8 +128,8 @@ if __name__ == "__main__":
     order_processor = OrderProcessor(config, api_client, message_provider, state_repo)
     order_processor.process()
     
-    # logger.info("Iniciando processamento síncrono de CARTS...")
-    # cart_processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
-    # cart_processor.process()
+    logger.info("Iniciando processamento síncrono de CARTS...")
+    cart_processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
+    cart_processor.process()
     
     print("\nProcessamento completo!")

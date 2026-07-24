@@ -5,11 +5,14 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Tuple
 
 from src.core.config import Config
+from src.domain.events import CartTransitionEvent
+from src.services.notification_service import NotificationService
 from src.core.macros import (
     MACRO_CUPOM_CARRINHO_1_HORAS,
     MACRO_CUPOM_CARRINHO_2_HORAS,
     MACRO_CUPOM_CARRINHO_3_HORAS,
-    MACRO_PERDIDO_CARRINHO_HORAS
+    MACRO_PERDIDO_CARRINHO_HORAS,
+    MACRO_PRECHECK_ORDERS_MAX_DAYS
 )
 from src.domain.interfaces import YampiClientProtocol, MessageProviderProtocol, StateRepositoryProtocol
 
@@ -31,6 +34,7 @@ class AbandonedCartProcessor:
         self.api_client = api_client
         self.message_provider = message_provider
         self.state_repo = state_repo
+        self.notification_service = NotificationService(message_provider, config)
         
     def process(self) -> None:
         logger.info("Iniciando processamento de carrinhos abandonados (STC)...")
@@ -78,142 +82,117 @@ class AbandonedCartProcessor:
                  return True, False
                  
         now_utc3 = datetime.utcnow() - timedelta(hours=3)
-        hours_since_abandonment = (now_utc3 - created_at).total_seconds() / 3600
+        days_since_creation = (now_utc3 - created_at).total_seconds() / 86400
         
         # Limite de busca: Não olhar mais longe que 168 horas (1 semana)
-        if hours_since_abandonment > 168:
+        if days_since_creation > MACRO_PRECHECK_ORDERS_MAX_DAYS:
             return False, False
             
+        logger.debug(f"[PRECHECK] Carrinho: Idade <= {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
         return True, True
         
-    def _read_template(self, template_name: str) -> str:
-        template_path = os.path.join("src", "templates", "emails", f"{template_name}.html")
-        try:
-            with open(template_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Erro ao ler template {template_path}: {e}")
-            return ""
-
     def _process_cart_concurrently(self, cart: Dict[str, Any]) -> None:
-        cart_id = str(cart.get('id', ''))
-        customer_data = cart.get('customer', {}).get('data', {})
-        cpf = customer_data.get('cpf')
-        name = customer_data.get('name', 'Cliente').split()[0]
-        email = customer_data.get('email')
-        
-        if not email:
-            logger.warning(f"[Worker Carrinhos] Carrinho {cart_id} sem email. Ignorando.")
-            return
-
-        created_at_str = cart.get('created_at', {}).get('date')
         try:
-            data_carrinho = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            data_carrinho = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
-
-        # Determinar SKU mais caro e calcular total
-        sku = None
-        highest_price = -1
-        total_value = 0.0
-        items_html = ""
+            cart_id = str(cart.get('id', ''))
+            customer_data = cart.get('customer', {}).get('data', {})
+            cpf = customer_data.get('cpf')
+            name = customer_data.get('name', 'Cliente').split()[0]
+            email = customer_data.get('email')
         
-        items_raw = cart.get("items", {})
-        items_list = items_raw.get("data", []) if isinstance(items_raw, dict) else (items_raw if isinstance(items_raw, list) else [])
-            
-        for item in items_list:
-            item_sku = item.get("item_sku") or item.get("sku", {}).get("data", {}).get("sku")
-            title = item.get("title") or item.get("product_title") or "Produto"
-            price_raw = item.get("price") or item.get("product_price") or 0.0
+            if not email:
+                logger.warning(f"[Worker Carrinhos] Carrinho {cart_id} sem email. Ignorando.")
+                return
+
+            created_at_str = cart.get('created_at', {}).get('date')
             try:
-                price = float(price_raw)
-            except (ValueError, TypeError):
-                price = 0.0
-                
-            if price > highest_price and item_sku:
-                highest_price = price
-                sku = item_sku
-                
-            qty = int(item.get("quantity", 1))
-            subtotal = price * qty
-            total_value += subtotal
-            
-            items_html += f"""
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155;"><strong>{title}</strong></td>
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155; text-align: center;">{qty}</td>
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155; text-align: right;">R$ {price:.2f}</td>
-            </tr>
-            """
+                data_carrinho = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                data_carrinho = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
 
-        recovery_url = cart.get("simulate_url") or cart.get("recovery_url") or cart.get("checkout_url") or "https://yampi.com.br"
-
-        # FASE 1: LEITURA ATÔMICA
-        row = self.state_repo.upsert_from_cart(cart_id, data_carrinho, cpf, sku)
-        if not row:
-            return
-            
-        order_id = row.get('order_id')
-        if order_id is not None:
-            # Carrinho já virou pedido, worker de carrinhos não deve mais tocar
-            logger.info(f"[Worker Carrinhos] Carrinho {cart_id} ignorado, pois já converteu no pedido {order_id}.")
-            return
-
-        stc = row.get('stc')
-
-        # FASE 2: PROCESSAMENTO E I/O EXTERNO
-        if stc in (18, 85, 86, 87):
-            return  # ESTADO TERMINAL, pula
-            
-        now_utc3 = datetime.utcnow() - timedelta(hours=3)
-        diff_hours = (now_utc3 - data_carrinho).total_seconds() / 3600
+            # Determinar SKU mais caro e calcular total
+            sku = None
+            highest_price = -1
+            total_value = 0.0
+            items_html = ""
         
-        new_stc = None
-        template_name = None
-        subject = ""
+            items_raw = cart.get("items", {})
+            items_list = items_raw.get("data", []) if isinstance(items_raw, dict) else (items_raw if isinstance(items_raw, list) else [])
+            
+            for item in items_list:
+                item_sku = item.get("item_sku") or item.get("sku", {}).get("data", {}).get("sku")
+                title = item.get("title") or item.get("product_title") or "Produto"
+                price_raw = item.get("price") or item.get("product_price") or 0.0
+                try:
+                    price = float(price_raw)
+                except (ValueError, TypeError):
+                    price = 0.0
+                
+                if price > highest_price and item_sku:
+                    highest_price = price
+                    sku = item_sku
+                
+                qty = int(item.get("quantity", 1))
+                subtotal = price * qty
+                total_value += subtotal
+            
+            recovery_url = cart.get("simulate_url") or cart.get("recovery_url") or cart.get("checkout_url") or "https://yampi.com.br"
 
-        if stc is None:
-            if diff_hours > MACRO_CUPOM_CARRINHO_1_HORAS:
-                new_stc = 15
-                template_name = "cupom_4_carrinho"
-                subject = f"{name}, seu carrinho está te esperando!"
-        elif stc == 15:
-            if diff_hours > MACRO_CUPOM_CARRINHO_2_HORAS:
-                new_stc = 16
-                template_name = "cupom_5_carrinho"
-                subject = f"{name}, ganhe um desconto especial nos seus itens!"
-        elif stc == 16:
-            if diff_hours > MACRO_CUPOM_CARRINHO_3_HORAS:
-                new_stc = 17
-                template_name = "cupom_6_carrinho"
-                subject = f"Última chance, {name}! Mega desconto no seu carrinho"
-        elif stc == 17:
-            if diff_hours > MACRO_PERDIDO_CARRINHO_HORAS:
-                new_stc = 18
+            # FASE 1: LEITURA ATÔMICA
+            row = self.state_repo.upsert_from_cart(cart_id, data_carrinho, cpf, sku)
+            if not row:
+                return
+            
+            order_id = row.get('order_id')
+            if order_id is not None:
+                # Carrinho já virou pedido, worker de carrinhos não deve mais tocar
+                logger.info(f"[Worker Carrinhos] Carrinho {cart_id} ignorado, pois já converteu no pedido {order_id}.")
+                return
 
-        if new_stc is not None:
-            if template_name:
-                html_body = self._read_template(template_name)
-                if html_body:
-                    html_body = html_body.replace("{name}", name)
-                    html_body = html_body.replace("{items_html}", items_html)
-                    html_body = html_body.replace("{total_value}", f"{total_value:.2f}")
-                    html_body = html_body.replace("{total_value:.2f}", f"{total_value:.2f}")
-                    html_body = html_body.replace("{recovery_url}", recovery_url)
-                    
-                    folder_path = os.path.join("emails", f"cart_{cart_id}")
-                    file_path = os.path.join(folder_path, f"email_stc_{new_stc}.html")
-                    try:
-                        os.makedirs(folder_path, exist_ok=True)
-                        with open(file_path, "w", encoding="utf-8") as f:
-                            f.write(html_body)
-                    except Exception as e:
-                        logger.error(f"[Worker Carrinhos] Falha ao criar HTML para o carrinho {cart_id}: {e}")
+            stc = row.get('stc')
 
-                    recipient_email = self.config.TEST_EMAIL_RECIPIENT
-                    self.message_provider.send_email_message(recipient_email, subject, html_body)
-                    logger.info(f"[Worker Carrinhos] E-mail STC {new_stc} enviado para carrinho {cart_id}")
+            # FASE 2: PROCESSAMENTO E I/O EXTERNO
+            if stc in (18, 85, 86, 87):
+                return  # ESTADO TERMINAL, pula
+            
+            now_utc3 = datetime.utcnow() - timedelta(hours=3)
+            diff_hours = (now_utc3 - data_carrinho).total_seconds() / 3600
+        
+            new_stc = None
+            template_name = None
+            subject = ""
 
-            # FASE 3: GRAVAÇÃO ATÔMICA
-            self.state_repo.update_stc(cart_id, new_stc)
-            logger.info(f"[Worker Carrinhos] Estado do cart_id {cart_id} atualizado para STC={new_stc}")
+            if stc is None:
+                if diff_hours > MACRO_CUPOM_CARRINHO_1_HORAS:
+                    new_stc = 15
+                    template_name = "cupom_4_carrinho"
+                    subject = f"{name}, seu carrinho está te esperando!"
+            elif stc == 15:
+                if diff_hours > MACRO_CUPOM_CARRINHO_2_HORAS:
+                    new_stc = 16
+                    template_name = "cupom_5_carrinho"
+                    subject = f"{name}, ganhe um desconto especial nos seus itens!"
+            elif stc == 16:
+                if diff_hours > MACRO_CUPOM_CARRINHO_3_HORAS:
+                    new_stc = 17
+                    template_name = "cupom_6_carrinho"
+                    subject = f"Última chance, {name}! Mega desconto no seu carrinho"
+            elif stc == 17:
+                if diff_hours > MACRO_PERDIDO_CARRINHO_HORAS:
+                    new_stc = 18
+
+            if new_stc is not None:
+                if template_name:
+                    event = CartTransitionEvent(
+                        cart_id=cart_id,
+                        new_stc=new_stc,
+                        customer_data=customer_data,
+                        cart_data=cart
+                    )
+                    self.notification_service.handle_cart_transition(event, template_name)
+
+                # FASE 3: GRAVAÇÃO ATÔMICA
+                self.state_repo.update_stc(cart_id, new_stc)
+                logger.info(f"[Worker Carrinhos] Estado do cart_id {cart_id} atualizado para STC={new_stc}")
+        except Exception as e:
+            cart_id = str(cart.get('id', 'N/A'))
+            logger.error(f"[Worker Carrinhos] Erro fatal e não tratado ao processar carrinho ID: {cart_id}: {e}", exc_info=True)
