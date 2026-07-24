@@ -36,6 +36,12 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 - **Locking Atômico "Adquire-Processa-Grava"**:
   - Implementar transações atômicas de curta duração (milissegundos) no PostgreSQL (`SELECT FOR UPDATE`), garantindo que chamadas lentas de rede (disparo SMTP) sejam feitas 100% **fora** de transações SQL ativas para não travar o banco.
+- **Estudo de Gestão do Banco em Produção e Migrações DDL (`_init_db` vs `ALTER TABLE`)**:
+  - *Contexto Atual*: A aplicação executa DDLs inline (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) na inicialização do repositório (`_init_db`).
+  - *Estudo Necessário para Produção*:
+    - **Risco de Concorrência DDL no Startup**: Em ambiente de alta vazão com múltiplos pods/containers subindo simultaneamente, executar `ALTER TABLE` na inicialização do Python pode causar contenção de locks de catálogo (`AccessExclusiveLock`) no PostgreSQL.
+    - **Evolução para Migrações Gerenciadas (ex: Alembic/Flyway)**: Avaliar a migração do DDL para uma ferramenta dedicada acionada na esteira de CI/CD ou em um job isolado de pré-deploy.
+    - **Estratégia de Alterações Não-Destrutivas**: Garantir que inclusões de colunas `NOT NULL` novas (como `order_number`) sempre utilizem valores padrões (`DEFAULT 'N/A'`) ou rotinas de *backfill* assíncrono antes da aplicação rígida da constraint.
 - **Purga e Arquivamento de Dados Históricos**:
   - Criar rotina no PostgreSQL para mover registros da `email_status_table` com mais de 365 dias para uma tabela de histórico (`email_status_archive`), mantendo o banco operacional enxuto e acelerando buscas O(1) por CPF/SKU.
 - **Limpeza de Lotes Intermediários e Pastas Temporárias**:

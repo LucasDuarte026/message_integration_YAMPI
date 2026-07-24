@@ -3,8 +3,9 @@
 # ==========================================
 # Timers STG (Pedidos)
 # ==========================================
-MACRO_TIMEOUT_PAGAMENTO_SEG = 30 * 60  # 30 minutos em segundos
-MACRO_CUPOM_PEDIDO_1_HORAS = 24        # 24 horas
+MACRO_TIMEOUT_PAGAMENTO_SEG = 30 * 60     # 30 minutos em segundos (janela máxima inicial)
+MACRO_DELAY_ORDER_PIX_EMAIL_SEG = 5 * 60  # 5 minutos em segundos (gordurinha/delay mínimo antes do Email 2)
+MACRO_CUPOM_PEDIDO_1_HORAS = 24           # 24 horas
 MACRO_CUPOM_PEDIDO_2_HORAS = 48        # 48 horas
 MACRO_CUPOM_PEDIDO_3_HORAS = 72        # 72 horas
 MACRO_PERDIDO_PEDIDO_HORAS = 96        # 96 horas
@@ -41,3 +42,14 @@ MACRO_W_ORDERS_PAGE_LIMIT = 100
 MACRO_W_ORDERS_PAGE_AMOUNT = 5
 MACRO_W_CARTS_PAGE_LIMIT = 100
 MACRO_W_CARTS_PAGE_AMOUNT = 5
+
+# ==========================================
+# Limite de Itens em Modo Debug / Cache
+# ==========================================
+MACRO_DEBUG_LIMIT = 50
+
+# ==========================================
+# Janela Máxima de Corte Precheck (Pedidos)
+# ==========================================
+MACRO_PRECHECK_ORDERS_MAX_DAYS = 15
+

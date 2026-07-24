@@ -24,6 +24,28 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [2.2.0] - 2026-07-23 (Adição de order_number, Estrutura do Banco e Sistema de Logging)
+
+### Adicionado
+- **Nova Coluna `order_number` em `email_status_table`**:
+  - Adicionada a coluna `order_number VARCHAR(255) NOT NULL DEFAULT 'N/A'` para armazenar o número público de transação do pedido (ex: `1200388456451468`).
+  - Atualizada a interface do repositório (`StateRepositoryProtocol.upsert_from_order`) e as consultas DDL do PostgreSQL com migration automática (`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
+  - Criado o índice `idx_email_status_order_number` para consultas de alta velocidade.
+  - Atualizado o utilitário `tests/find_by_id.sh` para suportar buscas por `order_number`.
+- **Sistema de Logging Centralizado e Configurável (`src/core/logging_config.py`)**:
+  - Módulo dedicado `src/core/logging_config.py` com a função `setup_logging(verbose)` para padronizar formatters e handlers.
+  - Suporte à flag `-v` / `--verbose` via `argparse` em `src/debug_main.py` para alternar dinamicamente o nível de exibição entre `INFO` e `DEBUG`.
+  - Inserção de logs de depuração enriquecidos em `src/workers/orders.py`, reportando idade dos pedidos em dias, `order_id`, `order_number`, `cart_id` e justificativas detalhadas para decisões da máquina de estados (STG).
+  - Atualização do `.gitignore` para ignorar a pasta local `logs/`.
+- **Mapeamento de Status da Yampi e Envio de Rastreio (`on_carriage` / `shipped`)**:
+  - Mapeamento abrangente de status pagos da Yampi (`paid`, `in_separation`, `invoiced`, `on_carriage`, `shipped`, `delivered`).
+  - Regra de transição específica para pedidos em transporte: quando o status for **explicitamente `on_carriage`**, avança para **`STG = 3`** e dispara automaticamente o template **`envio_rastreio.html`** preenchido com `{tracking_code}` e `{tracking_url}` extraídos de `shipments`.
+  - Tratamento direto de pedidos cancelados/reembolsados (`cancelled`, `refunded`) marcando **`STG = 8`** (terminal).
+- **Configuração de Macro de Cache**:
+  - Adicionada a macro `MACRO_DEBUG_LIMIT` (em `src/core/macros.py`) para parametrizar o limite de leitura e cache nos testes síncronos.
+
+---
+
 ## [2.1.0] - 2026-07-21 (Depuração Interativa e Suporte a .env)
 
 ### Adicionado

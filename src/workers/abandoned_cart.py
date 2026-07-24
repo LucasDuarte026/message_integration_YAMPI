@@ -53,8 +53,6 @@ class AbandonedCartProcessor:
             if self.config.MAX_WORKERS <= 1: # util no modo debug
                 logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_carts)} carrinhos um a um...")
                 for idx, cart in enumerate(eligible_carts, 1):
-                    if getattr(self.config, "INTERACTIVE_DEBUG", False):
-                        input(f"\n[DEBUG CART {idx}/{len(eligible_carts)}] Pressione ENTER para processar o Carrinho ID {cart.get('id')}...")
                     logger.info(f">>> Processando Carrinho {idx}/{len(eligible_carts)}")
                     self._process_cart_concurrently(cart)
             else:
@@ -155,10 +153,10 @@ class AbandonedCartProcessor:
         if not row:
             return
             
-        pedido_id = row.get('pedido_id')
-        if pedido_id is not None:
+        order_id = row.get('order_id')
+        if order_id is not None:
             # Carrinho já virou pedido, worker de carrinhos não deve mais tocar
-            logger.info(f"[Worker Carrinhos] Carrinho {cart_id} ignorado, pois já converteu no pedido {pedido_id}.")
+            logger.info(f"[Worker Carrinhos] Carrinho {cart_id} ignorado, pois já converteu no pedido {order_id}.")
             return
 
         stc = row.get('stc')
@@ -199,6 +197,7 @@ class AbandonedCartProcessor:
                 if html_body:
                     html_body = html_body.replace("{name}", name)
                     html_body = html_body.replace("{items_html}", items_html)
+                    html_body = html_body.replace("{total_value}", f"{total_value:.2f}")
                     html_body = html_body.replace("{total_value:.2f}", f"{total_value:.2f}")
                     html_body = html_body.replace("{recovery_url}", recovery_url)
                     

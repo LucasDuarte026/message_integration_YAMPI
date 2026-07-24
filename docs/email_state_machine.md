@@ -31,7 +31,8 @@ MACRO_JANELA_CONSULTA_HORAS = 48         # horas de histórico consultadas na AP
 MACRO_TAMANHO_PAGINA = 100               # itens por página na consulta à API Yampi
 
 # --- Timers de Pedido (STG) — referência: data_pedido ---
-MACRO_TIMEOUT_PAGAMENTO_SEG = 1800       # 30 min — tempo para o cliente pagar
+MACRO_TIMEOUT_PAGAMENTO_SEG = 1800       # 30 min — janela máxima de incentivo de pagamento inicial
+MACRO_DELAY_ORDER_PIX_EMAIL_SEG = 300    # 5 min — gordurinha/delay mínimo antes de disparar o Email 2 (PIX)
 MACRO_CUPOM_PEDIDO_1_HORAS = 24          # STG 4→5 — email cupom 1 (10%)
 MACRO_CUPOM_PEDIDO_2_HORAS = 48          # STG 5→6 — email cupom 2 (15%)
 MACRO_CUPOM_PEDIDO_3_HORAS = 72          # STG 6→7 — email cupom 3 (20%)
@@ -54,9 +55,10 @@ MACRO_PERDIDO_CARRINHO_HORAS = 96        # STC 17→18  — cliente perdido
 ```sql
 CREATE TABLE IF NOT EXISTS email_status_table (
     cart_id                 VARCHAR(255)   PRIMARY KEY,
-    pedido_id               VARCHAR(255)   DEFAULT NULL,
+    order_id                VARCHAR(255)   DEFAULT NULL,
+    order_number            VARCHAR(255)   NOT NULL DEFAULT 'N/A',
     data_pedido             TIMESTAMP      DEFAULT NULL,
-    data_carrinho           TIMESTAMP      NOT NULL,
+    data_carrinho           TIMESTAMP      DEFAULT NULL,
     cpf                     VARCHAR(14)    NOT NULL,
     sku                     VARCHAR(255)   NOT NULL,
     stg                     INTEGER        DEFAULT NULL,
@@ -69,6 +71,9 @@ CREATE INDEX IF NOT EXISTS idx_email_status_cpf ON email_status_table (cpf);
 
 -- Índice para busca O(1) de recompra por CPF + SKU
 CREATE INDEX IF NOT EXISTS idx_email_status_cpf_sku ON email_status_table (cpf, sku);
+
+-- Índice para busca O(1) por número público do pedido
+CREATE INDEX IF NOT EXISTS idx_email_status_order_number ON email_status_table (order_number);
 ```
 
 ### 3.2 Regras dos Campos
@@ -76,9 +81,10 @@ CREATE INDEX IF NOT EXISTS idx_email_status_cpf_sku ON email_status_table (cpf, 
 | Coluna | Tipo | Restrição | Descrição |
 |---|---|---|---|
 | `cart_id` | `VARCHAR(255)` | **PK**, nunca vazio | ID do carrinho na Yampi. É a chave porque todo pedido nasce de um carrinho. |
-| `pedido_id` | `VARCHAR(255)` | Pode ser `NULL` | ID do pedido na Yampi. Preenchido quando o carrinho se converte em pedido. |
+| `order_id` | `VARCHAR(255)` | Pode ser `NULL` | ID interno do pedido na Yampi. Preenchido quando o carrinho se converte em pedido. |
+| `order_number` | `VARCHAR(255)` | **NOT NULL** (Default `'N/A'`) | Número público de transação do pedido Yampi/Shopify (ex: `1200388456451468`). |
 | `data_pedido` | `TIMESTAMP` | Pode ser `NULL` | Timestamp da criação do pedido na Yampi. Base temporal para cálculos de STG. |
-| `data_carrinho` | `TIMESTAMP` | **NOT NULL** | Timestamp da criação do carrinho na Yampi. Base temporal para cálculos de STC. |
+| `data_carrinho` | `TIMESTAMP` | Pode ser `NULL` | Timestamp da criação do carrinho na Yampi. Base temporal para cálculos de STC. |
 | `cpf` | `VARCHAR(14)` | **NOT NULL** | CPF do cliente. Usado em busca O(1) para detecção de recompra (status 99). |
 | `sku` | `VARCHAR(255)` | **NOT NULL** | SKU do produto de maior valor do pedido/carrinho. Segundo critério da busca de recompra. |
 | `stg` | `INTEGER` | Default `NULL` | Status Global — fluxo de pedidos. Valores: `NULL, 1, 2, 3, 4, 5, 6, 7, 8, 95, 96, 97`. |
@@ -104,15 +110,17 @@ diff_pedido = now_utc3 - data_pedido
 
 | De | Para | Condição | Ação | Email |
 |---|---|---|---|---|
-| `null` | `1` | Pagamento aprovado (tag `"pagamento aprovado"`) e `diff ≤ 30 min` | Enviar email, marcar STG=1 | **Email 1**: Confirmação de pagamento + aviso de rastreio futuro |
-| `null` | `2` | `diff ≤ 30 min` e pagamento **pendente** (tag `"awaiting_payment"`) | Enviar email, marcar STG=2 | **Email 2**: Confirmação de pedido + incentivo ao pagamento + PIX/QR Code |
+| Qualquer (`!= 3, 8`) | `3` | Status Yampi explicitamente `on_carriage` | Enviar email de rastreio, marcar STG=3 | **Envio Rastreio**: Notificação de transporte + código `{tracking_code}` e link `{tracking_url}` |
+| `null` | `1` | Pagamento aprovado (`paid`, `in_separation`, `invoiced`) | Enviar email, marcar STG=1 | **Email 1**: Confirmação de pagamento |
+| `null` | `2` | `diff ≤ 30 min` e pagamento **pendente** (`waiting_payment`, `created`, `authorized`) | Enviar email, marcar STG=2 | **Email 2**: Confirmação de pedido + incentivo ao pagamento + PIX/QR Code |
 | `null` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado | Marcar STG=4 (sem email nessa transição, o cupom 1 sai em 24h) | — |
-| `2` | `3` | Pagamento aprovado (tag `"pagamento aprovado"`) | Enviar email, marcar STG=3 | **Email 3**: Confirmação de pagamento (idêntico ao Email 1) |
+| `2, 4, 5, 6, 7` | `3` | Pagamento aprovado (`paid`, `in_separation`, `invoiced`) | Enviar email, marcar STG=3 | **Email 3**: Confirmação de pagamento |
+| Qualquer | `8` | Pedido cancelado ou reembolsado (`cancelled`, `refunded`) | Marcar STG=8 | — (cancelado / perdido) |
 | `2` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado | Marcar STG=4 | — |
-| `4` | `5` | `diff > 24h` | Enviar email, marcar STG=5 | **Email Cupom 1**: desconto 10% |
-| `5` | `6` | `diff > 48h` | Enviar email, marcar STG=6 | **Email Cupom 2**: desconto 15% |
-| `6` | `7` | `diff > 72h` | Enviar email, marcar STG=7 | **Email Cupom 3**: desconto 20% |
-| `7` | `8` | `diff > 96h` | Marcar STG=8 | — (cliente perdido, terminal) |
+| `4` | `5` | `diff > 24h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=5 | **Email Cupom 1**: desconto 10% |
+| `5` | `6` | `diff > 48h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=6 | **Email Cupom 2**: desconto 15% |
+| `6` | `7` | `diff > 72h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=7 | **Email Cupom 3**: desconto 20% |
+| `7` | `8` | `diff > 96h` e pagamento **NÃO** aprovado | Marcar STG=8 | — (cliente perdido, terminal) |
 
 ### 4.3 Estados Terminais (STG)
 
@@ -120,9 +128,8 @@ Quando o sistema encontra um registro com um destes valores de STG, **pula sem p
 
 | STG | Significado |
 |---|---|
-| `1` | Pagamento aprovado de primeira |
-| `3` | Pagamento aprovado após incentivo (Email 2 → Email 3) |
-| `8` | Cliente perdido (esgotou cadeia de cupons, 96h) |
+| `3` | Pagamento e despacho concluídos (E-mail de rastreio ou confirmação final enviado) |
+| `8` | Cliente perdido / Pedido cancelado |
 | `95` | Recompra detectada (future implementation) |
 | `96` | Recompra detectada (future implementation) |
 | `97` | Recompra detectada (future implementation) |
@@ -130,11 +137,12 @@ Quando o sistema encontra um registro com um destes valores de STG, **pula sem p
 ### 4.4 Fluxos Possíveis (Caminhos Completos)
 
 ```
-Caminho A (melhor caso):     null → 1                           (pago de primeira)
-Caminho B (pagou após PIX):  null → 2 → 3                      (incentivo funcionou)
-Caminho C (recuperado):      null → 2 → 4 → 5 → ... → paga    (cupons funcionaram)
-Caminho D (timeout direto):  null → 4 → 5 → 6 → 7 → 8         (nunca pagou, >30min no 1o check)
-Caminho E (timeout via 2):   null → 2 → 4 → 5 → 6 → 7 → 8    (incentivado, mas nunca pagou)
+Caminho A (pago de primeira):     null → 1 → 3                     (confirmado de primeira → despachado no 3)
+Caminho B (despachado direto):   null → 3                         (on_carriage direto na Yampi)
+Caminho C (pagou após PIX):      null → 2 → 3                     (incentivo PIX funcionou)
+Caminho D (recuperado no cupom): null → 2 → 4 → 5 → ... → 3      (cupons funcionaram, virou pago/despachado)
+Caminho E (timeout direto):      null → 4 → 5 → 6 → 7 → 8        (nunca pagou, >30min no 1o check)
+Caminho F (timeout via 2):       null → 2 → 4 → 5 → 6 → 7 → 8   (incentivado, mas nunca pagou)
 ```
 
 ---
@@ -146,10 +154,10 @@ Caminho E (timeout via 2):   null → 2 → 4 → 5 → 6 → 7 → 8    (incent
 O worker de carrinhos abandonados **só processa** registros onde:
 
 ```python
-pedido_id IS NULL   # carrinho ainda não virou pedido
+order_id IS NULL   # carrinho ainda não virou pedido
 ```
 
-Se `pedido_id` está preenchido → **pular completamente**. O STC fica congelado no valor que está.
+Se `order_id` está preenchido → **pular completamente**. O STC fica congelado no valor que está.
 
 ### 5.2 Referência Temporal
 
@@ -195,18 +203,18 @@ STG e STC são **eixos independentes** na mesma linha da tabela. Cada worker é 
 | Worker | Atua sobre | Origem dos dados | Regra de Execução / Filtragem |
 |---|---|---|---|
 | **Worker de Pedidos** | Coluna `stg` | Arquivos JSON de `orders/` | **Sempre executa** ao consumir um pedido. Lê o `stg` atual (seja `null` ou já iniciado), interpreta o estado do pedido na Yampi e toma as decisões de envio/transição. Só pula se o `stg` for terminal (`1, 3, 8, 95, 96, 97`). Independe completamente do valor de `stc`. |
-| **Worker de Carrinhos** | Coluna `stc` | Arquivos JSON de `carts/` | **Executa apenas se `pedido_id IS NULL`**. Se o registro já possui `pedido_id` preenchido (o carrinho se converteu em pedido), o worker de carrinhos ignora o registro e não altera o `stc`. |
+| **Worker de Carrinhos** | Coluna `stc` | Arquivos JSON de `carts/` | **Executa apenas se `order_id IS NULL`**. Se o registro já possui `order_id` preenchido (o carrinho se converteu em pedido), o worker de carrinhos ignora o registro e não altera o `stc`. |
 
 
 ### 6.2 Cenário: Carrinho Abandonado Vira Pedido
 
 Quando o worker de pedidos encontra um pedido cujo `cart_id` já existe na tabela (com STC preenchido):
 
-1. **Vincula** `pedido_id` e `data_pedido` à linha existente.
+1. **Vincula** `order_id` e `data_pedido` à linha existente.
 2. **Atualiza** `cpf` e `sku` (pode ter mudado).
 3. **NÃO altera** `stc` — o valor fica congelado no estado que estava (15, 16 ou 17).
 4. O `stg` começa em `null` e segue o fluxo normal de pedidos.
-5. O worker de carrinhos **nunca mais** processará este registro (pois `pedido_id` não é mais `NULL`).
+5. O worker de carrinhos **nunca mais** processará este registro (pois `order_id` não é mais `NULL`).
 
 > **Nota para future implementation**: O valor congelado de STC será usado no futuro para inferir se o cliente voltou a comprar motivado pelo cupom de carrinho abandonado. Quando implementado, STC será atualizado para `85`, `86` ou `87` (= 70 + status anterior).
 
@@ -214,9 +222,9 @@ Quando o worker de pedidos encontra um pedido cujo `cart_id` já existe na tabel
 
 Quando o worker de pedidos encontra um `cart_id` que **não existe** na tabela:
 
-1. **Cria nova linha** com `cart_id`, `pedido_id`, `data_pedido`, `data_carrinho`, `cpf`, `sku`.
+1. **Cria nova linha** com `cart_id`, `order_id`, `data_pedido`, `data_carrinho`, `cpf`, `sku`.
 2. `stg` = `NULL`, `stc` = `NULL`.
-3. O worker de carrinhos **nunca** processará este registro (pois `pedido_id` já está preenchido desde a criação).
+3. O worker de carrinhos **nunca** processará este registro (pois `order_id` já está preenchido desde a criação).
 
 ---
 
@@ -230,7 +238,7 @@ O processamento deve ser estritamente **atômico e desmembrado em etapas de curt
 Fase 1: LEITURA E VINCULAÇÃO ATÔMICA (Lock de Milissegundos)
 1. Requisitar acesso à conexão/lock da linha (cart_id).
 2. Ao ganhar o lock:
-   ├── Se cart_id existe: Vincular pedido_id, data_pedido, atualizar cpf, sku.
+   ├── Se cart_id existe: Vincular order_id, data_pedido, atualizar cpf, sku.
    └── Se cart_id não existe: Criar nova linha (stg=null, stc=null).
 3. Ler o stg atual.
 4. LIBERAR O LOCK E FECHAR A TRANSAÇÃO DO BANCO IMEDIATAMENTE.
@@ -271,9 +279,9 @@ Fase 1: LEITURA ATÔMICA (Lock de Milissegundos)
 1. Requisitar acesso à conexão/lock da linha (cart_id).
 2. Ao ganhar o lock:
    ├── Se cart_id existe:
-   │   ├── Se pedido_id IS NOT NULL → Liberar lock e SKIP (carrinho virou pedido).
-   │   └── Se pedido_id IS NULL → Ler stc atual.
-   └── Se cart_id não existe: Criar nova linha (cart_id, data_carrinho, cpf, sku, stc=null, pedido_id=null).
+   │   ├── Se order_id IS NOT NULL → Liberar lock e SKIP (carrinho virou pedido).
+   │   └── Se order_id IS NULL → Ler stc atual.
+   └── Se cart_id não existe: Criar nova linha (cart_id, data_carrinho, cpf, sku, stc=null, order_id=null).
 3. LIBERAR O LOCK E FECHAR A TRANSAÇÃO DO BANCO IMEDIATAMENTE.
 
 Fase 2: PROCESSAMENTO E I/O EXTERNO (Sem Lock no Banco)
@@ -307,7 +315,7 @@ Para garantir concorrência fluida e sem travamentos entre os workers de Pedidos
 ```sql
 -- Fase 1: Leitura Rápida (Ganhou -> Lê -> Libera)
 BEGIN;
-SELECT pedido_id, stg, stc FROM email_status_table WHERE cart_id = %s FOR UPDATE;
+SELECT order_id, stg, stc FROM email_status_table WHERE cart_id = %s FOR UPDATE;
 COMMIT; -- Libera o lock imediatamente!
 
 -- (Processamento Python & Envio de E-mail via SMTP ocorrem aqui, fora do banco)
@@ -369,6 +377,14 @@ Nesta seção estão listados todos os detalhes técnicos, pendências de valida
 ### 11.6 Purga e Arquivamento de Dados Históricos
 - Criação de uma rotina de manutenção no banco PostgreSQL para mover registros de `email_status_table` com mais de 365 dias para uma tabela de histórico/archive, mantendo o índice ativo enxuto e de alta velocidade.
 
+### 11.7 Gestão do Banco de Dados em Produção e Migrações DDL
+- **Estudo da Criação de Tabelas (`_init_db`) e `ALTER TABLE` no Startup**:
+  - *Comportamento Atual*: A aplicação executa instruções DDL (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) dentro de `_init_db()` na inicialização do repositório Python.
+  - *Evolução para Produção*:
+    - Analisar a substituição das DDLs em tempo de execução por ferramentas especializadas de migração de banco de dados (ex: Alembic ou Flyway).
+    - Em ambiente de alta disponibilidade com múltiplos nós rodando em paralelo, chamadas de DDL no startup do código podem gerar travamentos de catálogo (`AccessExclusiveLock`).
+    - Estabelecer diretrizes estritas para que qualquer alteração de schema em produção (como adicionar colunas `NOT NULL`) utilize valores padrões (`DEFAULT 'N/A'`) ou rotinas de *backfill* isoladas antes da alteração rígida da tabela.
+
 
 ---
 
@@ -387,7 +403,7 @@ Fonte dos dados: `estudos/yampi_api/pedidos.json`
 
 | Parâmetro da Arquitetura | Caminho Exato no JSON da Yampi | Tipo | Exemplo Coletado / Status |
 |---|---|---|---|
-| **ID do Pedido** (`pedido_id`) | `order['id']` | `int` | `167930539` (Confirmado ✓) |
+| **ID do Pedido** (`order_id`) | `order['id']` | `int` | `167930539` (Confirmado ✓) |
 | **ID do Carrinho de Origem** (`cart_id`) | `order['metadata']['data']` (item com `key == "cart_id"`) | `string` | `"626595483"` (Confirmado ✓) |
 | **Data de Criação do Pedido** (`data_pedido`) | `order['created_at']['date']` | `string` | `"2026-07-20 18:42:18.000000"` (Confirmado ✓) |
 | **ID Numérico do Status** | `order['status']['data']['id']` | `int` | `3` ou `4` (Confirmado ✓) |

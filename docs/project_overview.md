@@ -16,7 +16,7 @@ Este documento serve como o "Manual do Usuário" e o "Manual do Desenvolvedor" c
 ### 2.1 Recuperação de Carrinho Abandonado (Abandoned Cart - Fluxo STC)
 - **Problema:** Clientes adicionam produtos ao carrinho, mas saem antes de finalizar a compra.
 - **Ação do Sistema:** O sistema consulta a API da Yampi regularmente buscando por carrinhos recém-abandonados (baseando-se em uma janela de horas específica). 
-- **Verificação de Estado (STC):** Consulta o banco de dados unificado (`email_status_table`) verificando a coluna `stc` (Status Carrinho). Se `pedido_id` não for nulo (ou seja, já virou pedido), pula.
+- **Verificação de Estado (STC):** Consulta o banco de dados unificado (`email_status_table`) verificando a coluna `stc` (Status Carrinho). Se `order_id` não for nulo (ou seja, já virou pedido), pula.
 - **Execução:** Caso o `stc` permita (ex: transição null→15, 15→16, 16→17), despacha uma mensagem (via provedor SMTP/WhatsApp) contendo o cupom correspondente e o link `simulate_url` para incentivar o retorno à loja, avançando o estado da coluna `stc`.
 
 ### 2.2 Atualização de Pedidos (Orders Update - Fluxo STG)
@@ -53,7 +53,7 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 - **Quem Executa (Regras de Negócio):** O diretório `src/workers/` possui os orquestradores (`AbandonedCartProcessor` e `OrderProcessor`). Eles são o "cérebro" das tarefas individuais, operando de forma concorrente via *ThreadPoolExecutor* para alta vazão.
 - **Onde Consulta (Fonte de Dados):**
   - **Externa:** API da Yampi consumida via `src/core/client.py`.
-  - **Interna (Estado):** Banco de Dados PostgreSQL unificado (`email_status_table`) com suporte a travas de concorrência (`FOR UPDATE`), consultado via `src/ports/postgres_repo.py` para controle da máquina de estados dupla (STG para Pedidos e STC para Carrinhos). (A infraestrutura suporta SQLite para fallback, mas a arquitetura-alvo orienta Postgres).
+  - **Interna (Estado):** Banco de Dados PostgreSQL unificado (`email_status_table` contendo `cart_id`, `order_id`, `order_number`, `stg`, `stc`, `data_pedido`, `data_carrinho`, `cpf`, `sku`) com suporte a travas de concorrência (`FOR UPDATE`), consultado via `src/ports/postgres_repo.py` para controle da máquina de estados dupla (STG para Pedidos e STC para Carrinhos).
 - **O Que Fornece (Saída/Output):** 
   - Comunicações enviadas via provedores de mensagens implementados em `src/ports/` (ex: SMTP Email com TLS/SSL, WhatsApp Meta, Mocks para testes locais).
 

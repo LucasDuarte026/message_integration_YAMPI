@@ -19,9 +19,10 @@ class PostgresStateRepository(StateRepositoryProtocol):
         create_table = """
         CREATE TABLE IF NOT EXISTS email_status_table (
             cart_id VARCHAR(255) PRIMARY KEY,
-            pedido_id VARCHAR(255) DEFAULT NULL,
+            order_id VARCHAR(255) DEFAULT NULL,
+            order_number VARCHAR(255) NOT NULL DEFAULT 'N/A',
             data_pedido TIMESTAMP DEFAULT NULL,
-            data_carrinho TIMESTAMP NOT NULL,
+            data_carrinho TIMESTAMP DEFAULT NULL,
             cpf VARCHAR(14) NOT NULL,
             sku VARCHAR(255) NOT NULL,
             stg INTEGER DEFAULT NULL,
@@ -31,6 +32,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
         """
         create_idx_cpf = "CREATE INDEX IF NOT EXISTS idx_email_status_cpf ON email_status_table (cpf);"
         create_idx_cpf_sku = "CREATE INDEX IF NOT EXISTS idx_email_status_cpf_sku ON email_status_table (cpf, sku);"
+        create_idx_order_number = "CREATE INDEX IF NOT EXISTS idx_email_status_order_number ON email_status_table (order_number);"
         
         try:
             with self._get_connection() as conn:
@@ -38,24 +40,26 @@ class PostgresStateRepository(StateRepositoryProtocol):
                     cur.execute(create_table)
                     cur.execute(create_idx_cpf)
                     cur.execute(create_idx_cpf_sku)
+                    cur.execute(create_idx_order_number)
                 conn.commit()
             logger.info("Banco de dados PostgreSQL inicializado com sucesso de acordo com a Especificação 04.")
         except Exception as e:
             logger.error(f"Erro ao inicializar banco de dados PostgreSQL: {e}")
             raise
 
-    def upsert_from_order(self, cart_id: str, pedido_id: str, data_pedido: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
-        # Fallbacks obrigatórios para satisfazer o NOT NULL da Spec 04
+    def upsert_from_order(self, cart_id: str, order_id: str, order_number: Optional[str], data_pedido: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
+        # Fallbacks de dados cadastrais para satisfazer NOT NULL da Spec 04
         safe_cpf = cpf if cpf else "00000000000"
         safe_sku = sku if sku else "N/A"
-        # Se não sabemos a data do carrinho original, assumimos a do pedido
-        safe_data_carrinho = data_pedido
+        safe_order_number = str(order_number) if order_number else "N/A"
 
+        # data_carrinho eh gravada como NULL quando criada pelo Pedido, a menos que o Worker de Carrinhos ja a tenha gravado
         query = """
-            INSERT INTO email_status_table (cart_id, pedido_id, data_pedido, data_carrinho, cpf, sku)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO email_status_table (cart_id, order_id, order_number, data_pedido, data_carrinho, cpf, sku)
+            VALUES (%s, %s, %s, %s, NULL, %s, %s)
             ON CONFLICT (cart_id) DO UPDATE 
-            SET pedido_id = EXCLUDED.pedido_id,
+            SET order_id = EXCLUDED.order_id,
+                order_number = EXCLUDED.order_number,
                 data_pedido = EXCLUDED.data_pedido,
                 cpf = EXCLUDED.cpf,
                 sku = EXCLUDED.sku
@@ -65,7 +69,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
         try:
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(query, (cart_id, pedido_id, data_pedido, safe_data_carrinho, safe_cpf, safe_sku))
+                    cur.execute(query, (cart_id, order_id, safe_order_number, data_pedido, safe_cpf, safe_sku))
                     cur.execute(lock_query, (cart_id,))
                     result = cur.fetchone()
                 conn.commit()
@@ -79,10 +83,10 @@ class PostgresStateRepository(StateRepositoryProtocol):
         safe_sku = sku if sku else "N/A"
         
         query = """
-            INSERT INTO email_status_table (cart_id, data_carrinho, cpf, sku)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO email_status_table (cart_id, order_number, data_carrinho, cpf, sku)
+            VALUES (%s, 'N/A', %s, %s, %s)
             ON CONFLICT (cart_id) DO UPDATE 
-            SET data_carrinho = LEAST(email_status_table.data_carrinho, EXCLUDED.data_carrinho),
+            SET data_carrinho = COALESCE(LEAST(email_status_table.data_carrinho, EXCLUDED.data_carrinho), EXCLUDED.data_carrinho),
                 cpf = EXCLUDED.cpf,
                 sku = EXCLUDED.sku
             RETURNING *;

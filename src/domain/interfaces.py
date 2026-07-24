@@ -32,7 +32,7 @@ class StateRepositoryProtocol(Protocol):
     Baseado no padrão de travamento e atualização em 3 fases para evitar deadlocks com SMTP lento.
     """
     
-    def upsert_from_order(self, cart_id: str, pedido_id: str, data_pedido: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
+    def upsert_from_order(self, cart_id: str, order_id: str, order_number: Optional[str], data_pedido: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
         """
         Fase 1 (Pedidos): Insere novo ou atualiza existente atrelando o pedido ao cart_id. Retorna a linha completa com lock temporário.
         """

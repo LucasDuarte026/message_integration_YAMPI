@@ -12,7 +12,8 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "subProcess": true
         },
         {
             "name": "Python: Main (Abandoned Carts)",
@@ -25,7 +26,8 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "subProcess": true
         },
         {
             "name": "Python: Main (Orders)",
@@ -38,17 +40,22 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "subProcess": true
         },
         {
             "name": "Python: Debug Mock Runner (Síncrono)",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/debug_main.py",
+            "args": [
+                "-v" // para entrar em modo high verbose
+            ],
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "subProcess": true
         },
         {
             "name": "Python: Webhook Server",
@@ -58,7 +65,8 @@
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "subProcess": true
         }
     ]
 }

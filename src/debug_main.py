@@ -3,25 +3,19 @@ import os
 import json
 import logging
 
+import argparse
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.core.config import load_config
+from src.core.logging_config import setup_logging
+from src.core.macros import MACRO_DEBUG_LIMIT
 from src.core.client import YampiClient
 from src.ports.postgres_repo import PostgresStateRepository
 from src.ports.message_provider import DryRunMessageProvider
 from src.workers.abandoned_cart import AbandonedCartProcessor
 from src.workers.orders import OrderProcessor
 
-# Configuração de logger (escreve no console e no arquivo logs/app.log)
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO, 
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("logs/app.log", encoding="utf-8")
-    ]
-)
 logger = logging.getLogger("debug_main")
 
 class CachedYampiClient:
@@ -31,7 +25,7 @@ class CachedYampiClient:
     guarda 1000 registros no JSON e depois serve do arquivo.
     Se existir, ele lê o JSON imediatamente, poupando a API e mantendo consistência para o debug.
     """
-    def __init__(self, real_client: YampiClient, limit=10):
+    def __init__(self, real_client: YampiClient, limit=MACRO_DEBUG_LIMIT):
         self.real_client = real_client
         self.limit = limit
         
@@ -98,15 +92,21 @@ class CachedYampiClient:
         return (c for c in carts)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Debug runner para integracao Yampi")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Ativa logs detalhados de navegacao/decisao (DEBUG)")
+    args = parser.parse_args()
+
+    setup_logging(verbose=args.verbose)
+
     print("=====================================================")
     print("=== MAIN PROVISÓRIA (DEBUG CACHE RUNNER - YAMPI)  ===")
     print("=====================================================")
     
     config = load_config()
     
-    # Força MAX_WORKERS = 1 e INTERACTIVE_DEBUG = True para navegação síncrona item a item no VSCode
+    # Força MAX_WORKERS = 1 para navegação síncrona item a item no VSCode
     config.MAX_WORKERS = 1
-    config.INTERACTIVE_DEBUG = True
+    config.INTERACTIVE_DEBUG = False
     
     # Inicializa o Client real da Yampi com as suas credenciais
     real_api_client = YampiClient(
@@ -115,8 +115,8 @@ if __name__ == "__main__":
         merchant_alias=config.YAMPI_ALIAS
     )
     
-    # Embrulha o client real no nosso Cache (limite de 10 itens por rodada)
-    api_client = CachedYampiClient(real_client=real_api_client, limit=10)
+    # Embrulha o client real no nosso Cache
+    api_client = CachedYampiClient(real_client=real_api_client, limit=MACRO_DEBUG_LIMIT)
     
     # Provedor de logs apenas (não envia emails reais)
     message_provider = DryRunMessageProvider()
@@ -124,12 +124,12 @@ if __name__ == "__main__":
     # Banco real de testes (Certifique-se de usar o BD correto de testes localmente)
     state_repo = PostgresStateRepository(config.DATABASE_URL)
     
-    input("\n[DEBUG] Pressione ENTER para iniciar o processamento interativo de ORDERS (até 10 itens)...")
+    logger.info("Iniciando processamento síncrono de ORDERS...")
     order_processor = OrderProcessor(config, api_client, message_provider, state_repo)
     order_processor.process()
     
-    input("\n[DEBUG] Pressione ENTER para iniciar o processamento interativo de CARTS (até 10 itens)...")
-    cart_processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
-    cart_processor.process()
+    # logger.info("Iniciando processamento síncrono de CARTS...")
+    # cart_processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
+    # cart_processor.process()
     
     print("\nProcessamento completo!")

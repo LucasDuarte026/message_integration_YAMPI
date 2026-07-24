@@ -7,10 +7,12 @@ from typing import Any, Dict, Tuple, Optional
 from src.core.config import Config
 from src.core.macros import (
     MACRO_TIMEOUT_PAGAMENTO_SEG,
+    MACRO_DELAY_ORDER_PIX_EMAIL_SEG,
     MACRO_CUPOM_PEDIDO_1_HORAS,
     MACRO_CUPOM_PEDIDO_2_HORAS,
     MACRO_CUPOM_PEDIDO_3_HORAS,
-    MACRO_PERDIDO_PEDIDO_HORAS
+    MACRO_PERDIDO_PEDIDO_HORAS,
+    MACRO_PRECHECK_ORDERS_MAX_DAYS
 )
 from src.domain.interfaces import YampiClientProtocol, MessageProviderProtocol, StateRepositoryProtocol
 
@@ -50,9 +52,9 @@ class OrderProcessor:
             if self.config.MAX_WORKERS <= 1: # util no modo debug
                 logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_orders)} pedidos um a um...")
                 for idx, order in enumerate(eligible_orders, 1):
-                    if getattr(self.config, "INTERACTIVE_DEBUG", False):
-                        input(f"\n[DEBUG ORDER {idx}/{len(eligible_orders)}] Pressione ENTER para processar o Pedido ID {order.get('id')}...")
-                    logger.info(f">>> Processando Pedido {idx}/{len(eligible_orders)}")
+                    o_id = order.get('id', 'N/A')
+                    o_num = order.get('number', 'N/A')
+                    logger.info(f">>> Processando Pedido {idx}/{len(eligible_orders)} | ID: # {o_id} (Nº {o_num})")
                     self._process_order_concurrently(order)
             else:
                 logger.info(f"Iniciando processamento assíncrono para {len(eligible_orders)} pedidos com até {self.config.MAX_WORKERS} workers...")
@@ -64,8 +66,14 @@ class OrderProcessor:
             logger.error(f"Erro no processamento concorrente de pedidos: {e}")
 
     def _precheck_order(self, order: Dict[str, Any]) -> Tuple[bool, bool]:
+        order_id = str(order.get('id', 'N/A'))
+        order_number = str(order.get('number', 'N/A'))
         created_at_str = order.get('created_at', {}).get('date')
+        
+        logger.debug(f"[PRECHECK] Avaliando Pedido ID: # {order_id} (Nº {order_number})...")
+        
         if not created_at_str:
+            logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Sem data de criação (created_at). Decisão: continuar busca, desqualificar pedido (should_continue=True, is_eligible=False).")
             return True, False
             
         try:
@@ -74,13 +82,22 @@ class OrderProcessor:
             try:
                 created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
             except ValueError:
+                logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Data '{created_at_str}' inválida. Decisão: continuar busca, desqualificar pedido.")
                 return True, False
             
         now_utc3 = datetime.utcnow() - timedelta(hours=3)
         days_since_creation = (now_utc3 - created_at).total_seconds() / (3600 * 24)
-        if days_since_creation > 14:
+        
+        logger.debug(
+            f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}) | Data do Pedido: {created_at_str} | Hora Atual (UTC-3): {now_utc3.strftime('%Y-%m-%d %H:%M:%S')} | "
+            f"Idade: {days_since_creation:.2f} dias"
+        )
+        
+        if days_since_creation > MACRO_PRECHECK_ORDERS_MAX_DAYS:
+            logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Idade > {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Regra atingida: Parar busca de novos pedidos (should_continue=False, is_eligible=False).")
             return False, False
             
+        logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Idade <= {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
         return True, True
 
     def _read_template(self, template_name: str) -> str:
@@ -101,9 +118,10 @@ class OrderProcessor:
 
     def _process_order_concurrently(self, order: Dict[str, Any]) -> None:
         order_id = str(order.get('id', ''))
+        order_number = str(order.get('number', 'N/A'))
         cart_id = self._get_cart_id(order)
         if not cart_id:
-            logger.warning(f"[Worker Pedidos] Pedido {order_id} ignorado pois não possui cart_id.")
+            logger.warning(f"[Worker Pedidos] Pedido ID: # {order_id} (Nº {order_number}) ignorado pois não possui cart_id no metadata.")
             return
 
         created_at_str = order.get('created_at', {}).get('date')
@@ -142,75 +160,149 @@ class OrderProcessor:
             """
 
         # FASE 1: LEITURA E VINCULAÇÃO ATÔMICA
-        row = self.state_repo.upsert_from_order(cart_id, order_id, data_pedido, cpf, sku)
+        row = self.state_repo.upsert_from_order(cart_id, order_id, order_number, data_pedido, cpf, sku)
         if not row:
+            logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}): Falha ao realizar upsert no repositório de estado.")
             return
             
         stg = row.get('stg')
+        logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) (cart_id={cart_id}): Estado atual lido no banco STG={stg}")
 
         # FASE 2: PROCESSAMENTO E I/O EXTERNO
-        if stg in (1, 3, 8, 95, 96, 97):
-            return  # ESTADO TERMINAL, pula
+        if stg in (3, 8, 95, 96, 97):
+            logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) (cart_id={cart_id}): Estado STG={stg} é um estado terminal. Nenhum processamento necessário.")
+            return
             
         status_id = order.get('status', {}).get('data', {}).get('id')
-        alias = order.get('status', {}).get('data', {}).get('alias', '')
-        is_paid = status_id == 4 or alias == 'paid'
-        is_pending = status_id == 3 or alias == 'waiting_payment'
+        alias = str(order.get('status', {}).get('data', {}).get('alias', '')).lower()
+        
+        # Mapeamento dos status da Yampi (on_carriage restrito explicitamente)
+        is_on_carriage = alias == 'on_carriage'
+        is_paid = is_on_carriage or status_id in (4, 5, 6, 7, 9) or alias in ('paid', 'in_separation', 'invoiced', 'ready_for_shipping', 'shipped', 'delivered')
+        is_pending = status_id in (1, 2, 3) or alias in ('created', 'authorized', 'waiting_payment')
+        is_cancelled = status_id in (8, 12) or alias in ('cancelled', 'refunded')
         
         now_utc3 = datetime.utcnow() - timedelta(hours=3)
         diff_hours = (now_utc3 - data_pedido).total_seconds() / 3600
         diff_seconds = (now_utc3 - data_pedido).total_seconds()
 
+        logger.debug(
+            f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) | Status Yampi: id={status_id}, alias='{alias}' "
+            f"(is_paid={is_paid}, is_on_carriage={is_on_carriage}, is_pending={is_pending}, is_cancelled={is_cancelled}) | "
+            f"Hora Pedido: {data_pedido} | Hora Atual (UTC-3): {now_utc3.strftime('%Y-%m-%d %H:%M:%S')} | "
+            f"Diff: {diff_seconds:.0f}s ({diff_hours:.2f}h)"
+        )
+
         new_stg = None
         template_name = None
         subject = ""
 
-        if stg is None:
-            if diff_seconds <= MACRO_TIMEOUT_PAGAMENTO_SEG:
-                if is_paid:
-                    new_stg = 1
-                    template_name = "email_1_confirmacao_pagamento"
-                    subject = f"Pagamento Confirmado: Pedido #{order_id}"
-                elif is_pending:
-                    new_stg = 2
-                    template_name = "email_2_incentivo_pagamento"
-                    subject = f"Finalize seu pagamento: Pedido #{order_id}"
-            else:
-                if not is_paid:
-                    new_stg = 4
-        elif stg == 2:
-            if is_paid:
+        # REGRA PRIORITÁRIA 1: Cancelado / Reembolsado na Yampi -> STG 8 (Terminal)
+        if is_cancelled:
+            new_stg = 8
+            logger.debug(f"[REGRA APLICADA] STG {stg} -> 8: Pedido ID: # {order_id} (Nº {order_number}) foi cancelado/reembolsado na Yampi (alias='{alias}').")
+        
+        # REGRA PRIORITÁRIA 2: Em Transporte / En enviado (on_carriage / shipped) -> STG 3 + envio_rastreio
+        elif is_on_carriage:
+            if stg != 3:
+                new_stg = 3
+                template_name = "envio_rastreio"
+                subject = f"Seu pedido #{order_number} está a caminho!"
+                logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) em transporte (alias='{alias}'). Disparando e-mail com código de rastreio.")
+                
+        # REGRA 3: Demais status pagos (paid, in_separation, invoiced)
+        elif is_paid:
+            if stg is None:
+                new_stg = 1
+                template_name = "email_1_confirmacao_pagamento"
+                subject = f"Pagamento Confirmado: Pedido # {order_number}"
+                logger.debug(f"[REGRA APLICADA] STG None -> 1: Pedido ID: # {order_id} (Nº {order_number}) com pagamento aprovado (alias='{alias}').")
+            elif stg in (2, 4, 5, 6, 7):
                 new_stg = 3
                 template_name = "email_1_confirmacao_pagamento"
-                subject = f"Pagamento Confirmado: Pedido #{order_id}"
-            elif diff_seconds > MACRO_TIMEOUT_PAGAMENTO_SEG and not is_paid:
-                new_stg = 4
-        elif stg == 4:
-            if diff_hours > MACRO_CUPOM_PEDIDO_1_HORAS:
-                new_stg = 5
-                template_name = "cupom_1_pedido_10"
-                subject = f"10% de desconto para o seu pedido #{order_id}"
-        elif stg == 5:
-            if diff_hours > MACRO_CUPOM_PEDIDO_2_HORAS:
-                new_stg = 6
-                template_name = "cupom_2_pedido_15"
-                subject = f"15% de desconto para o seu pedido #{order_id}"
-        elif stg == 6:
-            if diff_hours > MACRO_CUPOM_PEDIDO_3_HORAS:
-                new_stg = 7
-                template_name = "cupom_3_pedido_20"
-                subject = f"20% de desconto! Última chance pedido #{order_id}"
-        elif stg == 7:
-            if diff_hours > MACRO_PERDIDO_PEDIDO_HORAS:
-                new_stg = 8
+                subject = f"Pagamento Confirmado: Pedido # {order_number}"
+                logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) mudou para pago (alias='{alias}'). Encerra esteira de cobrança.")
+
+        # REGRA 4: Status pendentes (waiting_payment, created, authorized) ou não-pagos
+        else:
+            if stg is None:
+                if diff_seconds <= MACRO_TIMEOUT_PAGAMENTO_SEG:
+                    if is_pending:
+                        if diff_seconds >= MACRO_DELAY_ORDER_PIX_EMAIL_SEG:
+                            new_stg = 2
+                            template_name = "email_2_incentivo_pagamento"
+                            subject = f"Finalize seu pagamento: Pedido # {order_number}"
+                            logger.debug(f"[REGRA APLICADA] STG None -> 2: Pedido ID: # {order_id} (Nº {order_number}) pendente com delay cumprido ({diff_seconds:.0f}s >= {MACRO_DELAY_ORDER_PIX_EMAIL_SEG}s).")
+                        else:
+                            logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) pendente aguardando delay de segurança ({diff_seconds:.0f}s < {MACRO_DELAY_ORDER_PIX_EMAIL_SEG}s). Nenhum e-mail enviado ainda.")
+                else:
+                    new_stg = 4
+                    logger.debug(f"[REGRA APLICADA] STG None -> 4: Pedido ID: # {order_id} (Nº {order_number}) ultrapassou timeout ({diff_seconds:.0f}s > {MACRO_TIMEOUT_PAGAMENTO_SEG}s) e não foi pago.")
+            elif stg == 2:
+                if diff_seconds > MACRO_TIMEOUT_PAGAMENTO_SEG:
+                    new_stg = 4
+                    logger.debug(f"[REGRA APLICADA] STG 2 -> 4: Pedido ID: # {order_id} (Nº {order_number}) expirou janela de pagamento ({diff_seconds:.0f}s > {MACRO_TIMEOUT_PAGAMENTO_SEG}s).")
+            elif stg == 4:
+                if diff_hours > MACRO_CUPOM_PEDIDO_1_HORAS:
+                    new_stg = 5
+                    template_name = "cupom_1_pedido_10"
+                    subject = f"10% de desconto para o seu pedido # {order_number}"
+                    logger.debug(f"[REGRA APLICADA] STG 4 -> 5: Pedido ID: # {order_id} (Nº {order_number}) atingiu tempo para Cupom 1 ({diff_hours:.2f}h > {MACRO_CUPOM_PEDIDO_1_HORAS}h).")
+            elif stg == 5:
+                if diff_hours > MACRO_CUPOM_PEDIDO_2_HORAS:
+                    new_stg = 6
+                    template_name = "cupom_2_pedido_15"
+                    subject = f"15% de desconto para o seu pedido # {order_number}"
+                    logger.debug(f"[REGRA APLICADA] STG 5 -> 6: Pedido ID: # {order_id} (Nº {order_number}) atingiu tempo para Cupom 2 ({diff_hours:.2f}h > {MACRO_CUPOM_PEDIDO_2_HORAS}h).")
+            elif stg == 6:
+                if diff_hours > MACRO_CUPOM_PEDIDO_3_HORAS:
+                    new_stg = 7
+                    template_name = "cupom_3_pedido_20"
+                    subject = f"20% de desconto! Última chance pedido # {order_number}"
+                    logger.debug(f"[REGRA APLICADA] STG 6 -> 7: Pedido ID: # {order_id} (Nº {order_number}) atingiu tempo para Cupom 3 ({diff_hours:.2f}h > {MACRO_CUPOM_PEDIDO_3_HORAS}h).")
+            elif stg == 7:
+                if diff_hours > MACRO_PERDIDO_PEDIDO_HORAS:
+                    new_stg = 8
+                    logger.debug(f"[REGRA APLICADA] STG 7 -> 8: Pedido ID: # {order_id} (Nº {order_number}) marcado como perdido ({diff_hours:.2f}h > {MACRO_PERDIDO_PEDIDO_HORAS}h).")
 
         if new_stg is not None:
             if template_name and email:
                 html_body = self._read_template(template_name)
                 if html_body:
+                    value_total = float(order.get('value_total') or order.get('value_products') or 0.0)
+                    total_value_str = f"{value_total:.2f}"
+                    recovery_url = order.get('checkout_url') or order.get('public_url') or order.get('reorder_url') or ""
+
+                    shipments = order.get('shipments', {}).get('data', [])
+                    shipment_data = shipments[0] if isinstance(shipments, list) and len(shipments) > 0 else {}
+                    
+                    tracking_code = (
+                        order.get('track_code') or 
+                        order.get('tracking_code') or 
+                        shipment_data.get('track_code') or 
+                        shipment_data.get('tracking_code') or 
+                        'Disponível em breve'
+                    )
+                    
+                    if tracking_code == 'Disponível em breve':
+                        logger.error(f"[RASTREIO] Pedido ID: # {order_id} (Nº {order_number}): Código de rastreio 'Disponível em breve'.")
+                    
+                    tracking_url = (
+                        order.get('track_url') or 
+                        order.get('tracking_url') or 
+                        shipment_data.get('track_url') or 
+                        shipment_data.get('tracking_url') or 
+                        '#'
+                    )
+
                     html_body = html_body.replace("{name}", name)
-                    html_body = html_body.replace("{order_id}", order_id)
+                    html_body = html_body.replace("{order_id}", order_number)
                     html_body = html_body.replace("{items_html}", items_html)
+                    html_body = html_body.replace("{total_value}", total_value_str)
+                    html_body = html_body.replace("{total_value:.2f}", total_value_str)
+                    html_body = html_body.replace("{recovery_url}", recovery_url)
+                    html_body = html_body.replace("{tracking_code}", tracking_code)
+                    html_body = html_body.replace("{tracking_url}", tracking_url)
                     
                     # Salvar HTML localmente
                     folder_path = os.path.join("emails", f"order_{order_id}")
@@ -220,12 +312,14 @@ class OrderProcessor:
                         with open(file_path, "w", encoding="utf-8") as f:
                             f.write(html_body)
                     except Exception as e:
-                        logger.error(f"[Worker Pedidos] Falha ao criar HTML para o pedido {order_id}: {e}")
+                        logger.error(f"[Worker Pedidos] Falha ao criar HTML para o pedido ID: # {order_id} (Nº {order_number}): {e}")
 
                     recipient_email = self.config.TEST_EMAIL_RECIPIENT  # Em prod, usar `email`
                     self.message_provider.send_email_message(recipient_email, subject, html_body)
-                    logger.info(f"[Worker Pedidos] E-mail STG {new_stg} enviado para pedido {order_id}")
+                    logger.info(f"[Worker Pedidos] E-mail STG {new_stg} enviado para pedido ID: # {order_id} (Nº {order_number})")
 
             # FASE 3: GRAVAÇÃO ATÔMICA
             self.state_repo.update_stg(cart_id, new_stg)
             logger.info(f"[Worker Pedidos] Estado do cart_id {cart_id} atualizado para STG={new_stg}")
+        else:
+            logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) (cart_id={cart_id}): Nenhuma transição aplicável nesta rodada. Permanece STG={stg}.")
