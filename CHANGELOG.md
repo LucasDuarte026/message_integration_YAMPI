@@ -7,6 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.2.0] - 2026-07-27 (Validação de Código de Rastreio para Transição STG 3)
+
+### Corrigido
+- **Bloqueio de Transição para STG 3 sem Código de Rastreio (`src/workers/orders.py`)**:
+  - A transição para `STG 3` agora exige estritamente a presença prévia de um código de rastreio válido no payload da Yampi.
+  - Se um pedido mudar para `paid` ou `on_carriage` sem o código de rastreio, a transição para `STG 3` fica bloqueada e o pedido permanece no estado atual (ex: `2` ou `null`) para novas tentativas nas rodadas seguintes de polling.
+
+---
+
 ## [3.1.0] - 2026-07-24 (Ajuste de Controle de Rastreio por Estado)
 
 ### Alterado / Corrigido

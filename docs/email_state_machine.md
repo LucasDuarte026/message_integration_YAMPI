@@ -110,11 +110,11 @@ diff_pedido = now_utc3 - data_pedido
 
 | De | Para | Condição | Ação | Email |
 |---|---|---|---|---|
-| Qualquer (`!= 3, 8`) | `3` | Status Yampi explicitamente `on_carriage` | Enviar email de rastreio, marcar STG=3 | **Envio Rastreio**: Notificação de transporte + código `{tracking_code}` e link `{tracking_url}` |
+| Qualquer (`!= 3, 8`) | `3` | Status Yampi `on_carriage` **E** Código de Rastreio presente | Enviar email de rastreio, marcar STG=3 | **Envio Rastreio**: Notificação de transporte + código `{tracking_code}` e link `{tracking_url}` |
 | `null` | `1` | Pagamento aprovado (`paid`, `in_separation`, `invoiced`) | Enviar email, marcar STG=1 | **Email 1**: Confirmação de pagamento |
 | `null` | `2` | `diff ≤ 30 min` e pagamento **pendente** (`waiting_payment`, `created`, `authorized`) | Enviar email, marcar STG=2 | **Email 2**: Confirmação de pedido + incentivo ao pagamento + PIX/QR Code |
 | `null` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado | Marcar STG=4 (sem email nessa transição, o cupom 1 sai em 24h) | — |
-| `2, 4, 5, 6, 7` | `3` | Pagamento aprovado (`paid`, `in_separation`, `invoiced`) | Enviar email, marcar STG=3 | **Email 3**: Confirmação de pagamento |
+| `2, 4, 5, 6, 7` | `3` | Pagamento aprovado (`paid`, `in_separation`, `invoiced`) **E** Código de Rastreio presente | Enviar email, marcar STG=3 | **Email 3**: Confirmação de pagamento |
 | Qualquer | `8` | Pedido reembolsado (`refunded`) | Marcar STG=8 | — (cliente perdido/reembolsado) |
 | `2` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado (incluindo `cancelled` por PIX expirado) | Marcar STG=4 | — |
 | `4` | `5` | `diff > 12h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=5 | **Email Cupom 1**: desconto 10% |
