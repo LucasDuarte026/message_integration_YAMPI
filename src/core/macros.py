@@ -23,6 +23,7 @@ MACRO_CUPOM_CARRINHO_1_HORAS = 14       # 4 horas (lembrete 15)
 MACRO_CUPOM_CARRINHO_2_HORAS = 16      # 24 horas (cupom 16)
 MACRO_CUPOM_CARRINHO_3_HORAS = 18      # 48 horas (cupom 17)
 MACRO_PERDIDO_CARRINHO_HORAS = 20      # 96 horas (carrinho perdido 18)
+MACRO_MAX_CART_AGE_HOURS = 48           # Limite máximo em horas para desconsiderar carrinhos antigos
 
 MACRO_STC_00_TIMER_15 = MACRO_CUPOM_CARRINHO_1_HORAS * 3600
 MACRO_STC_15_TIMER_16 = MACRO_CUPOM_CARRINHO_2_HORAS * 3600

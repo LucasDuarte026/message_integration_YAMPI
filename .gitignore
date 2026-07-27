@@ -12,3 +12,6 @@ emails/
 init-scripts/
 tests/
 logs/
+analysis*/
+logs*/
+emails*/

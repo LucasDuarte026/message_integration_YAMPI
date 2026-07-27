@@ -14,6 +14,41 @@ Ele serve como guia principal e mapa mental para agentes de IA e desenvolvedores
 ## Estrutura de Diretórios e Fluxo de Dados
 O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, dividida de forma que a Regra de Negócio não conheça os detalhes de Banco de Dados ou HTTP.
 
+### Mapeamento Geral da Árvore de Arquivos
+```bash
+├── .gemini/                          # Diretrizes comportamentais de IA e regras de auto-documentação
+│   ├── GEMINI.md                     # Código de conduta do assistente, Git em modo leitura, SemVer
+│   └── auto_documentation_rules.md   # Regras de manutenção síncrona dos README.md locais
+├── docs/                             # Documentação geral do sistema
+│   ├── architecture.md               # Detalhes da arquitetura de especificação e camadas
+│   ├── project_dependency_tree.md    # Árvore visual e conceitual de dependências
+│   ├── project_overview.md           # Guia funcional completo e decisões de design
+│   ├── email_state_machine.md        # Especificação técnica da Máquina de Estados (STG/STC)
+│   ├── future_implementations.md     # Débitos técnicos e roadmap de novas features
+│   └── docker_cheatsheet.md          # Guia de rotinas e comandos Docker
+├── emails/                           # Diretório de auditoria contendo HTMLs de envios passados
+├── estudos/                          # Documentações e relatórios de estudos de mercado/CPaaS
+├── src/                              # Código-fonte principal
+│   ├── core/                         # Infraestrutura interna básica do sistema
+│   │   ├── client.py                 # Cliente de integração com a API da Yampi
+│   │   ├── config.py                 # Dataclasses de configuração e ambiente
+│   │   └── db.py                     # Controle de estado SQLite local
+│   ├── domain/                       # Camada de contratos estritos e specs
+│   │   └── interfaces.py             # Protocols e Classes Abstratas do sistema
+│   ├── ports/                        # Adaptadores de APIs de terceiros (Meta, SMTP, Mock)
+│   │   ├── message_provider.py       # Mock Provider de Dry-run
+│   │   ├── smtp_email_provider.py    # Adaptador de envio de E-mail via SMTP
+│   │   └── whatsapp_meta_provider.py # Adaptador de envio de WhatsApp via Meta Cloud API
+│   ├── workers/                      # Casos de uso e regras de negócio orquestradas
+│   │   └── abandoned_cart.py         # Threaded-worker de recuperação de carrinhos
+│   ├── main.py                       # CLI principal do projeto (Orquestrador)
+│   └── webhook_server.py             # Servidor HTTP para Webhooks da Meta API
+├── tests/                            # Testes unitários do sistema
+│   └── test_abandoned_cart.py        # Casos de teste do fluxo de carrinhos
+├── requirements.txt                  # Dependências do Python
+└── state.db                          # Banco de dados SQLite persistente (gerado na execução)
+```
+
 ### 1. [`src/domain/`](../src/domain/README.md) (As Especificações)
 O coração da aplicação. Não possui implementações, apenas contratos (`Protocols`, `Interfaces`, `ABC`). Tudo no sistema depende do domínio, mas o domínio não depende de nada. Se você vai criar uma funcionalidade nova, **comece especificando-a aqui**.
 

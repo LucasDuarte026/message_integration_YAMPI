@@ -85,3 +85,58 @@ Para rastrear a execução linha por linha e acompanhar a pilha de chamadas e ob
 
 ### Mapeamento no Docker
 Para persistência local e facilidade de depuração no ambiente host, o [docker-compose.yml](../docker-compose.yml) mapeia a pasta local `./logs_from_container` para `/app/logs` dentro do container da aplicação. Isso permite visualizar a execução em tempo real rodando comandos como `tail -f logs_from_container/app.log`.
+
+---
+
+## 7. Configuração Detalhada e Variáveis de Ambiente (`.env`)
+
+O arquivo [config.py](../src/core/config.py) carrega as configurações da aplicação com base nas variáveis de ambiente. Defina-as no terminal antes da execução ou crie um arquivo `.env`:
+
+| Variável | Descrição | Padrão | Obrigatória? |
+| :--- | :--- | :--- | :--- |
+| `YAMPI_USER_TOKEN` | Token do usuário do painel da Yampi. | - | **Sim** |
+| `YAMPI_USER_SECRET_KEY` | Chave secreta de usuário do painel da Yampi. | - | **Sim** |
+| `YAMPI_ALIAS` | Alias da sua loja Yampi (opcional; detectado automaticamente se omitido). | - | Não |
+| `SQLITE_DB_PATH` | Caminho do arquivo SQLite para persistir estados locais em dev. | `state.db` | Não |
+| `POSTGRES_HOST` / `POSTGRES_DB` | Conexão com o banco PostgreSQL de produção. | `localhost` | **Sim (Produção)** |
+| `TEST_EMAIL_RECIPIENT` | E-mail de destino para envio em modo de teste/homologação. | `wpplucas026@gmail.com` | Não |
+| `MAX_CART_AGE_HOURS` | Limite de tempo em horas (cutoff) para desconsiderar carrinhos muito antigos. | `48` | Não |
+| `MAX_WORKERS` | Quantidade máxima de threads paralelas para processamento. | `10` | Não |
+| **SMTP Configs (Produção)** | | | |
+| `SMTP_USER` | Usuário de autenticação do servidor SMTP. | - | **Sim (Modo Produção)** |
+| `SMTP_PASSWORD` | Senha ou Token de App do e-mail SMTP. | - | **Sim (Modo Produção)** |
+| `SMTP_HOST` | Host do servidor de e-mail. | `smtp.gmail.com` | Não |
+| `SMTP_PORT` | Porta do servidor SMTP (usar `465` para SSL ou `587` para TLS). | `587` | Não |
+| `SMTP_FROM` | E-mail remetente que aparecerá no cabeçalho do destinatário. | `SMTP_USER` | Não |
+| **Meta WhatsApp Configs** | | | |
+| `META_WA_TOKEN` | Token temporário ou permanente da Meta Cloud API. | - | Não |
+| `META_PHONE_NUMBER_ID` | Identificador de número de telefone gerado na Meta Cloud API. | - | Não |
+| `META_WA_TEMPLATE_NAME`| Nome do template homologado no painel da Meta. | `hello_world` | Não |
+| `META_WA_TEMPLATE_LANG`| Idioma do template. | `en_US` | Não |
+
+---
+
+## 8. Servidor de Webhooks (WhatsApp / Meta API)
+
+Para escutar eventos em tempo real do WhatsApp da Meta Cloud API:
+
+1. **Início do Servidor:**
+   ```bash
+   python src/webhook_server.py
+   ```
+2. O servidor roda por padrão na porta `5000` (endpoint `/webhook`).
+3. Para expor em homologação local, utilize um túnel HTTP (ex: `ngrok http 5000`).
+4. **Token de Verificação GET:** O token pré-configurado é `rodolfo_hulk_tasmania` (definido em [webhook_server.py](../src/webhook_server.py#L7)).
+5. **POST Handlers:** Processa payloads JSON enviados pela Meta com atualizações de entrega e status de leitura das mensagens.
+
+---
+
+## 9. Política de Versionamento e Roadmap (Semantic Versioning 2.0.0)
+
+Este projeto adota estritamente o padrão **[Semantic Versioning (SemVer 2.0.0)](https://semver.org/lang/pt-BR/)** no formato `MAJOR.MINOR.PATCH`:
+
+- **MAJOR (`X.0.0`) — Mudanças Estruturais / Breaking Changes**: Incompatibilidades no esquema do banco (`email_status_table`), refatorações centrais na arquitetura do daemon ou alteração nos contratos das interfaces de domínio.
+- **MINOR (`1.X.0`) — Novas Funcionalidades (Retrocompatíveis)**: Novos provedores de mensagens, novas regras de transição/cupons, melhorias de infraestrutura ou utilitários CLI.
+- **PATCH (`1.0.X`) — Bug Fixes e Ajustes Finos**: Correções de erros pontuais, ajustes de tratamento de logs ou refinamento em formatadores sem alteração de regras de negócio.
+
+Os registros de versão são mantidos no arquivo [VERSION](../VERSION), detalhados no [CHANGELOG.md](../CHANGELOG.md) e marcados no Git através de **Annotated Tags** (ex: `git tag -a v3.1.0 -m "..."`).

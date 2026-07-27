@@ -6,7 +6,7 @@ Eles **nunca** instanciam clientes HTTP ou Bancos de Dados diretamente; eles rec
 
 ## Arquivos e Responsabilidades
 - **`abandoned_cart.py`**: Implementa a classe `AbandonedCartProcessor`. Consulta os carrinhos via API, filtra pela janela de horas (ex: 2h após abandono), verifica o estado do disparo local para evitar duplicidade e orquestra o provedor de mensagem para contatar o cliente.
-- **`orders.py`**: Implementa a classe `OrderProcessor`. Lida com o ciclo de vida dos pedidos da loja, desde a confirmação de pagamento até lembretes para boletos e PIX e emissão de cupons de descontos para pedidos parados (STG) processando tudo concorrentemente com auxílio de injeção de estado no DB centralizado.
+- **`orders.py`**: Implementa a classe `OrderProcessor`. Lida com o ciclo de vida dos pedidos da loja, desde a confirmação de pagamento até lembretes para boletos e PIX e emissão de cupons de descontos para pedidos parados (STG) processando tudo concorrentemente com auxílio de injeção de estado no DB centralizado. **Validação estrita de rastreio:** A transição para `STG 3` (envio/rastreio) exige obrigatoriamente a presença do código de rastreio no payload da Yampi; caso ausente, a transição é bloqueada e o pedido permanece no estado atual (ex: `2` ou `null`) para reavaliação contínua.
 
 ## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]

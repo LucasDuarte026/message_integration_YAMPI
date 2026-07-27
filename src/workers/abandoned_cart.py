@@ -69,7 +69,7 @@ class AbandonedCartProcessor:
             logger.error(f"Erro no processamento concorrente de carrinhos: {e}")
             
     def _precheck_cart(self, cart: Dict[str, Any]) -> Tuple[bool, bool]:
-        created_at_str = cart.get('created_at', {}).get('date')
+        created_at_str = cart.get('created_at', {}).get('date') or cart.get('updated_at', {}).get('date')
         if not created_at_str:
             return True, False
             
@@ -103,7 +103,7 @@ class AbandonedCartProcessor:
                 logger.warning(f"[Worker Carrinhos] Carrinho {cart_id} sem email. Ignorando.")
                 return
 
-            created_at_str = cart.get('created_at', {}).get('date')
+            created_at_str = cart.get('created_at', {}).get('date') or cart.get('updated_at', {}).get('date')
             try:
                 data_carrinho = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
             except ValueError:

@@ -111,6 +111,19 @@ class OrderProcessor:
                 return meta.get('value')
         return None
 
+    def _get_tracking_code(self, order: Dict[str, Any]) -> Optional[str]:
+        shipments = order.get('shipments', {}).get('data', [])
+        shipment_data = shipments[0] if isinstance(shipments, list) and len(shipments) > 0 else {}
+        found_code = (
+            order.get('track_code') or 
+            order.get('tracking_code') or 
+            shipment_data.get('track_code') or 
+            shipment_data.get('tracking_code')
+        )
+        if found_code and str(found_code).strip():
+            return str(found_code).strip()
+        return None
+
     def _process_order_concurrently(self, order: Dict[str, Any]) -> None:
         try:
             self._process_order_logic(order)
@@ -199,10 +212,14 @@ class OrderProcessor:
         # REGRA PRIORITÁRIA 2: Em Transporte / En enviado (on_carriage / shipped) -> STG 3 + envio_rastreio
         elif is_on_carriage:
             if stg != 3:
-                new_stg = 3
-                template_name = "envio_rastreio"
-                subject = f"Seu pedido #{order_number} está a caminho!"
-                logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) em transporte (alias='{alias}'). Disparando e-mail com código de rastreio.")
+                tracking_code = self._get_tracking_code(order)
+                if tracking_code:
+                    new_stg = 3
+                    template_name = "envio_rastreio"
+                    subject = f"Seu pedido #{order_number} está a caminho!"
+                    logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) em transporte (alias='{alias}') com código '{tracking_code}'. Disparando e-mail com código de rastreio.")
+                else:
+                    logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) em transporte (alias='{alias}'), mas código de rastreio ainda ausente na Yampi. Transição para STG 3 bloqueada. Permanece STG={stg}.")
                 
         # REGRA 3: Demais status pagos (paid, in_separation, invoiced)
         elif is_paid:
@@ -212,10 +229,14 @@ class OrderProcessor:
                 subject = f"Pagamento Confirmado: Pedido # {order_number}"
                 logger.debug(f"[REGRA APLICADA] STG None -> 1: Pedido ID: # {order_id} (Nº {order_number}) com pagamento aprovado (alias='{alias}').")
             elif stg in (2, 4, 5, 6, 7):
-                new_stg = 3
-                template_name = "email_1_confirmacao_pagamento"
-                subject = f"Pagamento Confirmado: Pedido # {order_number}"
-                logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) mudou para pago (alias='{alias}'). Encerra esteira de cobrança.")
+                tracking_code = self._get_tracking_code(order)
+                if tracking_code:
+                    new_stg = 3
+                    template_name = "email_1_confirmacao_pagamento"
+                    subject = f"Pagamento Confirmado: Pedido # {order_number}"
+                    logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) mudou para pago (alias='{alias}') com código '{tracking_code}'. Encerra esteira de cobrança.")
+                else:
+                    logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) mudou para pago (alias='{alias}'), mas código de rastreio ainda ausente na Yampi. Transição para STG 3 bloqueada. Permanece STG={stg}.")
 
         # REGRA 4: Status pendentes (waiting_payment, created, authorized) ou cancelados
         else:
