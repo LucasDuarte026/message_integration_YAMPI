@@ -87,12 +87,21 @@ docker compose exec app python src/main.py abandoned-carts --production
 ### 3. Execução Nativa (Python Local)
 
 ```bash
-# Ativar ambiente virtual e instalar dependências
-source .venv/bin/activate
-pip install -r requirements.txt
+# Rodar o orquestrador completo em modo simulado (Dry-Run)
+./run_local.sh all
 
-# Rodar o orquestrador em modo simulado (Dry-Run)
-python src/main.py orders
+# Executar/Buscar apenas Pedidos (STG)
+./db_consult_scripts/run_stg.sh           # Modo simulado (Dry-Run)
+./db_consult_scripts/run_stg.sh --production # Modo produção
+
+# Executar/Buscar apenas Carrinhos Abandonados (STC)
+./db_consult_scripts/run_stc.sh           # Modo simulado (Dry-Run)
+./db_consult_scripts/run_stc.sh --production # Modo produção
+
+# Consultar o banco de dados por status STG ou STC
+./db_consult_scripts/search_stg.sh        # Lista todos os registros com estado STG
+./db_consult_scripts/search_stg.sh 2      # Lista registros com STG = 2 (Incentivo PIX)
+./db_consult_scripts/search_stc.sh 15     # Lista registros com STC = 15 (Cupom 4)
 ```
 
 > **Dica**: No modo Dry-Run, o sistema não gasta créditos de mensagens e salva o HTML do e-mail em `emails/` para conferência visual.
@@ -117,5 +126,6 @@ Para desenvolvedores e arquitetos que desejam entender os detalhes internos, esp
 
 * 🏛️ **[Arquitetura do Sistema e Estrutura de Diretórios](./docs/architecture.md)** — Camadas Clean/Hexagonal e mapa visual de arquivos.
 * ⚙️ **[Máquina de Estados (STG/STC)](./docs/email_state_machine.md)** — Regras de transição, temporizadores e esquema de dados.
+* 📊 **[Diagramas de Estados](./docs/diagramas/README.md)** — Diagramas Mermaid visuais dos fluxos de [Pedidos (STG)](./docs/diagramas/stateDiagramOrders.md) e [Carrinhos Abandonados (STC)](./docs/diagramas/stateDiagramAbandonedCarts.md).
 * 📋 **[Histórico de Alterações](./CHANGELOG.md)** — Registro detalhado de versões e releases.
 * 🔮 **[Roadmap de Implementações](./docs/future_implementations.md)** — Próximos passos e melhorias futuras.

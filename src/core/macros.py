@@ -47,7 +47,7 @@ MACRO_W_CARTS_PAGE_AMOUNT = 5
 # ==========================================
 # Limite de Itens em Modo Debug / Cache
 # ==========================================
-MACRO_DEBUG_LIMIT = 500
+MACRO_DEBUG_LIMIT = 10
 
 # ==========================================
 # Janela Máxima de Corte Precheck (Pedidos)

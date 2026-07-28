@@ -393,6 +393,7 @@ Nesta seção estão listados todos os detalhes técnicos, pendências de valida
 
 ## 12. Diagramas de Referência
 
+- **Índice Geral de Diagramas:** [README.md do Diretório de Diagramas](./diagramas/README.md)
 - **Fluxo STG (Pedidos):** [stateDiagramOrders.md](./diagramas/stateDiagramOrders.md)
 - **Fluxo STC (Carrinhos):** [stateDiagramAbandonedCarts.md](./diagramas/stateDiagramAbandonedCarts.md)
 

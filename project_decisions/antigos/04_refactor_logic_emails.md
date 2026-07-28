@@ -381,8 +381,9 @@ Nesta seção estão listados todos os detalhes técnicos, pendências de valida
 
 ## 12. Diagramas de Referência
 
-- **Fluxo STG (Pedidos):** [stateDiagramOrders.md](./diagramas/stateDiagramOrders.md)
-- **Fluxo STC (Carrinhos):** [stateDiagramAbandonedCarts.md](./diagramas/stateDiagramAbandonedCarts.md)
+- **Fluxo STG (Pedidos):** [stateDiagramOrders.md](../../docs/diagramas/stateDiagramOrders.md)
+- **Fluxo STC (Carrinhos):** [stateDiagramAbandonedCarts.md](../../docs/diagramas/stateDiagramAbandonedCarts.md)
+- **Índice de Diagramas:** [README.md](../../docs/diagramas/README.md)
 
 ---
 

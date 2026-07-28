@@ -28,10 +28,21 @@ Nesta pasta estão concentradas as diretrizes de mudanças locais, propostas de 
    * **Data**: 2026-07-20 (Atualizado: 2026-07-20)
    * **Status**: Em Desenvolvimento / Base da Versão 2.0.0.
 
-4. [04_refactor_logic_emails.md](./04_refactor_logic_emails.md)
+4. [04_refactor_logic_emails.md](./antigos/04_refactor_logic_emails.md)
    * **Assunto**: Especificação formal da máquina de estados (STG/STC), schema unificado `email_status_table`, contratos de workers e macros para a versão 2.0.0.
    * **Data**: 2026-07-21
    * **Status**: Aprovado (Especificação pronta para implementação da v2.0.0).
    * **Diagramas**:
-     - [stateDiagramOrders.md](./diagramas/stateDiagramOrders.md) (Fluxo STG - Pedidos)
-     - [stateDiagramAbandonedCarts.md](./diagramas/stateDiagramAbandonedCarts.md) (Fluxo STC - Carrinhos Abandonados)
+     - [stateDiagramOrders.md](../docs/diagramas/stateDiagramOrders.md) (Fluxo STG - Pedidos)
+     - [stateDiagramAbandonedCarts.md](../docs/diagramas/stateDiagramAbandonedCarts.md) (Fluxo STC - Carrinhos Abandonados)
+     - [Índice de Diagramas](../docs/diagramas/README.md)
+
+5. [05_email_refactor.md](./Emails_design_upgrade/05_email_refactor.md)
+   * **Assunto**: Refatoração completa dos e-mails usando MJML, nomenclatura desacoplada (Cupons 1-3 pedidos, Cupons 4-6 carrinho), auto-injeção de imagens e `brand_data.yml` como Fonte Zero de Informações.
+   * **Data**: 2026-07-27
+   * **Status**: Aprovado e Implementado.
+
+6. [06_products_table.md](./06_products_table.md)
+   * **Assunto**: Especificação e plano do catálogo local de produtos para enriquecimento automático com imagem, nome, quantidade e preço nas tabelas de itens dos e-mails.
+   * **Data**: 2026-07-27
+   * **Status**: Em Planejamento.

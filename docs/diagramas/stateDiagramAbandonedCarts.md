@@ -1,7 +1,7 @@
 # Diagrama de Estados — STC (Carrinhos Abandonados)
 
 **Data de Criação:** 2026-07-21  
-**Referência:** [email_state_machine.md](../../docs/email_state_machine.md)
+**Referência:** [email_state_machine.md](../email_state_machine.md) | [Índice de Diagramas](./README.md)
 
 ---
 

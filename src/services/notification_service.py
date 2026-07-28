@@ -22,12 +22,12 @@ class NotificationService:
         
     def handle_transition(self, event: OrderTransitionEvent, template_name: str) -> None:
         builders = {
-            "email_1_confirmacao_pagamento": PaymentConfirmedBuilder(),
-            "email_2_incentivo_pagamento": PaymentIncentiveBuilder(),
-            "envio_rastreio": ShippingTrackerBuilder(),
-            "cupom_1_pedido_10": Coupon10Builder(),
-            "cupom_2_pedido_15": Coupon15Builder(),
-            "cupom_3_pedido_20": Coupon20Builder(),
+            "pedido_aprovado": PaymentConfirmedBuilder(),
+            "pedido_pendente": PaymentIncentiveBuilder(),
+            "pedido_a_caminho": ShippingTrackerBuilder(),
+            "cupom_pedido_1": Coupon10Builder(),
+            "cupom_pedido_2": Coupon15Builder(),
+            "cupom_pedido_3": Coupon20Builder(),
         }
         
         builder = builders.get(template_name)
@@ -59,9 +59,9 @@ class NotificationService:
 
     def handle_cart_transition(self, event: CartTransitionEvent, template_name: str) -> None:
         builders = {
-            "cupom_4_carrinho": Coupon4CartBuilder(),
-            "cupom_5_carrinho": Coupon5CartBuilder(),
-            "cupom_6_carrinho": Coupon6CartBuilder(),
+            "carrinho_abandonado_cupom4": Coupon4CartBuilder(),
+            "carrinho_abandonado_cupom5": Coupon5CartBuilder(),
+            "carrinho_abandonado_cupom6": Coupon6CartBuilder(),
         }
         builder = builders.get(template_name)
         if not builder:

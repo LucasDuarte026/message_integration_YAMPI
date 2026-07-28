@@ -1,22 +1,40 @@
 import os
+import yaml
 import logging
 from abc import ABC, abstractmethod
-from typing import Tuple
-from src.domain.events import OrderTransitionEvent
+from typing import Tuple, Dict, Any
+from jinja2 import Environment, FileSystemLoader
+
+from src.domain.events import OrderTransitionEvent, CartTransitionEvent
 
 logger = logging.getLogger(__name__)
 
 class BaseEmailBuilder(ABC):
     def __init__(self):
         self.templates_dir = os.path.join(os.getcwd(), "src", "templates", "emails")
+        self.jinja_env = Environment(loader=FileSystemLoader(self.templates_dir), autoescape=True)
+        self.brand_data = self._load_brand_data()
 
-    def _read_template(self, template_name: str) -> str:
-        file_path = os.path.join(self.templates_dir, f"{template_name}.html")
+    def _load_brand_data(self) -> Dict[str, Any]:
+        brand_data_path = os.path.join(self.templates_dir, "brand_data.yml")
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return f.read()
-        except FileNotFoundError:
-            logger.error(f"Template {template_name}.html não encontrado em {file_path}")
+            with open(brand_data_path, "r", encoding="utf-8") as f:
+                return yaml.safe_load(f) or {}
+        except Exception as e:
+            logger.error(f"Erro ao carregar {brand_data_path}: {e}")
+            return {}
+
+    def render_template(self, template_name: str, template_data: Dict[str, Any]) -> str:
+        try:
+            template = self.jinja_env.get_template(f"{template_name}.html")
+            
+            # Merge brand data with template data
+            context = self.brand_data.copy()
+            context.update(template_data)
+            
+            return template.render(**context)
+        except Exception as e:
+            logger.error(f"Erro ao renderizar o template {template_name}.html: {e}")
             return ""
 
     def _build_items_html(self, data: dict) -> str:
@@ -46,7 +64,7 @@ class BaseEmailBuilder(ABC):
             """
         return items_html
 
-    def _apply_common_replacements(self, html_body: str, event: OrderTransitionEvent) -> str:
+    def _apply_common_replacements(self, event: OrderTransitionEvent) -> Dict[str, Any]:
         name = event.customer_data.get('name', 'Cliente').split()[0]
         items_html = self._build_items_html(event.order_data)
         
@@ -90,21 +108,30 @@ class BaseEmailBuilder(ABC):
             event.order_data.get('tracking_url') or 
             shipment_data.get('track_url') or 
             shipment_data.get('tracking_url') or 
-            '#'
+            recovery_url or
+            'https://eleveme.com.br'
         )
 
-        html_body = html_body.replace("{name}", name)
-        html_body = html_body.replace("{order_id}", event.order_number)
-        html_body = html_body.replace("{items_html}", items_html)
-        html_body = html_body.replace("{total_value}", total_value_str)
-        html_body = html_body.replace("{total_value:.2f}", total_value_str)
-        html_body = html_body.replace("{recovery_url}", recovery_url)
-        html_body = html_body.replace("{tracking_code}", tracking_code)
-        html_body = html_body.replace("{tracking_url}", tracking_url)
-        
-        return html_body
+        return {
+            "name": name,
+            "customer_name": name,
+            "order_id": event.order_number,
+            "order_number": event.order_number,
+            "items_html": items_html,
+            "total_value": total_value_str,
+            "recovery_url": recovery_url,
+            "checkout_url": recovery_url,
+            "simulate_url": recovery_url,
+            "tracking_code": tracking_code,
+            "tracking_url": tracking_url,
+            "header_image_url": self.brand_data.get("header_image_url"),
+            "whatsapp_icon_url": self.brand_data.get("whatsapp_icon_url"),
+            "contact_mail_icon_url": self.brand_data.get("contact_mail_icon_url"),
+            "instagram_icon_url": self.brand_data.get("instagram_icon_url"),
+            "facebook_icon_url": self.brand_data.get("facebook_icon_url")
+        }
 
-    def _apply_common_replacements_cart(self, html_body: str, event) -> str:
+    def _apply_common_replacements_cart(self, event: CartTransitionEvent) -> Dict[str, Any]:
         name = event.customer_data.get('name', 'Cliente').split()[0]
         items_html = self._build_items_html(event.cart_data)
         
@@ -112,12 +139,21 @@ class BaseEmailBuilder(ABC):
         total_value_str = f"{value_total:.2f}"
         recovery_url = event.cart_data.get("simulate_url") or event.cart_data.get("recovery_url") or event.cart_data.get("checkout_url") or "https://yampi.com.br"
         
-        html_body = html_body.replace("{name}", name)
-        html_body = html_body.replace("{items_html}", items_html)
-        html_body = html_body.replace("{total_value}", total_value_str)
-        html_body = html_body.replace("{total_value:.2f}", total_value_str)
-        html_body = html_body.replace("{recovery_url}", recovery_url)
-        return html_body
+        return {
+            "name": name,
+            "customer_name": name,
+            "items_html": items_html,
+            "total_value": total_value_str,
+            "recovery_url": recovery_url,
+            "checkout_url": recovery_url,
+            "simulate_url": recovery_url,
+            "order_number": None,
+            "header_image_url": self.brand_data.get("header_image_url"),
+            "whatsapp_icon_url": self.brand_data.get("whatsapp_icon_url"),
+            "contact_mail_icon_url": self.brand_data.get("contact_mail_icon_url"),
+            "instagram_icon_url": self.brand_data.get("instagram_icon_url"),
+            "facebook_icon_url": self.brand_data.get("facebook_icon_url")
+        }
 
     @abstractmethod
     def build(self, event) -> Tuple[str, str]:

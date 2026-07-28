@@ -215,7 +215,7 @@ class OrderProcessor:
                 tracking_code = self._get_tracking_code(order)
                 if tracking_code:
                     new_stg = 3
-                    template_name = "envio_rastreio"
+                    template_name = "pedido_a_caminho"
                     subject = f"Seu pedido #{order_number} está a caminho!"
                     logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) em transporte (alias='{alias}') com código '{tracking_code}'. Disparando e-mail com código de rastreio.")
                 else:
@@ -225,14 +225,14 @@ class OrderProcessor:
         elif is_paid:
             if stg is None:
                 new_stg = 1
-                template_name = "email_1_confirmacao_pagamento"
+                template_name = "pedido_aprovado"
                 subject = f"Pagamento Confirmado: Pedido # {order_number}"
                 logger.debug(f"[REGRA APLICADA] STG None -> 1: Pedido ID: # {order_id} (Nº {order_number}) com pagamento aprovado (alias='{alias}').")
             elif stg in (2, 4, 5, 6, 7):
                 tracking_code = self._get_tracking_code(order)
                 if tracking_code:
                     new_stg = 3
-                    template_name = "email_1_confirmacao_pagamento"
+                    template_name = "pedido_aprovado"
                     subject = f"Pagamento Confirmado: Pedido # {order_number}"
                     logger.debug(f"[REGRA APLICADA] STG {stg} -> 3: Pedido ID: # {order_id} (Nº {order_number}) mudou para pago (alias='{alias}') com código '{tracking_code}'. Encerra esteira de cobrança.")
                 else:
@@ -245,7 +245,7 @@ class OrderProcessor:
                     if is_pending:
                         if diff_seconds >= MACRO_DELAY_ORDER_PIX_EMAIL_SEG:
                             new_stg = 2
-                            template_name = "email_2_incentivo_pagamento"
+                            template_name = "pedido_pendente"
                             subject = f"Finalize seu pagamento: Pedido # {order_number}"
                             logger.debug(f"[REGRA APLICADA] STG None -> 2: Pedido ID: # {order_id} (Nº {order_number}) pendente com delay cumprido ({diff_seconds:.0f}s >= {MACRO_DELAY_ORDER_PIX_EMAIL_SEG}s).")
                         else:
@@ -262,19 +262,19 @@ class OrderProcessor:
             elif stg == 4:
                 if diff_hours > MACRO_CUPOM_PEDIDO_1_HORAS:
                     new_stg = 5
-                    template_name = "cupom_1_pedido_10"
+                    template_name = "cupom_pedido_1"
                     subject = f"10% de desconto para o seu pedido # {order_number}"
                     logger.debug(f"[REGRA APLICADA] STG 4 -> 5: Pedido ID: # {order_id} (Nº {order_number}) atingiu tempo para Cupom 1 ({diff_hours:.2f}h > {MACRO_CUPOM_PEDIDO_1_HORAS}h).")
             elif stg == 5:
                 if diff_hours > MACRO_CUPOM_PEDIDO_2_HORAS:
                     new_stg = 6
-                    template_name = "cupom_2_pedido_15"
+                    template_name = "cupom_pedido_2"
                     subject = f"15% de desconto para o seu pedido # {order_number}"
                     logger.debug(f"[REGRA APLICADA] STG 5 -> 6: Pedido ID: # {order_id} (Nº {order_number}) atingiu tempo para Cupom 2 ({diff_hours:.2f}h > {MACRO_CUPOM_PEDIDO_2_HORAS}h).")
             elif stg == 6:
                 if diff_hours > MACRO_CUPOM_PEDIDO_3_HORAS:
                     new_stg = 7
-                    template_name = "cupom_3_pedido_20"
+                    template_name = "cupom_pedido_3"
                     subject = f"20% de desconto! Última chance pedido # {order_number}"
                     logger.debug(f"[REGRA APLICADA] STG 6 -> 7: Pedido ID: # {order_id} (Nº {order_number}) atingiu tempo para Cupom 3 ({diff_hours:.2f}h > {MACRO_CUPOM_PEDIDO_3_HORAS}h).")
             elif stg == 7:

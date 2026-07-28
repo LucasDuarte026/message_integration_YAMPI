@@ -14,4 +14,4 @@ tests/
 logs/
 analysis*/
 logs*/
-emails*/
+emails_from_container/

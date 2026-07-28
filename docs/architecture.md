@@ -21,6 +21,10 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   └── auto_documentation_rules.md   # Regras de manutenção síncrona dos README.md locais
 ├── docs/                             # Documentação geral do sistema
 │   ├── architecture.md               # Detalhes da arquitetura de especificação e camadas
+│   ├── diagramas/                    # Diagramas Mermaid da máquina de estados (STG/STC)
+│   │   ├── README.md                 # Índice e guia visual dos diagramas
+│   │   ├── stateDiagramAbandonedCarts.md # Diagrama Mermaid do fluxo STC (Carrinhos)
+│   │   └── stateDiagramOrders.md     # Diagrama Mermaid do fluxo STG (Pedidos)
 │   ├── project_dependency_tree.md    # Árvore visual e conceitual de dependências
 │   ├── project_overview.md           # Guia funcional completo e decisões de design
 │   ├── email_state_machine.md        # Especificação técnica da Máquina de Estados (STG/STC)
@@ -45,6 +49,15 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   └── webhook_server.py             # Servidor HTTP para Webhooks da Meta API
 ├── tests/                            # Testes unitários do sistema
 │   └── test_abandoned_cart.py        # Casos de teste do fluxo de carrinhos
+├── db_consult_scripts/               # Pasta de scripts utilitários de execução e consulta ao BD
+│   ├── README.md                     # Índice e exemplos de uso dos scripts
+│   ├── run_local.sh                  # Orquestrador local
+│   ├── run_stg.sh                    # Execução do Worker de Pedidos (STG)
+│   ├── run_stc.sh                    # Execução do Worker de Carrinhos (STC)
+│   ├── search_stg.sh                 # Consulta ao banco de dados por STG
+│   ├── search_stc.sh                 # Consulta ao banco de dados por STC
+│   └── search_status.py              # Script utilitário em Python para consultas SQL
+├── run_local.sh                      # Wrapper de atalho raiz para db_consult_scripts/run_local.sh
 ├── requirements.txt                  # Dependências do Python
 └── state.db                          # Banco de dados SQLite persistente (gerado na execução)
 ```

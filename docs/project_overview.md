@@ -16,14 +16,14 @@ Este documento serve como o "Manual do Usuário" e o "Manual do Desenvolvedor" c
 ### 2.1 Recuperação de Carrinho Abandonado (Abandoned Cart - Fluxo STC)
 - **Problema:** Clientes adicionam produtos ao carrinho, mas saem antes de finalizar a compra.
 - **Ação do Sistema:** O sistema consulta a API da Yampi regularmente buscando por carrinhos recém-abandonados (baseando-se em uma janela de horas específica). 
-- **Verificação de Estado (STC):** Consulta o banco de dados unificado (`email_status_table`) verificando a coluna `stc` (Status Carrinho). Se `order_id` não for nulo (ou seja, já virou pedido), pula.
+- **Verificação de Estado (STC):** Consulta o banco de dados unificado (`email_status_table`) verificando a coluna `stc` (Status Carrinho). Se `order_id` não for nulo (ou seja, já virou pedido), pula (consulte o [Diagrama de Estados do Carrinho - STC](./diagramas/stateDiagramAbandonedCarts.md)).
 - **Execução:** Caso o `stc` permita (ex: transição null→15, 15→16, 16→17), despacha uma mensagem (via provedor SMTP/WhatsApp) contendo o cupom correspondente e o link `simulate_url` para incentivar o retorno à loja, avançando o estado da coluna `stc`.
 
 ### 2.2 Atualização de Pedidos (Orders Update - Fluxo STG)
 - **Problema:** Clientes precisam estar informados do status de envio, ou serem incentivados a pagar (PIX/Boleto pendente), ou receber cupons de recuperação (pedido travado).
 - **Ação do Sistema:** O sistema consulta pedidos recentes na API e avalia contra o estado local.
-- **Verificação de Estado (STG):** Consulta a coluna `stg` (Status Global). Verifica a diferença de tempo (`diff`) desde a `data_pedido` ou status da Yampi.
-- **Execução:** Dispara emails correspondentes à transição (ex: Email 1 para pagamento aprovado, Email 2 para incentivo ao PIX, ou Cupons 1, 2, 3 para pedidos não pagos após 24h, 48h, 72h) e avança a máquina de estados `stg`. Evita disparos nos estados terminais definidos pela [Lógica de E-mails](./email_state_machine.md).
+- **Verificação de Estado (STG):** Consulta a coluna `stg` (Status Global). Verifica a diferença de tempo (`diff`) desde a `data_pedido` ou status da Yampi (consulte o [Diagrama de Estados de Pedidos - STG](./diagramas/stateDiagramOrders.md)).
+- **Execução:** Dispara emails correspondentes à transição (ex: Email 1 para pagamento aprovado, Email 2 para incentivo ao PIX, ou Cupons 1, 2, 3 para pedidos não pagos após 24h, 48h, 72h) e avança a máquina de estados `stg`. Evita disparos nos estados terminais definidos pela [Lógica de E-mails](./email_state_machine.md) e visualizados no [Índice de Diagramas](./diagramas/README.md).
 
 ---
 

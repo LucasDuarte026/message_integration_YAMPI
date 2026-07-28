@@ -164,17 +164,17 @@ class AbandonedCartProcessor:
             if stc is None:
                 if diff_hours > MACRO_CUPOM_CARRINHO_1_HORAS:
                     new_stc = 15
-                    template_name = "cupom_4_carrinho"
+                    template_name = "carrinho_abandonado_cupom4"
                     subject = f"{name}, seu carrinho está te esperando!"
             elif stc == 15:
                 if diff_hours > MACRO_CUPOM_CARRINHO_2_HORAS:
                     new_stc = 16
-                    template_name = "cupom_5_carrinho"
+                    template_name = "carrinho_abandonado_cupom5"
                     subject = f"{name}, ganhe um desconto especial nos seus itens!"
             elif stc == 16:
                 if diff_hours > MACRO_CUPOM_CARRINHO_3_HORAS:
                     new_stc = 17
-                    template_name = "cupom_6_carrinho"
+                    template_name = "carrinho_abandonado_cupom6"
                     subject = f"Última chance, {name}! Mega desconto no seu carrinho"
             elif stc == 17:
                 if diff_hours > MACRO_PERDIDO_CARRINHO_HORAS:

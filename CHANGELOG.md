@@ -7,6 +7,25 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [4.0.0] - 2026-07-27 (Nova Engine MJML + Jinja2 e Brand Data Fonte Zero)
+
+### Adicionado / Modificado (Major Release)
+- **Engine MJML & Jinja2 Nativo**:
+  - Nova suite de 9 templates de e-mail responsivos compilados via MJML (`src/templates/emails/mjml_src/`).
+  - `BaseEmailBuilder` e `ConcreteBuilders` integrados nativamente com Jinja2 em tempo de execução.
+- **`brand_data.yml` como Fonte de Informação Zero**:
+  - Centralização absoluta de textos, subjects, informações da empresa, links de redes sociais e rotas de imagens/ícones locais e CDN.
+  - Eliminados 100% dos caminhos hardcoded e fallbacks de imagem em código Python.
+- **Nomenclatura Agnostica de Cupons**:
+  - Cupons de Pedidos renomeados para `cupom_pedido_1..3`.
+  - Cupons de Carrinho Abandonado renomeados para `carrinho_abandonado_cupom4..6`.
+- **Utilitário de Mocks Locais**:
+  - Script `email_mock_generator.py` migrado para `src/templates/emails/mjml_src/` para testes visuais offline.
+- **Documentação e Decisões**:
+  - Registrada a decisão `05_email_refactor.md`, a proposta `06_products_table.md` e o manual `src/templates/emails/mjml_src/README.md`.
+
+---
+
 ## [3.2.0] - 2026-07-27 (Validação de Código de Rastreio para Transição STG 3)
 
 ### Corrigido

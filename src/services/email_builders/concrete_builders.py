@@ -1,69 +1,152 @@
+import os
 from typing import Tuple
 from src.domain.events import OrderTransitionEvent, CartTransitionEvent
 from src.services.email_builders.base_builder import BaseEmailBuilder
 
 class PaymentConfirmedBuilder(BaseEmailBuilder):
     def build(self, event: OrderTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("email_1_confirmacao_pagamento")
-        html = self._apply_common_replacements(template, event)
-        subject = f"Pagamento Confirmado: Pedido # {event.order_number}"
+        template_data = self._apply_common_replacements(event)
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("pedido_aprovado")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("pedido_aprovado", template_data)
+        
+        # Puxando subject do brand_data.yml
+        subject_template = self.brand_data.get("templates_copy", {}).get("pedido_aprovado", {}).get("subject", "Pagamento Confirmado")
+        try:
+            subject = subject_template.format(order_number=event.order_number, customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
 
 class PaymentIncentiveBuilder(BaseEmailBuilder):
     def build(self, event: OrderTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("email_2_incentivo_pagamento")
-        html = self._apply_common_replacements(template, event)
-        subject = f"Finalize seu pagamento: Pedido # {event.order_number}"
+        template_data = self._apply_common_replacements(event)
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("pedido_pendente")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("pedido_pendente", template_data)
+        
+        subject_template = self.brand_data.get("templates_copy", {}).get("pedido_pendente", {}).get("subject", "Finalize seu pagamento")
+        try:
+            subject = subject_template.format(order_number=event.order_number, customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+
         return subject, html
 
 class ShippingTrackerBuilder(BaseEmailBuilder):
     def build(self, event: OrderTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("envio_rastreio")
-        html = self._apply_common_replacements(template, event)
-        subject = f"Seu pedido #{event.order_number} está a caminho!"
+        template_data = self._apply_common_replacements(event)
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("pedido_a_caminho")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("pedido_a_caminho", template_data)
+        
+        subject_template = self.brand_data.get("templates_copy", {}).get("pedido_a_caminho", {}).get("subject", "Seu pedido está a caminho!")
+        try:
+            subject = subject_template.format(order_number=event.order_number, customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
 
 class Coupon10Builder(BaseEmailBuilder):
     def build(self, event: OrderTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("cupom_1_pedido_10")
-        html = self._apply_common_replacements(template, event)
-        subject = f"10% de desconto para o seu pedido # {event.order_number}"
+        template_data = self._apply_common_replacements(event)
+        cupom_info = self.brand_data.get("templates_copy", {}).get("cupons_pedido", {}).get("cupom_1", {})
+        template_data["coupon_code"] = cupom_info.get("coupon_code", "ELEVE10")
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("cupom_pedido_1")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("cupom_pedido_1", template_data)
+        
+        subject_template = cupom_info.get("subject", "10% de desconto")
+        try:
+            subject = subject_template.format(order_number=event.order_number, customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
 
 class Coupon15Builder(BaseEmailBuilder):
     def build(self, event: OrderTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("cupom_2_pedido_15")
-        html = self._apply_common_replacements(template, event)
-        subject = f"15% de desconto para o seu pedido # {event.order_number}"
+        template_data = self._apply_common_replacements(event)
+        cupom_info = self.brand_data.get("templates_copy", {}).get("cupons_pedido", {}).get("cupom_2", {})
+        template_data["coupon_code"] = cupom_info.get("coupon_code", "ELEVE15")
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("cupom_pedido_2")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("cupom_pedido_2", template_data)
+        
+        subject_template = cupom_info.get("subject", "15% de desconto")
+        try:
+            subject = subject_template.format(order_number=event.order_number, customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
 
 class Coupon20Builder(BaseEmailBuilder):
     def build(self, event: OrderTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("cupom_3_pedido_20")
-        html = self._apply_common_replacements(template, event)
-        subject = f"20% de desconto! Última chance pedido # {event.order_number}"
+        template_data = self._apply_common_replacements(event)
+        cupom_info = self.brand_data.get("templates_copy", {}).get("cupons_pedido", {}).get("cupom_3", {})
+        template_data["coupon_code"] = cupom_info.get("coupon_code", "ELEVE20")
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("cupom_pedido_3")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("cupom_pedido_3", template_data)
+        
+        subject_template = cupom_info.get("subject", "20% de desconto")
+        try:
+            subject = subject_template.format(order_number=event.order_number, customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
 
 class Coupon4CartBuilder(BaseEmailBuilder):
     def build(self, event: CartTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("cupom_4_carrinho")
-        html = self._apply_common_replacements_cart(template, event)
-        name = event.customer_data.get('name', 'Cliente').split()[0]
-        subject = f"{name}, seu carrinho está te esperando!"
+        template_data = self._apply_common_replacements_cart(event)
+        cupom_info = self.brand_data.get("templates_copy", {}).get("cupons_carrinho", {}).get("carrinho_cupom4", {})
+        template_data["coupon_code"] = cupom_info.get("coupon_code", "CART10")
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("carrinho_abandonado")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("carrinho_abandonado_cupom4", template_data)
+        
+        subject_template = cupom_info.get("subject", "Seu carrinho está esperando")
+        try:
+            subject = subject_template.format(customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
 
 class Coupon5CartBuilder(BaseEmailBuilder):
     def build(self, event: CartTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("cupom_5_carrinho")
-        html = self._apply_common_replacements_cart(template, event)
-        name = event.customer_data.get('name', 'Cliente').split()[0]
-        subject = f"{name}, ganhe um desconto especial nos seus itens!"
+        template_data = self._apply_common_replacements_cart(event)
+        cupom_info = self.brand_data.get("templates_copy", {}).get("cupons_carrinho", {}).get("carrinho_cupom5", {})
+        template_data["coupon_code"] = cupom_info.get("coupon_code", "CART15")
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("carrinho_abandonado")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("carrinho_abandonado_cupom5", template_data)
+        
+        subject_template = cupom_info.get("subject", "15% OFF no carrinho")
+        try:
+            subject = subject_template.format(customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
 
 class Coupon6CartBuilder(BaseEmailBuilder):
     def build(self, event: CartTransitionEvent) -> Tuple[str, str]:
-        template = self._read_template("cupom_6_carrinho")
-        html = self._apply_common_replacements_cart(template, event)
-        name = event.customer_data.get('name', 'Cliente').split()[0]
-        subject = f"Última chance, {name}! Mega desconto no seu carrinho"
+        template_data = self._apply_common_replacements_cart(event)
+        cupom_info = self.brand_data.get("templates_copy", {}).get("cupons_carrinho", {}).get("carrinho_cupom6", {})
+        template_data["coupon_code"] = cupom_info.get("coupon_code", "CART20")
+        img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("carrinho_abandonado")
+        template_data.setdefault("body_image_url", img_banner)
+        html = self.render_template("carrinho_abandonado_cupom6", template_data)
+        
+        subject_template = cupom_info.get("subject", "20% OFF no carrinho")
+        try:
+            subject = subject_template.format(customer_name=template_data.get("name", "Cliente"))
+        except KeyError:
+            subject = subject_template
+            
         return subject, html
