@@ -7,7 +7,6 @@ __pycache__/
 mermaid_renders/
 project_decisions/estudos/
 .gemini/
-.env.example
 init-scripts/
 tests/
 analysis/
