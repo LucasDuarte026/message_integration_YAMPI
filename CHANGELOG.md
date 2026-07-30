@@ -7,6 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [5.1.0] - 2026-07-30 (Clareza em Macros de Disparo e Teste)
+
+### Adicionado / Modificado
+- **Refatoração dos Comentários e Documentação de Macros**:
+  - Esclarecida a interação entre `MACRO_ENABLE_REAL_EMAIL_DISPATCH` (controle de transporte SMTP) e `MACRO_FORCE_TEST_EMAIL_RECIPIENT` (controle de destinatário de teste).
+  - Atualizado `README.md`, `src/core/README.md` e `src/core/macros.py` para evitar ambiguidades no comportamento dos envios de homologação.
+
+---
+
 ## [5.0.0] - 2026-07-30 (Centralização de Mocks e Entrypoints)
 
 ### Adicionado / Modificado
