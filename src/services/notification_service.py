@@ -50,9 +50,10 @@ class NotificationService:
             except Exception as e:
                 logger.error(f"[NotificationService] Falha ao criar HTML para o pedido ID: # {event.order_id} (Nº {event.order_number}): {e}")
 
-        recipient_email = self.config.TEST_EMAIL_RECIPIENT  # Em prod, usar email real
-        if not recipient_email:
-             recipient_email = event.customer_data.get('email')
+        if macros.MACRO_FORCE_TEST_EMAIL_RECIPIENT:
+            recipient_email = self.config.TEST_EMAIL_RECIPIENT
+        else:
+            recipient_email = event.customer_data.get('email')
 
         if recipient_email:
             self.provider.send_email_message(recipient_email, subject, html_body)
@@ -87,9 +88,10 @@ class NotificationService:
                 logger.error(f"[NotificationService] Falha ao criar HTML para o carrinho ID: {event.cart_id}: {e}")
 
 
-        recipient_email = self.config.TEST_EMAIL_RECIPIENT
-        if not recipient_email:
-             recipient_email = event.customer_data.get('email')
+        if macros.MACRO_FORCE_TEST_EMAIL_RECIPIENT:
+            recipient_email = self.config.TEST_EMAIL_RECIPIENT
+        else:
+            recipient_email = event.customer_data.get('email')
 
         if recipient_email:
             self.provider.send_email_message(recipient_email, subject, html_body)

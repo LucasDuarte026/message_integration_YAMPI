@@ -58,7 +58,8 @@ Existem **apenas dois arquivos** que você precisará alterar para configurar o 
 2. **`src/core/macros.py` (Regras de Negócio e Modo de Disparo)**
    - Este arquivo centraliza todas as configurações independentes.
    - Nele você define os **timers** de envio e controla as flags de disparo:
-     - `MACRO_ENABLE_REAL_EMAIL_DISPATCH = False/True` (Controla o envio real via SMTP).
+     - `MACRO_ENABLE_REAL_EMAIL_DISPATCH = False/True` (Controla a conexão e envio real via SMTP).
+     - `MACRO_FORCE_TEST_EMAIL_RECIPIENT = True/False` (Se `True`, força o envio de todos os e-mails para o `TEST_EMAIL_RECIPIENT` em vez de mandar aos clientes reais).
      - `MACRO_ENABLE_LOCAL_HTML_SAVING = True/False` (Controla se os e-mails gerarão arquivos HTML locais para depuração visual).
 
 ---
