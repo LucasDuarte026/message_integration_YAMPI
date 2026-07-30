@@ -1,0 +1,99 @@
+<mjml>
+  <mj-head>
+    <mj-title>{% block title %}Eleveme{% endblock %}</mj-title>
+    
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" />
+    
+    <mj-attributes>
+      <mj-all font-family="Inter, Helvetica, Arial, sans-serif" color="#334155" />
+      <mj-text font-size="16px" line-height="150%" />
+      <mj-button background-color="#1E3A8A" color="#FFFFFF" border-radius="8px" font-size="16px" font-weight="bold" padding="12px 24px" inner-padding="16px 32px" />
+      <mj-section background-color="#FFFFFF" padding="20px 0" />
+      <mj-divider border-color="#E2E8F0" border-width="1px" />
+    </mj-attributes>
+    
+    <mj-style inline="inline">
+      .body-wrapper {
+        background-color: #F8FAFC;
+        padding-top: 20px;
+        padding-bottom: 20px;
+      }
+      .content-card {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      .link {
+        color: #1E3A8A;
+        text-decoration: underline;
+      }
+      .price-crossed {
+        text-decoration: line-through;
+        color: #94A3B8;
+        font-size: 14px;
+      }
+      .price-promo {
+        color: #EF4444;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .price-success {
+        color: #10B981;
+        font-size: 18px;
+        font-weight: bold;
+      }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#F8FAFC">
+    <mj-wrapper css-class="content-card" padding="0">
+      
+      <!-- Cabeçalho (Header): Imagem Fina no Topo -->
+      <mj-section padding="0">
+        <mj-column width="100%">
+          {% block header_image %}
+          <mj-image src="https://via.placeholder.com/600x120/1E3A8A/FFFFFF?text=ELEVEY" alt="Eleveme" padding="0" width="600px" />
+          {% endblock %}
+        </mj-column>
+      </mj-section>
+      
+      <!-- Corpo (Body) -->
+      {% block content %}
+      <mj-section>
+        <mj-column>
+          <mj-text>Conteúdo padrão aqui.</mj-text>
+        </mj-column>
+      </mj-section>
+      {% endblock %}
+
+      <!-- Imagem Quadrada no Corpo -->
+      {% block body_image %}
+      {% endblock %}
+      
+      <!-- Footer -->
+      <mj-section background-color="#F1F5F9" padding="30px 20px">
+        <mj-column width="100%">
+          <mj-text align="center" font-size="14px" font-weight="bold" color="#1E3A8A">
+            Acompanhe nossas redes:
+          </mj-text>
+          
+          <mj-social font-size="15px" icon-size="30px" mode="horizontal" padding="10px 0">
+            <mj-social-element name="instagram" href="https://instagram.com/eleveme" background-color="#1E3A8A"></mj-social-element>
+            <mj-social-element name="facebook" href="https://facebook.com/eleveme" background-color="#1E3A8A"></mj-social-element>
+            <mj-social-element name="linkedin-noshare" href="https://tiktok.com/@eleveme" background-color="#1E3A8A" src="https://cdn.tools.unlayer.com/social/icons/circle/tiktok.png"></mj-social-element>
+          </mj-social>
+
+          <mj-divider padding="20px 0" />
+
+          <mj-text align="center" font-size="12px" color="#64748B" line-height="140%">
+            <strong>Atendimento:</strong> (16) 99314-4298 | suporteeleveme@gmail.com<br/>
+            Seg-Sex: 08h-12h e 14h-18h | Sáb: 08h-12h<br/>
+            CNPJ: 55.453.284/0001-63<br/><br/>
+            Este e-mail foi enviado de uma conta que apenas envia notificações e não pode receber respostas. Por favor, não responda este e-mail.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+
+    </mj-wrapper>
+  </mj-body>
+</mjml>

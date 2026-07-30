@@ -1,0 +1,64 @@
+<mj-attributes>
+  <mj-all font-family="arial, 'helvetica neue', helvetica, sans-serif" color="#334155" />
+  <mj-text font-size="16px" line-height="150%" />
+  <mj-button background-color="#1E3A8A" color="#FFFFFF" border-radius="28px" font-size="16px" font-weight="bold" padding="12px 24px" inner-padding="14px 28px" />
+  <mj-section background-color="#FFFFFF" padding="20px 0" />
+  <mj-divider border-color="#E2E8F0" border-width="1px" />
+</mj-attributes>
+
+<mj-style inline="inline">
+  .btn-shadow table, .btn-shadow td, .btn-shadow a {
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35) !important;
+    border-radius: 28px !important;
+  }
+  .btn-shadow-blue table, .btn-shadow-blue td, .btn-shadow-blue a {
+    box-shadow: 0 6px 16px rgba(30, 58, 138, 0.35) !important;
+    border-radius: 28px !important;
+  }
+  .btn-shadow-red table, .btn-shadow-red td, .btn-shadow-red a {
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4) !important;
+    border-radius: 28px !important;
+  }
+  .btn-shadow-orange table, .btn-shadow-orange td, .btn-shadow-orange a {
+    box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4) !important;
+    border-radius: 28px !important;
+  }
+</mj-style>
+
+<mj-style inline="inline">
+  .body-wrapper {
+    background-color: #F8FAFC;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+  .content-card {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .link {
+    color: #1E3A8A;
+    text-decoration: underline;
+  }
+  .price-crossed {
+    text-decoration: line-through;
+    color: #94A3B8;
+    font-size: 14px;
+  }
+  .price-promo {
+    color: #EF4444;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .price-success {
+    color: #10B981;
+    font-size: 18px;
+    font-weight: bold;
+  }
+  .highlight-box {
+    background-color: #F1F5F9;
+    border-radius: 6px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+</mj-style>

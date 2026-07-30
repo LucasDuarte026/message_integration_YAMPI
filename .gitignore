@@ -5,16 +5,13 @@ __pycache__/
 *$py.class
 *.db
 mermaid_renders/
-estudos/
+project_decisions/estudos/
 .gemini/
 .env.example
-emails/
 init-scripts/
 tests/
-logs/
-analysis*/
-logs*/
+analysis/
+local_data/
 emails_from_container/ 
 db_backups/
-db_consult_scripts/
 

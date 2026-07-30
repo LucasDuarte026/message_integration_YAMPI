@@ -48,10 +48,20 @@ MACRO_W_CARTS_PAGE_AMOUNT = 5
 # ==========================================
 # Limite de Itens em Modo Debug / Cache
 # ==========================================
-MACRO_DEBUG_LIMIT = 200
+MACRO_DEBUG_LIMIT = 100
 
 # ==========================================
 # Janela Máxima de Corte Precheck (Pedidos)
 # ==========================================
 MACRO_PRECHECK_ORDERS_MAX_DAYS = 15
 
+# ==========================================
+# Configurações Globais de Disparo e Testes
+# ==========================================
+# Define se o sistema deve efetivamente enviar mensagens aos clientes (SMTP/Meta API)
+# Se False, será instanciado o DryRunMessageProvider (Mock)
+MACRO_ENABLE_REAL_EMAIL_DISPATCH = False
+
+# Define se o sistema deve gerar e salvar o corpo do e-mail HTML em local_data/emails
+# Útil para debugging ou acompanhamento local sem enviar e-mails reais.
+MACRO_ENABLE_LOCAL_HTML_SAVING = True

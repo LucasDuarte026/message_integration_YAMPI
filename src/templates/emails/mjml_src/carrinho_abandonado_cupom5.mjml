@@ -1,0 +1,94 @@
+<mjml>
+  <mj-head>
+    <mj-title>Seu Carrinho Expira em Breve! 🔥</mj-title>
+    <mj-include path="./components/styles.mjml" />
+  </mj-head>
+
+  <mj-body background-color="#F8FAFC">
+    <mj-wrapper css-class="content-card" padding="0">
+      
+      <!-- Cabeçalho (Header) - Imagem Fina no Topo -->
+      <mj-include path="./components/header.mjml" />
+      
+      <!-- Introdução (Body) -->
+      <mj-section background-color="#FFFFFF" padding="30px 20px 10px 20px">
+        <mj-column width="100%">
+          
+          <mj-text font-size="24px" font-weight="bold" color="#1E3A8A" align="center" padding-bottom="10px">
+            Seu carrinho expira em breve! 🔥
+          </mj-text>
+          
+          <mj-text font-size="16px" color="#334155" line-height="150%" align="center" padding-bottom="15px">
+            Olá, <strong>{{ customer_name | default('Cliente') }}</strong>! Ainda dá tempo de levar os produtos que você escolheu na Eleveme. Aumentamos o seu presente para <strong>{{ value_cupom }}% de desconto exclusivo</strong>!
+          </mj-text>
+
+        </mj-column>
+      </mj-section>
+
+      {% if items_html %}
+      <!-- Tabela de Produtos no Carrinho -->
+      <mj-section background-color="#FFFFFF" padding="0px 20px 15px 20px">
+        <mj-column width="100%">
+          <mj-text font-size="16px" font-weight="bold" color="#1E3A8A" padding-bottom="10px">
+            Itens no seu carrinho:
+          </mj-text>
+          <mj-table padding="0px">
+            <tr style="background-color: #E2E8F0; text-align: left;">
+              <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569;">Item</th>
+              <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569; text-align: center;">Quantidade</th>
+              <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569; text-align: right;">Preço</th>
+            </tr>
+            {{ items_html | safe }}
+          </mj-table>
+        </mj-column>
+      </mj-section>
+      {% endif %}
+
+
+      <!-- CARD CINZA CONTINUO COM IMAGEM TOUCHING BORDERS -->
+      <mj-section background-color="#FFFFFF" padding="0px 20px 20px 20px">
+        <mj-column width="100%" background-color="#F1F5F9" border-radius="16px">
+          
+          <!-- Imagem Central Expandida tocando as bordas superiores do Card -->
+          <mj-image src="{{ body_image_url | default('https://via.placeholder.com/600x400/F59E0B/FFFFFF?text={{ value_cupom }}%25+OFF+Carrinho') }}" alt="Carrinho Abandonado {{ value_cupom }}% OFF" padding="0" width="600px" border-radius="16px 16px 0 0" />
+          
+          <!-- Conteúdo Interno do Card Cinza -->
+          <mj-text align="center" font-size="20px" font-weight="bold" color="#1E3A8A" padding="25px 20px 10px 20px">
+            Seu Cupom de {{ value_cupom }}% OFF no Carrinho 🔥
+          </mj-text>
+
+          <!-- CAIXA PONTILHADA ESTILO ANTIGO COM SOMBRA -->
+          <mj-text align="center" padding="0px 20px 20px 20px">
+            <div style="background-color: #ffffff; padding: 18px; border-radius: 10px; text-align: center; border: 2px dashed #f59e0b; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);">
+              <span style="color: #64748b; font-size: 14px; display: block; margin-bottom: 6px; font-weight: 500;">Use o cupom no checkout:</span>
+              <strong style="color: #d97706; font-size: 26px; letter-spacing: 2px; font-family: monospace; display: block;">{{ coupon_code | default('CART15') }}</strong>
+            </div>
+          </mj-text>
+
+          <!-- Botão Moderno Pill-Shape -->
+          <mj-button css-class="btn-shadow-orange" href="{{ simulate_url | default('https://elevemeloja.com.br/carrinho') }}" background-color="#EA580C" color="#FFFFFF" border-radius="28px" font-size="16px" font-weight="bold" padding="5px 0 25px 0" inner-padding="14px 36px">
+            Resgatar Meu Carrinho
+          </mj-button>
+
+        </mj-column>
+      </mj-section>
+
+      <!-- Disclaimer -->
+      <mj-section background-color="#FFFFFF" padding="0px 20px 25px 20px">
+        <mj-column width="100%">
+          <mj-text font-size="13px" color="#64748B" line-height="150%" align="center">
+            ⚠️ <em>Não garantimos a reserva de itens no carrinho por longos períodos. Finalize antes do término de estoque.</em>
+          </mj-text>
+          
+          <mj-text font-size="14px" color="#64748B" line-height="150%" align="center" padding-top="20px">
+            Se você tiver qualquer dúvida, nossa equipe de suporte está à disposição.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      
+      <!-- Footer -->
+      <mj-include path="./components/footer.mjml" />
+
+    </mj-wrapper>
+  </mj-body>
+</mjml>

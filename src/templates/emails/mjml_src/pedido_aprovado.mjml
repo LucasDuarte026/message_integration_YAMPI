@@ -1,0 +1,91 @@
+<mjml>
+  <mj-head>
+    <mj-title>Seu Pedido foi Aprovado!</mj-title>
+    <mj-include path="./components/styles.mjml" />
+  </mj-head>
+
+  <mj-body background-color="#F8FAFC">
+    <mj-wrapper css-class="content-card" padding="0">
+      
+      <!-- Cabeçalho (Header) - Imagem Fina no Topo -->
+      <mj-include path="./components/header.mjml" />
+      
+      <!-- Introdução (Body) -->
+      <mj-section background-color="#FFFFFF" padding="30px 20px 10px 20px">
+        <mj-column width="100%">
+          
+          <mj-text font-size="24px" font-weight="bold" color="#1E3A8A" align="center" padding-bottom="10px">
+            Seu pedido foi aprovado!
+          </mj-text>
+          
+          <mj-text font-size="16px" color="#334155" line-height="150%" align="center" padding-bottom="15px">
+            Olá, <strong>{{ customer_name | default('Cliente') }}</strong>! Temos uma ótima notícia: o pagamento do seu pedido <strong>{{ order_number | default('#0000') }}</strong> foi aprovado com sucesso! 🎉
+          </mj-text>
+
+        </mj-column>
+      </mj-section>
+
+      <!-- CARD CINZA CONTINUO COM IMAGEM TOUCHING BORDERS (Estilo Referência) -->
+      <mj-section background-color="#FFFFFF" padding="0px 20px 20px 20px">
+        <mj-column width="100%" background-color="#F1F5F9" border-radius="16px">
+          
+          <!-- Imagem Central Expandida tocando as bordas superiores do Card -->
+          <mj-image src="{{ body_image_url | default('https://via.placeholder.com/600x400/10B981/FFFFFF?text=Aprovado') }}" alt="Pedido Aprovado" padding="0" width="600px" border-radius="16px 16px 0 0" />
+          
+          <!-- Conteúdo Interno do Card Cinza Conectado à Imagem -->
+          <mj-text align="center" font-size="20px" font-weight="bold" color="#1E3A8A" padding="25px 20px 8px 20px">
+            Preparando seu Pacote 📦
+          </mj-text>
+          
+          <mj-text align="center" font-size="15px" color="#475569" line-height="150%" padding="0px 25px 15px 25px">
+            Nossa equipe já está separando os seus produtos com muito carinho. Em breve você receberá um novo e-mail com o código de rastreamento para acompanhar a entrega.
+          </mj-text>
+
+          <!-- Botão Moderno Pill-Shape -->
+          <mj-button css-class="btn-shadow" href="{{ tracking_url | default('https://elevemeloja.com.br/rastreio') }}" background-color="#10B981" color="#FFFFFF" border-radius="28px" font-size="16px" font-weight="bold" padding="10px 0 25px 0" inner-padding="14px 36px">
+            Acompanhar Meu Pedido
+          </mj-button>
+
+        </mj-column>
+      </mj-section>
+
+      <!-- Tabela de Produtos Comprados -->
+      {% if items_html %}
+      <mj-section background-color="#FFFFFF" padding="0px 20px 20px 20px">
+        <mj-column width="100%">
+          <mj-text font-size="16px" font-weight="bold" color="#1E3A8A" padding-bottom="10px">
+            Itens do Pedido:
+          </mj-text>
+          <mj-raw>
+            <table width="100%" style="border-collapse: collapse; background-color: #F8FAFC; border-radius: 8px; overflow: hidden;">
+              <thead>
+                <tr style="background-color: #E2E8F0; text-align: left;">
+                  <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569;">Item</th>
+                  <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569; text-align: center;">Quantidade</th>
+                  <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569; text-align: right;">Preço</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{ items_html | safe }}
+              </tbody>
+            </table>
+          </mj-raw>
+        </mj-column>
+      </mj-section>
+      {% endif %}
+
+      <!-- Texto de suporte centralizado -->
+      <mj-section background-color="#FFFFFF" padding="0px 20px 25px 20px">
+        <mj-column width="100%">
+          <mj-text font-size="14px" color="#64748B" line-height="150%" align="center">
+            Se você tiver qualquer dúvida, nossa equipe de suporte está à disposição.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      
+      <!-- Footer -->
+      <mj-include path="./components/footer.mjml" />
+
+    </mj-wrapper>
+  </mj-body>
+</mjml>

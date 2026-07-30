@@ -12,6 +12,7 @@ from src.services.email_builders.concrete_builders import (
     Coupon5CartBuilder,
     Coupon6CartBuilder
 )
+from src.core import macros
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +38,17 @@ class NotificationService:
             
         subject, html_body = builder.build(event)
         
-        # Save HTML locally for debugging
-        folder_path = os.path.join("emails", f"order_{event.order_id}")
-        file_path = os.path.join(folder_path, f"email_stg_{event.new_stg}.html")
-        try:
-            os.makedirs(folder_path, exist_ok=True)
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(html_body)
-            logger.info(f"[NotificationService] HTML salvo em: file://{os.path.abspath(file_path)}")
-        except Exception as e:
-            logger.error(f"[NotificationService] Falha ao criar HTML para o pedido ID: # {event.order_id} (Nº {event.order_number}): {e}")
+        # Save HTML locally for debugging se habilitado
+        if macros.MACRO_ENABLE_LOCAL_HTML_SAVING:
+            folder_path = os.path.join("local_data/emails", f"order_{event.order_id}")
+            file_path = os.path.join(folder_path, f"email_stg_{event.new_stg}.html")
+            try:
+                os.makedirs(folder_path, exist_ok=True)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(html_body)
+                logger.info(f"[NotificationService] HTML salvo em: file://{os.path.abspath(file_path)}")
+            except Exception as e:
+                logger.error(f"[NotificationService] Falha ao criar HTML para o pedido ID: # {event.order_id} (Nº {event.order_number}): {e}")
 
         recipient_email = self.config.TEST_EMAIL_RECIPIENT  # Em prod, usar email real
         if not recipient_email:
@@ -72,16 +74,17 @@ class NotificationService:
             
         subject, html_body = builder.build(event)
         
-        # Save HTML locally for debugging
-        folder_path = os.path.join("emails", f"cart_{event.cart_id}")
-        file_path = os.path.join(folder_path, f"email_stc_{event.new_stc}.html")
-        try:
-            os.makedirs(folder_path, exist_ok=True)
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(html_body)
-            logger.info(f"[NotificationService] HTML de carrinho salvo em: file://{os.path.abspath(file_path)}")
-        except Exception as e:
-            logger.error(f"[NotificationService] Falha ao criar HTML para o carrinho ID: {event.cart_id}: {e}")
+        # Save HTML locally for debugging se habilitado
+        if macros.MACRO_ENABLE_LOCAL_HTML_SAVING:
+            folder_path = os.path.join("local_data/emails", f"cart_{event.cart_id}")
+            file_path = os.path.join(folder_path, f"email_stc_{event.new_stc}.html")
+            try:
+                os.makedirs(folder_path, exist_ok=True)
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(html_body)
+                logger.info(f"[NotificationService] HTML de carrinho salvo em: file://{os.path.abspath(file_path)}")
+            except Exception as e:
+                logger.error(f"[NotificationService] Falha ao criar HTML para o carrinho ID: {event.cart_id}: {e}")
 
 
         recipient_email = self.config.TEST_EMAIL_RECIPIENT

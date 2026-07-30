@@ -7,6 +7,20 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [5.0.0] - 2026-07-30 (Centralização de Mocks e Entrypoints)
+
+### Adicionado / Modificado
+- **Novo Arquivo Inicializador Oficial (`src/daemon.py`)**:
+  - O `daemon.py` torna-se a forma documentada e oficial de iniciar o serviço contínuo do sistema. Removida configuração estática interna dele.
+- **Centralização de Flags de Depuração em `macros.py`**:
+  - Removidas lógicas de terminal (flags `--production` CLI no `main.py`).
+  - Adicionada a flag independente `MACRO_ENABLE_REAL_EMAIL_DISPATCH` para orquestrar se os e-mails sairão via SMTP ou apenas Mock no terminal.
+  - Adicionada a flag independente `MACRO_ENABLE_LOCAL_HTML_SAVING` para orquestrar se o HTML formatado deve ou não ser salvo no disco local (pasta `local_data/emails/`).
+- **Atualização na Documentação**:
+  - Refatorados `README.md` e `docs/project_overview.md` para alertar usuários de que as alterações da aplicação devem ser feitam em `src/core/macros.py`.
+
+---
+
 ## [4.2.2] - 2026-07-30 (Tratamento Global de Erros e Observabilidade)
 
 ### Adicionado / Modificado

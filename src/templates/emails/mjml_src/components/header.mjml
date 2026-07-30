@@ -1,0 +1,9 @@
+<mj-section padding="20px 0 15px 0" background-color="#FFFFFF">
+  <mj-column width="100%">
+    <mj-raw>{% if header_image_url %}</mj-raw>
+    <mj-image src="{{ header_image_url }}" alt="Eleveme" align="center" padding="0" width="180px" />
+    <mj-raw>{% else %}</mj-raw>
+    <mj-image src="https://via.placeholder.com/180x40/FFFFFF/1E3A8A?text=ELEVEME" alt="Eleveme" align="center" padding="0" width="180px" />
+    <mj-raw>{% endif %}</mj-raw>
+  </mj-column>
+</mj-section>

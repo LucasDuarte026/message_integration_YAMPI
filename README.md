@@ -47,17 +47,19 @@ O projeto foi desenhado para gerar impacto direto nos indicadores essenciais da 
 ## 🚀 Como Usar
 
 ### 1. Pré-requisitos e Configuração
+### 1. Pré-requisitos e Configuração
 
-Crie o arquivo `.env` na raiz do projeto preenchendo as credenciais da API da Yampi:
+Existem **apenas dois arquivos** que você precisará alterar para configurar o sistema:
 
-```bash
-cp .env.example .env
-```
+1. **`.env` (Credenciais e Acessos)**
+   - Crie o arquivo `.env` na raiz copiando o exemplo: `cp .env.example .env`
+   - Preencha suas chaves da Yampi e credenciais do servidor SMTP.
 
-**Variáveis Principais (`.env`):**
-* `YAMPI_USER_TOKEN`: Seu token de usuário da Yampi.
-* `YAMPI_USER_SECRET_KEY`: Sua chave secreta da Yampi.
-* `YAMPI_ALIAS`: Alias da sua loja (opcional, detectado automaticamente).
+2. **`src/core/macros.py` (Regras de Negócio e Modo de Disparo)**
+   - Este arquivo centraliza todas as configurações independentes.
+   - Nele você define os **timers** de envio e controla as flags de disparo:
+     - `MACRO_ENABLE_REAL_EMAIL_DISPATCH = False/True` (Controla o envio real via SMTP).
+     - `MACRO_ENABLE_LOCAL_HTML_SAVING = True/False` (Controla se os e-mails gerarão arquivos HTML locais para depuração visual).
 
 ---
 
@@ -69,42 +71,32 @@ Suba os serviços com Docker Compose:
 docker compose up -d
 ```
 
-#### Exemplos de Comandos (CLI):
+O container rodará continuamente utilizando o inicializador oficial (`src/daemon.py`), que orquestra o ciclo de vida da aplicação de acordo com os timers.
+
+#### Comandos Úteis (CLI):
 
 ```bash
-# Processar recuperação de pedidos (Orders Worker)
+# Acompanhar os logs do processo principal em tempo real
+docker compose logs -f app
+
+# Forçar processamento manual instantâneo de pedidos
 docker compose exec app python src/main.py orders
 
-# Processar carrinhos abandonados (Dry-Run / Simulado)
+# Forçar processamento manual de carrinhos
 docker compose exec app python src/main.py abandoned-carts
-
-# Processar em ambiente de Produção (Envio real via SMTP)
-docker compose exec app python src/main.py abandoned-carts --production
 ```
 
 ---
 
 ### 3. Execução Nativa (Python Local)
 
+O **Starter Oficial** para manter o sistema rodando de forma contínua no terminal é o daemon:
+
 ```bash
-# Rodar o orquestrador completo em modo simulado (Dry-Run)
-./run_local.sh all
-
-# Executar/Buscar apenas Pedidos (STG)
-./db_consult_scripts/run_stg.sh           # Modo simulado (Dry-Run)
-./db_consult_scripts/run_stg.sh --production # Modo produção
-
-# Executar/Buscar apenas Carrinhos Abandonados (STC)
-./db_consult_scripts/run_stc.sh           # Modo simulado (Dry-Run)
-./db_consult_scripts/run_stc.sh --production # Modo produção
-
-# Consultar o banco de dados por status STG ou STC
-./db_consult_scripts/search_stg.sh        # Lista todos os registros com estado STG
-./db_consult_scripts/search_stg.sh 2      # Lista registros com STG = 2 (Incentivo PIX)
-./db_consult_scripts/search_stc.sh 15     # Lista registros com STC = 15 (Cupom 4)
+python3 src/daemon.py
 ```
 
-> **Dica**: No modo Dry-Run, o sistema não gasta créditos de mensagens e salva o HTML do e-mail em `emails/` para conferência visual.
+> **Dica**: No modo padrão de instalação, a macro `MACRO_ENABLE_REAL_EMAIL_DISPATCH` vem desativada e `MACRO_ENABLE_LOCAL_HTML_SAVING` vem ativada. O sistema não gastará créditos de mensagens e salvará o HTML do e-mail em `local_data/emails/` para conferência visual! Mude as variáveis no arquivo `src/core/macros.py` quando for homologar.
 
 ---
 

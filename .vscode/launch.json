@@ -2,6 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: Debug Mock Runner (Síncrono)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/debug_main.py",
+            "args": [
+                "-v"
+            ],
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "subProcess": true
+        },
+        {
             "name": "Python: Main (Todos os Workers)",
             "type": "python",
             "request": "launch",
@@ -36,20 +50,6 @@
             "program": "${workspaceFolder}/src/main.py",
             "args": [
                 "orders"
-            ],
-            "cwd": "${workspaceFolder}",
-            "envFile": "${workspaceFolder}/.env",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "subProcess": true
-        },
-        {
-            "name": "Python: Debug Mock Runner (Síncrono)",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/debug_main.py",
-            "args": [
-                "-v" // para entrar em modo high verbose
             ],
             "cwd": "${workspaceFolder}",
             "envFile": "${workspaceFolder}/.env",

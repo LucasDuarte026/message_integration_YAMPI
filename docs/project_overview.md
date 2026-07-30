@@ -82,10 +82,9 @@ O sistema utiliza o módulo de logging nativo do Python configurado globalmente 
 ### Depuração Interativa e Execução Rápida
 Para rastrear a execução linha por linha e acompanhar a pilha de chamadas e objetos (incluindo chamadas de funções filhas) de forma visual:
 *   **Depurador em IDE (VS Code):** Configurado no arquivo [.vscode/launch.json](../.vscode/launch.json) para que o desenvolvedor possa colocar breakpoints no código e debugar de forma gráfica os comandos `abandoned-carts` e `orders` rodando localmente.
-*   **Execução via Script:** Utilize o `./run_local.sh all` para executar a aplicação no terminal. Ele já carrega as variáveis do `.env`. Por padrão, roda em modo de teste (salvando os emails na pasta `emails/` e `tests/`). Adicione `--production` no final se quiser disparar emails reais.
-
-### Mapeamento no Docker
-Para persistência local e facilidade de depuração no ambiente host, o [docker-compose.yml](../docker-compose.yml) mapeia a pasta local `./logs_from_container` para `/app/logs` dentro do container da aplicação. Isso permite visualizar a execução em tempo real rodando comandos como `tail -f logs_from_container/app.log`.
+*   **Execução contínua (Daemon):** O orquestrador oficial de execução contínua é o arquivo `src/daemon.py`. Todas as flags de disparo ou modo de simulação devem ser configuradas via código em `src/core/macros.py`.
+*   **Mapeamento no Docker:**
+Para persistência local e facilidade de depuração no ambiente host, o [docker-compose.yml](../docker-compose.yml) mapeia a pasta local `./local_data/logs` para `/app/local_data/logs` dentro do container da aplicação. Isso permite visualizar a execução em tempo real rodando comandos como `tail -f local_data/logs/app.log`.
 
 ---
 

@@ -1,0 +1,128 @@
+# Configurações da Marca e Dados Globais dos E-mails (Eleveme)
+# Este arquivo serve como uma "Macro" central de conteúdo para os templates de e-mail.
+# Sempre que o telefone, copy ou links sociais mudarem, edite aqui para refletir nos designs.
+
+# URLs de Imagens e Ícones Padrão dos E-mails
+header_image_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_1_pedido_aprovado/header/logotipo.png"
+whatsapp_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/whatsapp.png"
+contact_mail_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/contact-mail.png"
+instagram_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/instagram.png"
+facebook_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/facebook.png"
+
+# Mapeamento Estruturado de Imagens Locais / CDN
+images:
+  headers:
+    default: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_1_pedido_aprovado/header/logotipo.png"
+    carrinho: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_7_carrinho_abandonado_4/header/logotipo.png"
+  
+  social_icons:
+    whatsapp: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/whatsapp.png"
+    email: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/contact-mail.png"
+    instagram: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/instagram.png"
+    facebook: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/facebook.png"
+
+  body_banners:
+    pedido_aprovado: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_1_pedido_aprovado/body/pedido_aprovado.png"
+    pedido_pendente: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_2_pedido_pendente/body/pedido_aprovado.png"
+    pedido_a_caminho: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_3_pedido_a_caminho/body/pedido_a_caminho.png"
+    cupom_pedido_1: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_4_cupom_pedido_1/body/10_off_primeira_compra.png"
+    cupom_pedido_2: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_5_cupom_pedido_2/body/5_desconto.png"
+    cupom_pedido_3: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_6_cupom_pedido_3/body/5_primeira_compra.png"
+    carrinho_abandonado_4: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_7_carrinho_abandonado_4/body/seu_carrinho_esta_te_esperando_header.png"
+    carrinho_abandonado_5: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_8_carrinho_abandonado_5/body/seu_carrinho_esta_te_esperando_header.png"
+    carrinho_abandonado_6: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_9_carrinho_abandonado_6/body/seu_carrinho_esta_te_esperando_header.png"
+brand:
+  name: "Eleveme"
+  tagline: "Mais altura, mais conforto e mais confiança no seu dia a dia."
+  store_url: "https://elevemeloja.com.br"
+  support:
+    whatsapp: "(16) 99314-4298"
+    email: "suporteeleveme@gmail.com"
+  company_info:
+    cnpj: "55.453.284/0001-63"
+    hours:
+      weekday: "08h-12h e 14h-18h"
+      saturday: "08h-12h"
+      sunday: "Fechado"
+      holiday: "Fechado"
+    disclaimer: "Este e-mail foi enviado de uma conta que apenas envia notificações e não pode receber respostas. Por favor, não responda este e-mail. Caso precise entre em contato conosco através de nossos canais de atendimento."
+  social_media:
+    instagram: "https://www.instagram.com/loja_eleveme/"
+    facebook: "https://www.facebook.com/people/Eleveme/61579792087209/"
+
+templates_copy:
+  pedido_aprovado:
+    subject: "✅ Seu pedido foi aprovado — bem-vindo à família Eleveme! 🎉"
+    title: "SEU PEDIDO FOI APROVADO!"
+    body: "Temos uma ótima notícia: seu pedido foi aprovado! 🎉💙 Agora é só aguardar, que em breve o seu pedido seguirá para separação e envio! Você vai receber as próximas atualizações por e-mail, incluindo o código de rastreio assim que o pedido for despachado. 🚚"
+    closing: "Prepare-se para viver uma nova experiência com a Eleveme: mais altura, mais conforto e mais confiança no seu dia a dia. Obrigado por escolher a Eleveme! 💙"
+  
+  pedido_a_caminho:
+    subject: "Olá {customer_name}, Seu pedido da Eleveme já está a caminho 🚚"
+    title: "Olá {customer_name}, pedido já está a caminho!"
+    body: "Temos uma ótima notícia: o seu pedido da Eleveme já foi enviado! 🚚💙 Agora você já pode acompanhar cada etapa da entrega pelo link de rastreio abaixo."
+    cta_button: "Acompanhar pedido"
+    disclaimer: "⚠️ Sempre que a transportadora atualizar o status do pedido, a nova informação aparecerá diretamente nesse link. ‼️ O prazo de entrega começa a contar a partir da postagem do pedido e pode variar conforme a sua região e a transportadora responsável."
+
+  pedido_pendente:
+    subject: "Falta pouco! Conclua o pagamento do seu pedido {order_number} ⏳"
+    title: "Seu pedido foi reservado! ⏳"
+    body: "Seu pedido já foi registrado em nosso sistema. Para garantir o envio rápido dos seus produtos, conclua o pagamento via PIX ou Cartão antes que a reserva expire."
+    cta_button: "Concluir Pagamento Agora"
+    disclaimer: "⚠️ Os produtos ficam reservados temporariamente. Pagamentos via PIX possuem aprovação imediata!"
+
+  cupons_pedido:
+    cupom_1:
+      subject: "🎁 Ganhe 10% OFF para concluir o seu pedido Eleveme!"
+      title: "Um presente especial para você! 🎁"
+      discount: 10
+      coupon_code: "ELEVE10"
+      body: "Sabemos que você escolheu produtos incríveis! Para dar aquele empurrãozinho final, liberamos um cupom exclusivo de 10% de desconto no seu pedido."
+      cta_button: "Garantir 10% de Desconto"
+
+    cupom_2:
+      subject: "🔥 Oportunidade única: 15% OFF para finalizar sua compra!"
+      title: "Sua oportunidade de economizar 15%! 🔥"
+      discount: 15
+      coupon_code: "ELEVE15"
+      body: "Seu pedido ainda está aguardando você! Aumentamos o seu presente para 15% de desconto exclusivo por tempo limitado."
+      cta_button: "Garantir 15% de Desconto"
+
+    cupom_3:
+      subject: "⚠️ ÚLTIMA CHANCE: 20% OFF no seu pedido Eleveme!"
+      title: "Última chance: 20% de Desconto! ⚠️"
+      discount: 20
+      coupon_code: "ELEVE20"
+      body: "Esta é a nossa oferta final e a melhor oportunidade para você adquirir seus produtos Eleveme com o maior desconto do ano."
+      cta_button: "Garantir 20% de Desconto"
+
+  cupons_carrinho:
+    carrinho_cupom4:
+      subject: "🛒 Seu carrinho está te esperando — Ganhe 10% OFF para finalizar!"
+      title: "Você esqueceu algo no seu carrinho! 🛒"
+      discount: 10
+      coupon_code: "CART10"
+      body: "Seus produtos ainda estão salvos no carrinho! Para você não perder seus itens, liberamos um cupom de 10% de desconto no valor total."
+      cta_button: "Recuperar Carrinho com 10% OFF"
+
+    carrinho_cupom5:
+      subject: "🔥 Não perca seus itens: 15% OFF para resgatar seu carrinho!"
+      title: "Seu carrinho expira em breve! 🔥"
+      discount: 15
+      coupon_code: "CART15"
+      body: "Ainda dá tempo de garantir os produtos que você escolheu. Aumentamos o seu desconto para 15% para você finalizar sua compra agora."
+      cta_button: "Recuperar Carrinho com 15% OFF"
+
+    carrinho_cupom6:
+      subject: "⚠️ ÚLTIMA CHANCE: 20% OFF para resgatar seu carrinho!"
+      title: "Último aviso: 20% OFF no seu carrinho! ⚠️"
+      discount: 20
+      coupon_code: "CART20"
+      body: "Este é o último lembrete antes que os itens do seu carrinho fiquem indisponíveis. Use o cupom de 20% de desconto antes do encerramento."
+      cta_button: "Recuperar Carrinho com 20% OFF"
+
+colors:
+  primary: "#000000" # Atualizar com o HEX exato dos banners
+  secondary: "#1E3A8A" # Exemplo de azul (💙)
+  background: "#F8FAFC"
+  text_main: "#334155"

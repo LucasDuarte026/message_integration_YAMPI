@@ -1,2 +1,2 @@
 #!/bin/bash
-exec "$(dirname "$0")/db_consult_scripts/run_local.sh" "$@"
+exec "$(dirname "$0")/scripts/run_local.sh" "$@"

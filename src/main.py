@@ -14,9 +14,10 @@ from src.ports.message_provider import DryRunMessageProvider
 from src.ports.smtp_email_provider import SMTPEmailProvider
 from src.workers.abandoned_cart import AbandonedCartProcessor
 from src.workers.orders import OrderProcessor
+from src.core import macros
 
 # Garante que a pasta de logs exista
-os.makedirs("logs", exist_ok=True)
+os.makedirs("local_data/logs", exist_ok=True)
 
 # Configuração global de log para o ponto de entrada principal (escreve no console e no arquivo)
 logging.basicConfig(
@@ -24,12 +25,12 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("logs/app.log", encoding="utf-8")
+        logging.FileHandler("local_data/logs/app.log", encoding="utf-8")
     ]
 )
 logger = logging.getLogger(__name__)
 
-def get_dependencies(mock_mode: bool = True):
+def get_dependencies():
     logger.info("Carregando configurações...")
     config = load_config()
     
@@ -44,11 +45,11 @@ def get_dependencies(mock_mode: bool = True):
     
     state_repo = PostgresStateRepository(config.DATABASE_URL)
     
-    if mock_mode:
-        logger.info("Executando em DRY-RUN MODE (Mocks ativos)")
+    if not macros.MACRO_ENABLE_REAL_EMAIL_DISPATCH:
+        logger.info("Executando em DRY-RUN MODE (Mocks ativos conforme macros.py)")
         message_provider = DryRunMessageProvider()
     else:
-        logger.info("Executando em MODO PRODUÇÃO (Disparo real via SMTP)")
+        logger.info("Executando em MODO PRODUÇÃO (Disparo real via SMTP conforme macros.py)")
         if not config.SMTP_USER or not config.SMTP_PASSWORD:
             logger.error("Erro: SMTP_USER e SMTP_PASSWORD devem ser configurados para rodar em produção.")
             sys.exit(1)
@@ -62,18 +63,18 @@ def get_dependencies(mock_mode: bool = True):
         
     return config, api_client, state_repo, message_provider
 
-def run_abandoned_carts(mock_mode: bool = True):
-    config, api_client, state_repo, message_provider = get_dependencies(mock_mode)
+def run_abandoned_carts():
+    config, api_client, state_repo, message_provider = get_dependencies()
     processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
     processor.process()
 
-def run_orders(mock_mode: bool = True):
-    config, api_client, state_repo, message_provider = get_dependencies(mock_mode)
+def run_orders():
+    config, api_client, state_repo, message_provider = get_dependencies()
     processor = OrderProcessor(config, api_client, message_provider, state_repo)
     processor.process()
 
-def run_all(mock_mode: bool = True):
-    config, api_client, state_repo, message_provider = get_dependencies(mock_mode)
+def run_all():
+    config, api_client, state_repo, message_provider = get_dependencies()
     logger.info("--- Executando Worker de Pedidos ---")
     order_processor = OrderProcessor(config, api_client, message_provider, state_repo)
     order_processor.process()
@@ -87,21 +88,16 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(dest="command", help="Comandos disponíveis")
     
     cart_parser = subparsers.add_parser("abandoned-carts", help="Processar carrinhos abandonados.")
-    cart_parser.add_argument("--production", action="store_true", help="Desativar o modo Dry-Run (Mock)")
-    
     orders_parser = subparsers.add_parser("orders", help="Processar pedidos recentes (pagamentos e envios).")
-    orders_parser.add_argument("--production", action="store_true", help="Desativar o modo Dry-Run (Mock)")
-    
     all_parser = subparsers.add_parser("all", help="Processar ambos (pedidos e carrinhos).")
-    all_parser.add_argument("--production", action="store_true", help="Desativar o modo Dry-Run (Mock)")
     
     args = parser.parse_args()
     
     if args.command == "abandoned-carts":
-        run_abandoned_carts(mock_mode=not args.production)
+        run_abandoned_carts()
     elif args.command == "orders":
-        run_orders(mock_mode=not args.production)
+        run_orders()
     elif args.command == "all":
-        run_all(mock_mode=not args.production)
+        run_all()
     else:
         parser.print_help()

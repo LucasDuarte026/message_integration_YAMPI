@@ -13,7 +13,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-message_integration}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-message_integration}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -35,9 +35,9 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./logs_from_container:/app/logs
+      - ./containers/logs:/app/logs
       - ./src:/app/src
-      - ./emails_from_container:/app/emails
+      - ./containers/emails:/app/emails
 
 volumes:
   pgdata:

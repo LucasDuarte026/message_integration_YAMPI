@@ -7,8 +7,9 @@ O diretório `core` abriga os componentes básicos de infraestrutura interna que
 - **`config.py`**: Gerenciador centralizado de variáveis de ambiente e credenciais. Garante a segurança retirando dados sensíveis do restante do código.
 - **`client.py`**: O cliente robusto `YampiClient`. Implementa as requisições HTTP, paginação, fallback, rate limits e autenticação para consumir a API da Yampi.
 - **`db.py`**: Implementação concreta em SQLite do repositório de persistência (`StateRepositoryProtocol`). Serve para salvar o estado da aplicação (ex: controle de disparo de mensagens duplicadas).
-- **`macros.py`**: Arquivo de configurações de constantes e macros de negócios. Define *timers* para STG (Pedidos) e STC (Carrinhos), definindo horas para disparos de cupons, tempos limite e intervalos de workers.
-
+- **`macros.py`**: Arquivo de configurações de constantes e macros de negócios. Define *timers* para STG (Pedidos) e STC (Carrinhos), limites e intervalos de workers. Também atua como o ponto de controle central de disparo através das flags de feature independentes:
+  - `MACRO_ENABLE_REAL_EMAIL_DISPATCH`: Habilita ou desabilita o disparo real aos provedores SMTP/API.
+  - `MACRO_ENABLE_LOCAL_HTML_SAVING`: Habilita ou desabilita a geração local de e-mails em HTML (útil para debug e fallback).
 ## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]
 > **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**

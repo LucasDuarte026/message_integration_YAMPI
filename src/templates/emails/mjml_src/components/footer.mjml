@@ -1,0 +1,58 @@
+<mj-section background-color="#F8FAFC" padding="25px 20px 10px 20px" border-top="1px solid #E2E8F0">
+  <mj-column width="100%">
+    <mj-text align="center" font-size="15px" font-weight="700" color="#1E3A8A" letter-spacing="0.5px" padding="0px 0px 2px 0px">
+      PRECISA DE AJUDA COM SEU PEDIDO?
+    </mj-text>
+    <mj-text align="center" font-size="13px" color="#64748B" padding="2px 0px 0px 0px">
+      Fale conosco através dos nossos canais de atendimento oficial:
+    </mj-text>
+  </mj-column>
+</mj-section>
+
+<mj-section background-color="#F8FAFC" padding="10px 20px 20px 20px">
+  <mj-group width="340px">
+    <!-- Suporte WhatsApp -->
+    <mj-column width="50%" padding="0px">
+      <mj-image align="center" width="44px" href="https://wa.me/5516993144298" src="{{ whatsapp_icon_url }}" alt="WhatsApp Suporte" padding="0px 0px 6px 0px" />
+      <mj-text align="center" font-size="14px" font-weight="700" color="#1E3A8A" padding="0px">
+        <a href="https://wa.me/5516993144298" style="color: #1E3A8A; text-decoration: none;">WhatsApp</a>
+      </mj-text>
+      <mj-text align="center" font-size="12px" color="#64748B" padding="2px 0px 0px 0px">
+        (16) 99314-4298
+      </mj-text>
+    </mj-column>
+
+    <!-- Suporte E-mail -->
+    <mj-column width="50%" padding="0px">
+      <mj-image align="center" width="44px" href="mailto:suporteeleveme@gmail.com" src="{{ contact_mail_icon_url }}" alt="E-mail Suporte" padding="0px 0px 6px 0px" />
+      <mj-text align="center" font-size="14px" font-weight="700" color="#1E3A8A" padding="0px">
+        <a href="mailto:suporteeleveme@gmail.com" style="color: #1E3A8A; text-decoration: none;">E-mail Suporte</a>
+      </mj-text>
+      <mj-text align="center" font-size="12px" color="#64748B" padding="2px 0px 0px 0px">
+        suporteeleveme@gmail.com
+      </mj-text>
+    </mj-column>
+  </mj-group>
+</mj-section>
+
+<mj-section background-color="#F1F5F9" padding="20px 20px">
+  <mj-column width="100%">
+    <!-- Redes Sociais -->
+    <mj-social font-size="15px" icon-size="28px" mode="horizontal" padding="0px 0px 2px 0px">
+      <mj-social-element href="https://www.instagram.com/loja_eleveme/" src="{{ instagram_icon_url }}" alt="Instagram"></mj-social-element>
+      <mj-social-element href="https://www.facebook.com/people/Eleveme/61579792087209/" src="{{ facebook_icon_url }}" alt="Facebook"></mj-social-element>
+    </mj-social>
+    <mj-text align="center" font-size="11px" font-weight="700" color="#475569" letter-spacing="0.5px" padding="2px 0px 10px 0px">
+      SIGA A ELEVEME
+    </mj-text>
+
+    <mj-divider border-color="#CBD5E1" border-width="1px" padding="5px 0px 15px 0px" />
+
+    <!-- Dados Institucionais -->
+    <mj-text align="center" font-size="11px" color="#64748B" line-height="150%">
+      <strong>Horário de Atendimento:</strong> Seg a Sex: 08h-12h e 14h-18h | Sáb: 08h-12h<br/>
+      <strong>CNPJ:</strong> 55.453.284/0001-63 — Eleveme Co.<br/><br/>
+      Este e-mail foi enviado de uma conta automática de notificações. Por favor, não responda diretamente a este e-mail. Caso precise, entre em contato através dos canais de atendimento acima.
+    </mj-text>
+  </mj-column>
+</mj-section>

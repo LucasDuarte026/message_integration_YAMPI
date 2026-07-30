@@ -1,0 +1,101 @@
+<mjml>
+  <mj-head>
+    <mj-title>Seu Pedido está a caminho!</mj-title>
+    <mj-include path="./components/styles.mjml" />
+  </mj-head>
+
+  <mj-body background-color="#F8FAFC">
+    <mj-wrapper css-class="content-card" padding="0">
+      
+      <!-- Cabeçalho (Header) - Imagem Fina no Topo -->
+      <mj-include path="./components/header.mjml" />
+      
+      <!-- Introdução (Body) -->
+      <mj-section background-color="#FFFFFF" padding="30px 20px 10px 20px">
+        <mj-column width="100%">
+          
+          <mj-text font-size="24px" font-weight="bold" color="#1E3A8A" align="center" padding-bottom="10px">
+            Seu pedido já está a caminho! 🚚
+          </mj-text>
+          
+          <mj-text font-size="16px" color="#334155" line-height="150%" align="center" padding-bottom="15px">
+            Olá, <strong>{{ customer_name | default('Cliente') }}</strong>! Temos uma ótima notícia: o seu pedido <strong>{{ order_number | default('#0000') }}</strong> foi despachado e já está em trânsito!
+          </mj-text>
+
+        </mj-column>
+      </mj-section>
+
+      <!-- CARD CINZA CONTINUO COM IMAGEM TOUCHING BORDERS (Estilo Referência) -->
+      <mj-section background-color="#FFFFFF" padding="0px 20px 20px 20px">
+        <mj-column width="100%" background-color="#F1F5F9" border-radius="16px">
+          
+          <!-- Imagem Central Expandida tocando as bordas superiores do Card -->
+          <mj-image src="{{ body_image_url | default('https://via.placeholder.com/600x400/1E3A8A/FFFFFF?text=Pedido+a+Caminho') }}" alt="Pedido a Caminho" padding="0" width="600px" border-radius="16px 16px 0 0" />
+          
+          <!-- Conteúdo Interno do Card Cinza Conectado à Imagem -->
+          <mj-text align="center" font-size="20px" font-weight="bold" color="#1E3A8A" padding="25px 20px 8px 20px">
+            Rastreie sua Entrega 📦
+          </mj-text>
+
+          <mj-raw>{% if tracking_code %}</mj-raw>
+          <mj-text align="center" font-size="14px" font-weight="bold" color="#475569" padding="0px 20px 10px 20px">
+            Código de Rastreio: <span style="color: #1E3A8A; background-color: #E2E8F0; padding: 4px 10px; border-radius: 6px; font-family: monospace; font-size: 15px;">{{ tracking_code }}</span>
+          </mj-text>
+          <mj-raw>{% endif %}</mj-raw>
+          
+          <mj-text align="center" font-size="15px" color="#475569" line-height="150%" padding="0px 25px 15px 25px">
+            Agora você pode acompanhar cada etapa da entrega em tempo real através do nosso sistema de rastreamento.
+          </mj-text>
+
+          <!-- Botão Moderno Pill-Shape -->
+          <mj-button css-class="btn-shadow-blue" href="{{ tracking_url | default('https://elevemeloja.com.br/rastreamento') }}" background-color="#1E3A8A" color="#FFFFFF" border-radius="28px" font-size="16px" font-weight="bold" padding="10px 0 25px 0" inner-padding="14px 36px">
+            Acompanhar Pedido
+          </mj-button>
+
+        </mj-column>
+      </mj-section>
+
+      <!-- Tabela de Produtos Comprados -->
+      {% if items_html %}
+      <mj-section background-color="#FFFFFF" padding="0px 20px 20px 20px">
+        <mj-column width="100%">
+          <mj-text font-size="16px" font-weight="bold" color="#1E3A8A" padding-bottom="10px">
+            Itens do Pedido:
+          </mj-text>
+          <mj-raw>
+            <table width="100%" style="border-collapse: collapse; background-color: #F8FAFC; border-radius: 8px; overflow: hidden;">
+              <thead>
+                <tr style="background-color: #E2E8F0; text-align: left;">
+                  <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569;">Item</th>
+                  <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569; text-align: center;">Quantidade</th>
+                  <th style="padding: 10px; font-family: sans-serif; font-size: 13px; color: #475569; text-align: right;">Preço</th>
+                </tr>
+              </thead>
+              <tbody>
+                {{ items_html | safe }}
+              </tbody>
+            </table>
+          </mj-raw>
+        </mj-column>
+      </mj-section>
+      {% endif %}
+
+      <!-- Disclaimer sobre Atualizaciones da Transportadora -->
+      <mj-section background-color="#FFFFFF" padding="0px 20px 25px 20px">
+        <mj-column width="100%">
+          <mj-text font-size="13px" color="#64748B" line-height="150%" align="center" padding="0px 10px">
+            ⚠️ <em>Sempre que a transportadora atualizar o status do pedido, a nova informação aparecerá diretamente nesse link. O prazo de entrega começa a contar a partir da postagem.</em>
+          </mj-text>
+          
+          <mj-text font-size="14px" color="#64748B" line-height="150%" align="center" padding-top="20px">
+            Se você tiver qualquer dúvida, nossa equipe de suporte está à disposição.
+          </mj-text>
+        </mj-column>
+      </mj-section>
+      
+      <!-- Footer -->
+      <mj-include path="./components/footer.mjml" />
+
+    </mj-wrapper>
+  </mj-body>
+</mjml>

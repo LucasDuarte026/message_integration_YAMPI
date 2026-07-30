@@ -51,15 +51,14 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   └── webhook_server.py             # Servidor HTTP para Webhooks da Meta API
 ├── tests/                            # Testes unitários do sistema
 │   └── test_abandoned_cart.py        # Casos de teste do fluxo de carrinhos
-├── db_consult_scripts/               # Pasta de scripts utilitários de execução e consulta ao BD
-│   ├── README.md                     # Índice e exemplos de uso dos scripts
-│   ├── run_local.sh                  # Orquestrador local
-│   ├── run_stg.sh                    # Execução do Worker de Pedidos (STG)
-│   ├── run_stc.sh                    # Execução do Worker de Carrinhos (STC)
-│   ├── search_stg.sh                 # Consulta ao banco de dados por STG
-│   ├── search_stc.sh                 # Consulta ao banco de dados por STC
-│   └── search_status.py              # Script utilitário em Python para consultas SQL
-├── run_local.sh                      # Wrapper de atalho raiz para db_consult_scripts/run_local.sh
+├── scripts/                          # Pasta de scripts utilitários de execução e consulta ao BD
+├── studies/                          # Amostras de dados de API, payloads e referências
+├── .env                              # Credenciais e parâmetros de ambiente (NUNCA versionar)
+├── .env.example                      # Modelo de exemplo para o .env
+├── Dockerfile                        # Receita da imagem do container da aplicação
+├── docker-compose.yml                # Orquestrador local da aplicação e do Postgres DB
+├── README.md                         # Visão geral e guia rápido do repositório
+├── run_local.sh                      # Wrapper de atalho raiz para scripts/run_local.sh
 ├── requirements.txt                  # Dependências do Python
 └── state.db                          # Banco de dados SQLite persistente (gerado na execução)
 ```
