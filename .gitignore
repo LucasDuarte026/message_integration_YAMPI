@@ -14,4 +14,7 @@ tests/
 logs/
 analysis*/
 logs*/
-emails_from_container/
+emails_from_container/ 
+db_backups/
+db_consult_scripts/
+
