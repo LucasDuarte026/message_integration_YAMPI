@@ -117,9 +117,9 @@ diff_pedido = now_utc3 - data_pedido
 | `2, 4, 5, 6, 7` | `3` | Pagamento aprovado (`paid`, `in_separation`, `invoiced`) **E** Código de Rastreio presente | Enviar email, marcar STG=3 | **Email 3**: Confirmação de pagamento |
 | Qualquer | `8` | Pedido reembolsado (`refunded`) | Marcar STG=8 | — (cliente perdido/reembolsado) |
 | `2` | `4` | `diff > 30 min` e pagamento **NÃO** aprovado (incluindo `cancelled` por PIX expirado) | Marcar STG=4 | — |
-| `4` | `5` | `diff > 12h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=5 | **Email Cupom 1**: desconto 10% |
-| `5` | `6` | `diff > 14h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=6 | **Email Cupom 2**: desconto 15% |
-| `6` | `7` | `diff > 16h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=7 | **Email Cupom 3**: desconto 20% |
+| `4` | `5` | `diff > 12h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=5 | **Email Cupom 1**: desconto dinâmico (ex: 10%) via `brand_data.yml` |
+| `5` | `6` | `diff > 14h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=6 | **Email Cupom 2**: desconto dinâmico (ex: 15%) via `brand_data.yml` |
+| `6` | `7` | `diff > 16h` e pagamento **NÃO** aprovado | Enviar email, marcar STG=7 | **Email Cupom 3**: desconto dinâmico (ex: 20%) via `brand_data.yml` |
 | `7` | `8` | `diff > 18h` e pagamento **NÃO** aprovado | Marcar STG=8 | — (cliente perdido, terminal) |
 
 ### 4.3 Estados Terminais (STG)
@@ -171,9 +171,9 @@ diff_carrinho = now() - data_carrinho
 
 | De | Para | Condição | Ação | Email |
 |---|---|---|---|---|
-| `null` | `15` | `diff > 4h` | Enviar email, marcar STC=15 | **Email Cupom 4**: desconto + link `simulate_url` |
-| `15` | `16` | `diff > 24h` | Enviar email, marcar STC=16 | **Email Cupom 5**: desconto + link `simulate_url` |
-| `16` | `17` | `diff > 48h` | Enviar email, marcar STC=17 | **Email Cupom 6**: desconto + link `simulate_url` |
+| `null` | `15` | `diff > 14h` do abandono | Enviar email, marcar STC=15 | **Email Cupom 4**: desconto dinâmico (ex: 10%) + link recuperação |
+| `15` | `16` | `diff > 16h` do abandono | Enviar email, marcar STC=16 | **Email Cupom 5**: desconto dinâmico (ex: 15%) + link recuperação |
+| `16` | `17` | `diff > 18h` do abandono | Enviar email, marcar STC=17 | **Email Cupom 6**: desconto dinâmico (ex: 20%) + link recuperação |
 | `17` | `18` | `diff > 20h` | Marcar STC=18 | — (cliente perdido, terminal) |
 
 ### 5.4 Estados Terminais (STC)

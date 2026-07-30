@@ -7,6 +7,37 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [4.2.0] - 2026-07-27 (Modernização UI de E-mails e Refatoração de Assets)
+
+### Adicionado / Modificado
+- **Reestruturação de Assets (`src/templates/emails/mjml_src/images/`)**:
+  - Organização sequencial em 9 pastas (de `email_1_pedido_aprovado` a `email_9_carrinho_abandonado_6`).
+  - Remoção de caracteres especiais (`%`) nos nomes de arquivos de imagem para garantir compatibilidade de renderização offline (`file:///`).
+- **Validação de Frete na Tabela de Produtos**:
+  - Implementada lógica no `BaseEmailBuilder` que adiciona dinamicamente o valor do frete ao subtotal, exceto quando o valor puro dos produtos for superior a R$ 200,00 (frete grátis implícito).
+- **Injeção de Cupom Dinâmica**:
+  - Template Jinja2 agora extrai a variável `value_cupom` diretamente do `brand_data.yml` para todos os templates de descontos.
+- **Botões e UX**:
+  - Alteração do link de call-to-action nos e-mails Pós-Venda (`cupom_pedido_1..3`) de `checkout_url` para a Homepage da loja (`store_url`), para facilitar o reengajamento.
+  - O botão do e-mail `carrinho_abandonado_cupom5` (15% OFF) recebeu nova cor (`#EA580C`) e nova classe de sombra (`btn-shadow-orange`).
+- **Novo Layout PIX**:
+  - O e-mail de "Pedido Pendente" (`pedido_pendente.mjml`) recebeu nova UI para exibição da Chave PIX Copia e Cola, encapsulada em caixa tracejada.
+- **Email Mock Generator**:
+  - Suporte completo ao novo esquema de diretórios sequenciais, resolvendo paths locais para HTML absoluto para revisão offline.
+
+---
+
+## [4.1.0] - 2026-07-27 (Tabela de Produtos Dinâmica nos E-mails)
+
+### Adicionado / Modificado
+- **Tabela de Produtos Dinâmica nos E-mails (`06_products_table.md`)**:
+  - Renderização tabular stateless de itens, quantidade, frete e valor total extraídos diretamente dos payloads JSON da Yampi.
+  - Alinhamento visual por colunas (Item, Quantidade, Preço) e estilização adaptada ao Eleveme Email UI Design System.
+- **Documentação e Decisões**:
+  - Registrada e implementada a especificação `06_products_table.md` (v4.1.0).
+
+---
+
 ## [4.0.0] - 2026-07-27 (Nova Engine MJML + Jinja2 e Brand Data Fonte Zero)
 
 ### Adicionado / Modificado (Major Release)
@@ -22,7 +53,9 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - **Utilitário de Mocks Locais**:
   - Script `email_mock_generator.py` migrado para `src/templates/emails/mjml_src/` para testes visuais offline.
 - **Documentação e Decisões**:
-  - Registrada a decisão `05_email_refactor.md`, a proposta `06_products_table.md` e o manual `src/templates/emails/mjml_src/README.md`.
+  - Registrada a decisão `05_email_refactor.md` e o manual `src/templates/emails/mjml_src/README.md`.
+
+
 
 ---
 

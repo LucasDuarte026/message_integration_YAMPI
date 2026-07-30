@@ -43,6 +43,9 @@ Nesta pasta estão concentradas as diretrizes de mudanças locais, propostas de 
    * **Status**: Aprovado e Implementado.
 
 6. [06_products_table.md](./06_products_table.md)
-   * **Assunto**: Especificação e plano do catálogo local de produtos para enriquecimento automático com imagem, nome, quantidade e preço nas tabelas de itens dos e-mails.
+   * **Assunto**: Especificação e renderização da tabela de produtos nos e-mails transacionais (extração direta de itens, frete e total, alinhamento por colunas e design system).
    * **Data**: 2026-07-27
-   * **Status**: Em Planejamento.
+   * **Status**: Aprovado e Implementado (v4.1.0).
+
+
+

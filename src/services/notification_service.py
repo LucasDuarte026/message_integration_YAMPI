@@ -44,6 +44,7 @@ class NotificationService:
             os.makedirs(folder_path, exist_ok=True)
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(html_body)
+            logger.info(f"[NotificationService] HTML salvo em: file://{os.path.abspath(file_path)}")
         except Exception as e:
             logger.error(f"[NotificationService] Falha ao criar HTML para o pedido ID: # {event.order_id} (Nº {event.order_number}): {e}")
 
@@ -56,6 +57,7 @@ class NotificationService:
             logger.info(f"[NotificationService] E-mail STG {event.new_stg} ({template_name}) enviado para pedido ID: # {event.order_id} (Nº {event.order_number})")
         else:
             logger.warning(f"[NotificationService] No recipient email found for order {event.order_id}")
+
 
     def handle_cart_transition(self, event: CartTransitionEvent, template_name: str) -> None:
         builders = {
@@ -77,8 +79,10 @@ class NotificationService:
             os.makedirs(folder_path, exist_ok=True)
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(html_body)
+            logger.info(f"[NotificationService] HTML de carrinho salvo em: file://{os.path.abspath(file_path)}")
         except Exception as e:
             logger.error(f"[NotificationService] Falha ao criar HTML para o carrinho ID: {event.cart_id}: {e}")
+
 
         recipient_email = self.config.TEST_EMAIL_RECIPIENT
         if not recipient_email:
