@@ -7,6 +7,16 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [4.2.1] - 2026-07-30 (Correção de Tipagem de API e Prevenção de Falhas)
+
+### Corrigido
+- **Falha Fatal de Processamento PIX e Rastreios**:
+  - Corrigido o `AttributeError: 'list' object has no attribute 'get'` no `base_builder.py` que derrubava a esteira de envios.
+  - O código de extração para nós nativos da Yampi (`pix` e `shipments`) agora utiliza lógicas defensivas de validação de tipo (`isinstance`), pois a API envia relacionamentos *has-many* de forma polimórfica (ora como array, ora omitindo chaves).
+  - A Chave PIX é extraída do primeiro item do array de dados com fallback de segurança para e-mails de Boletos e Cartões (onde o QR Code fica propositalmente vazio).
+
+---
+
 ## [4.2.0] - 2026-07-27 (Modernização UI de E-mails e Refatoração de Assets)
 
 ### Adicionado / Modificado

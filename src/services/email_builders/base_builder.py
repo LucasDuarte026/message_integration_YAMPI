@@ -158,7 +158,13 @@ class BaseEmailBuilder(ABC):
         total_value_str = f"{value_total:.2f}"
         recovery_url = event.order_data.get('checkout_url') or event.order_data.get('public_url') or event.order_data.get('reorder_url') or ""
         
-        shipments = event.order_data.get('shipments', {}).get('data', [])
+        shipments_field = event.order_data.get('shipments')
+        if isinstance(shipments_field, dict):
+            shipments = shipments_field.get('data', [])
+        elif isinstance(shipments_field, list):
+            shipments = shipments_field
+        else:
+            shipments = []
         shipment_data = shipments[0] if isinstance(shipments, list) and len(shipments) > 0 else {}
         
         found_code = (
@@ -199,9 +205,18 @@ class BaseEmailBuilder(ABC):
             login_url or
             self.brand_data.get('store_url', 'https://elevemeloja.com.br')
         )
-
-        pix_data = event.order_data.get('pix', {}).get('data', {}) if isinstance(event.order_data.get('pix'), dict) else {}
-        pix_qr_code = pix_data.get('pix_qr_code', "")
+        pix_qr_code = ""
+        pix_field = event.order_data.get('pix')
+        if isinstance(pix_field, dict):
+            pix_data = pix_field.get('data')
+            if isinstance(pix_data, list) and len(pix_data) > 0:
+                pix_item = pix_data[0]
+                pix_qr_code = pix_item.get('pix_qr_code', "") if isinstance(pix_item, dict) else ""
+            elif isinstance(pix_data, dict):
+                pix_qr_code = pix_data.get('pix_qr_code', "")
+        elif isinstance(pix_field, list) and len(pix_field) > 0:
+            pix_item = pix_field[0]
+            pix_qr_code = pix_item.get('pix_qr_code', "") if isinstance(pix_item, dict) else ""
 
         return {
             "name": name,
