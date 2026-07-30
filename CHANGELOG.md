@@ -7,6 +7,19 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [4.2.2] - 2026-07-30 (Tratamento Global de Erros e Observabilidade)
+
+### Adicionado / Modificado
+- **Interceptação Global de Erros (`sys.excepthook` e `threading.excepthook`)**:
+  - Implementado tratamento global na configuração de log (`src/core/logging_config.py`) para capturar toda e qualquer exceção não tratada na aplicação.
+  - Se um erro crítico escapar de todos os `try...except`, ele será gravado no `app.log` com o **Traceback completo** sob a tag `FATAL ERROR` antes do shutdown do sistema.
+- **Blindagem de Threads Assíncronas**:
+  - Os *Generators* de `executor.map` em `orders.py` e `abandoned_cart.py` agora são consumidos ativamente via cast para `list()`. Isso garante que eventuais vazamentos de exceções profundas nas threads de *ThreadPoolExecutor* sejam jogados para a thread principal e detectados pelo interceptador global.
+- **Documentação de Roadmap (`FUTURE_IMPLEMENTATION.md`)**:
+  - Oficializada a obrigatoriedade futura para integrações com **Sentry/Datadog** e formatação de logs paralela em **JSON**.
+
+---
+
 ## [4.2.1] - 2026-07-30 (Correção de Tipagem de API e Prevenção de Falhas)
 
 ### Corrigido

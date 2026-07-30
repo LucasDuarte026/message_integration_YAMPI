@@ -68,3 +68,19 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 - **Desacoplamento Assíncrono via Fila (RabbitMQ / Redis / Kafka)**:
   - O pipeline de e-mail atual roda de forma síncrona por simplicidade. Porém, em cenários de alta escalabilidade (milhares de transições de STG simultâneas), pode ser necessário implementar um Message Broker assíncrono.
   - O Worker de Pedidos apenas publicaria um evento (ex: `OrderTransitionEvent`) em uma fila, e um Worker de Notificações isolado consumiria essas mensagens para disparar os e-mails em segundo plano sem bloquear a esteira principal.
+
+---
+
+## 6. Observabilidade e Tracking de Erros (Obrigatório)
+
+- **Ferramenta Profissional de Tracking (Sentry / Datadog)**:
+  - *Responsável:* Usuário (luska) fará a implementação.
+  - *Motivo:* O projeto atualmente joga os logs e tracebacks capturados pelo `sys.excepthook` em um arquivo físico local (`logs/app.log`). Embora os erros agora estejam blindados e não escapem do log, não há alertas em tempo real.
+  - *Objetivo:* Integrar SDKs de ferramentas como Sentry ou Datadog (via `sentry-sdk` ou similar) no arquivo `src/core/logging_config.py` dentro da função `setup_global_exception_hooks()`, para que qualquer erro crítico dispare notificações imediatas (celular/e-mail/Slack) aos mantenedores, contendo o contexto e a pilha de execução da falha.
+- **Exportação de Logs Paralela em formato JSON**:
+  - *Motivo:* Formato em texto puro é excelente para a leitura humana no terminal, mas é péssimo para indexação automática e pesquisa em ferramentas externas (como ELK Stack, Splunk, Datadog Logs, etc).
+  - *Objetivo:* Adicionar um novo FileHandler no `src/core/logging_config.py` que gere logs estruturados em formato JSON.
+  - *Regra de Implementação:*
+    - O sistema de log deve ser **paralelo**: manteremos o `app.log` atual (para humanos) em formato texto amigável.
+    - Deverá ser criada uma nova pasta (ex: `logs/json/`) ou arquivo (`logs/app.json.log`) onde cada linha será um objeto JSON completo `{ "timestamp": "...", "level": "ERROR", "message": "...", "traceback": "..." }`.
+    - *Sugestão:* Utilizar bibliotecas como `python-json-logger` (`jsonlogger.JsonFormatter`) para aplicar esse formato paralelamente ao log de console e texto puro.

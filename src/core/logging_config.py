@@ -30,9 +30,48 @@ def setup_logging(verbose: bool = False, log_file: str = "logs/app.log") -> None
     stream_handler.setLevel(log_level)
     root_logger.addHandler(stream_handler)
     
+    
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(formatter)
     file_handler.setLevel(log_level)
     root_logger.addHandler(file_handler)
     
+    _setup_global_exception_hooks(root_logger)
+    
     logging.info(f"Sistema de logging inicializado. Nível: {'DEBUG (Verbose)' if verbose else 'INFO'}")
+
+def _setup_global_exception_hooks(logger: logging.Logger) -> None:
+    """
+    Configura os interceptadores globais para garantir que nenhuma exceção vaze sem log.
+    """
+    import threading
+
+    def handle_unhandled_exception(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            # Deixa o Ctrl+C funcionar normalmente
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        
+        logger.critical(
+            "=================== FATAL ERROR ===================\n"
+            "Exceção Não Tratada Global capturada pelo sys.excepthook!\n"
+            "A aplicação será encerrada logo após este log.",
+            exc_info=(exc_type, exc_value, exc_traceback)
+        )
+
+    def handle_thread_exception(args):
+        if issubclass(args.exc_type, KeyboardInterrupt):
+            return
+            
+        logger.critical(
+            "=================== THREAD FATAL ERROR ===================\n"
+            f"Exceção Não Tratada na Thread '{args.thread.name}' capturada pelo threading.excepthook!\n"
+            "A thread morreu silenciosamente.",
+            exc_info=(args.exc_type, args.exc_value, args.exc_traceback)
+        )
+
+    sys.excepthook = handle_unhandled_exception
+    
+    if hasattr(threading, 'excepthook'):
+        threading.excepthook = handle_thread_exception
+

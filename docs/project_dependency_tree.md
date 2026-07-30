@@ -11,10 +11,10 @@ graph TD
         D_INT["src/domain/interfaces.py"]
     end
 
-    %% Detalhes de Implementação (Dependem do Domain)
     subgraph INFRA ["2. Infraestrutura e Adaptadores Externos"]
         C_CONF["src/core/config.py"]
         C_MACR["src/core/macros.py"]
+        C_LOGS["src/core/logging_config.py"]
         C_CLIE["src/core/client.py <br> YampiClientProtocol"]
         P_PG["src/ports/postgres_repo.py <br> StateRepositoryProtocol"]
         P_SMTP["src/ports/smtp_email_provider.py <br> MessageProviderProtocol"]
@@ -64,9 +64,9 @@ A hierarquia de dependências flui de fora (Entrypoint) para dentro (Domain), ga
 - **O que faz:** Dita as regras do jogo. Define os `Protocols` que qualquer banco de dados, provedor de email ou cliente Yampi deve obedecer se quiser existir no sistema.
 
 ### Nível 2: Infraestrutura (`src/core/` e `src/ports/`)
-- **Quem são:** `client.py` (Yampi), `postgres_repo.py` (PostgreSQL), `smtp_email_provider.py` (SMTP).
-- **Do que dependem:** Do `domain/` (para herdar/implementar os contratos) e de bibliotecas externas (`psycopg2`, `requests`, `smtplib`).
-- **O que fazem:** Lidam com o mundo real (Internet, Banco de Dados, APIs).
+- **Quem são:** `client.py` (Yampi), `postgres_repo.py` (PostgreSQL), `smtp_email_provider.py` (SMTP), `logging_config.py` (Logs).
+- **Do que dependem:** Do `domain/` (para herdar/implementar os contratos) e de bibliotecas externas (`psycopg2`, `requests`, `smtplib`, `logging`).
+- **O que fazem:** Lidam com o mundo real (Internet, Banco de Dados, APIs, Saída de Sistema).
 
 ### Nível 3: Casos de Uso (`src/workers/`)
 - **Quem são:** `abandoned_cart.py` e `orders.py`.

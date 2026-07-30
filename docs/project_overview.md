@@ -72,11 +72,12 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 
 ## 6. Logs e Depuração
 
-### Fluxo de Logs
-O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [main.py](../src/main.py).
+### Fluxo de Logs e Tratamento Global de Erros
+O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [logging_config.py](../src/core/logging_config.py).
 - **Destinos da Saída:** Console (`sys.stdout`) e arquivo em disco (`logs/app.log`).
-- **Nível de Logs:** `INFO`.
-- **Rastreamento de Regras:** O worker de carrinhos calcula e loga a idade de abandono em horas (`Analisando carrinho [id]: abandonado há [X.XX] horas. Regra aplicada: [fase]`), facilitando o rastreamento das regras aplicadas para cada fase de recuperação.
+- **Nível de Logs:** `INFO` por padrão (ou `DEBUG` com a flag `-v`).
+- **Interceptação Global (Crash Prevent):** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal (mesmo os que escapam aos workers) não irá derrubar o servidor silenciosamente; eles são capturados, registrados como `FATAL ERROR` no `app.log` junto com o traceback completo da pilha, garantindo 100% de observabilidade antes da morte do processo.
+- **Rastreamento de Regras:** Os workers calculam e logam a idade de abandono em horas (`Analisando carrinho [id]: abandonado há [X.XX] horas. Regra aplicada: [fase]`), facilitando o rastreamento das regras aplicadas.
 
 ### Depuração Interativa e Execução Rápida
 Para rastrear a execução linha por linha e acompanhar a pilha de chamadas e objetos (incluindo chamadas de funções filhas) de forma visual:

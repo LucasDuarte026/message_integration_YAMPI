@@ -419,8 +419,9 @@ Fonte dos dados: `estudos/yampi_api/pedidos.json`
 | **Array de Itens** | `order['items']['data']` | `array` | Lista de produtos (Confirmado ✓) |
 | **SKU do Produto** | `item['item_sku']` ou `item['sku']['data']['sku']` | `string` | `"BUBBLE-3.5CM"` (Confirmado ✓) |
 | **Preço do Produto** | `item['price']` | `float` | `105.90` (usado para filtro do SKU mais caro) |
-| **Código de Rastreio** | `order['shipments']['data'][0]['tracking_code']` | `string` | `"BR123456789BR"` (Fallback pré-envio `STG != 3`: `"Aguardando envio"`; Fallback envio `STG 3`: `"Disponível em breve"` + `ERROR` log) |
+| **Código de Rastreio** | `order['shipments']['data'][0]['tracking_code']` | `string` | `"BR123456789BR"` (Nota: a chave `data` pode ser dict ou array polimórfico dependendo do payload. Fallbacks aplicados no `base_builder.py`) |
 | **URL de Rastreio** | `order['shipments']['data'][0]['tracking_url']` | `string` | Link dos Correios (Fallback: `"#"`) |
+
 
 
 ### 13.2 Módulo de Carrinhos Abandonados (`GET /v2/{alias}/checkout/carts?include=customer,items`)

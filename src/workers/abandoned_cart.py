@@ -62,8 +62,9 @@ class AbandonedCartProcessor:
             else:
                 logger.info(f"Iniciando processamento assíncrono para {len(eligible_carts)} carrinhos com até {self.config.MAX_WORKERS} workers...")
                 with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
-                    executor.map(self._process_cart_concurrently, eligible_carts)
-                    
+                    # O list() força a iteração, garantindo que qualquer exceção que fuja do worker vaze para a main thread
+                    list(executor.map(self._process_cart_concurrently, eligible_carts))
+
             logger.info("Processamento finalizado.")
         except Exception as e:
             logger.error(f"Erro no processamento concorrente de carrinhos: {e}")

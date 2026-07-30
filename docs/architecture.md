@@ -36,7 +36,9 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   ├── core/                         # Infraestrutura interna básica do sistema
 │   │   ├── client.py                 # Cliente de integração com a API da Yampi
 │   │   ├── config.py                 # Dataclasses de configuração e ambiente
-│   │   └── db.py                     # Controle de estado SQLite local
+│   │   ├── db.py                     # Controle de estado SQLite local
+│   │   ├── logging_config.py         # Configuração de Logs e Interceptação Global de Erros
+│   │   └── macros.py                 # Constantes e paramêtros temporais do sistema
 │   ├── domain/                       # Camada de contratos estritos e specs
 │   │   └── interfaces.py             # Protocols e Classes Abstratas do sistema
 │   ├── ports/                        # Adaptadores de APIs de terceiros (Meta, SMTP, Mock)
@@ -69,7 +71,8 @@ O coração da aplicação. Não possui implementações, apenas contratos (`Pro
 Fornece os blocos de construção internos da nossa infraestrutura:
 - Conexão e tratamento bruto com a API Yampi (`client.py`)
 - Gerenciamento de credenciais via variáveis de ambiente (`config.py`)
-- Repositório de estado / persistência local e relacional (`db.py` e `macros.py`)
+- Repositório de estado / persistência local e relacional e parâmetros temporais (`db.py` e `macros.py`)
+- Configuração do Logger central e Interceptação Global de Exceções (`logging_config.py`)
 
 ### 3. [`src/ports/`](../src/ports/README.md) (Adaptadores Externos)
 Onde as implementações de terceiros (que não são o nosso sistema core) vivem. Eles implementam os contratos do `domain`.
