@@ -2,20 +2,9 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Create Env File",
-            "type": "shell",
-            "command": "echo 'testando'  && source .env",
-            "presentation": {
-                "reveal": "silent",
-                "panel": "shared"
-            },
-            "problemMatcher": []
-        },
-        {
             "label": "Start Database",
             "type": "shell",
             "command": "docker compose up -d db",
-            "dependsOn": "Create Env File",
             "presentation": {
                 "reveal": "silent",
                 "panel": "shared"
@@ -23,3 +12,4 @@
             "problemMatcher": []
         }
     ]
+}

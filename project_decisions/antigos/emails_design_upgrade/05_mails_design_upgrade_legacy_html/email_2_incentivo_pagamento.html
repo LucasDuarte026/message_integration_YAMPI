@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recuperação de Carrinho</title>
+    <title>Recuperação de Carrinho - Lembrete</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
     <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); overflow: hidden;">
@@ -17,7 +17,7 @@
         <!-- Greeting -->
         <tr>
             <td style="padding: 40px 30px 20px 30px;">
-                <h2 style="color: #1e293b; margin: 0; font-size: 20px; font-weight: 600;">Olá, Izenaldo Brito Nunes Pinto!</h2>
+                <h2 style="color: #1e293b; margin: 0; font-size: 20px; font-weight: 600;">Olá, {name}!</h2>
                 <p style="color: #64748b; margin: 15px 0 0 0; font-size: 16px; line-height: 1.6;">
                     Vimos que você não finalizou o seu pedido na nossa loja. Para te ajudar a concluir a sua compra, guardamos os seus itens selecionados abaixo:
                 </p>
@@ -35,22 +35,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155;">
-                    <strong>Produto</strong>
-                </td>
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155; text-align: center;">
-                    1
-                </td>
-                <td style="padding: 12px; font-family: sans-serif; font-size: 14px; color: #334155; text-align: right;">
-                    R$ 147.90
-                </td>
-            </tr>
-            
+                        {items_html}
                         <tr style="background-color: #f8fafc; font-weight: bold;">
                             <td colspan="2" style="padding: 15px 12px; font-family: sans-serif; font-size: 16px; color: #1e293b; text-align: right; border-top: 2px solid #e2e8f0;">Total:</td>
-                            <td style="padding: 15px 12px; font-family: sans-serif; font-size: 16px; color: #4f46e5; text-align: right; border-top: 2px solid #e2e8f0;">R$ 147.90</td>
+                            <td style="padding: 15px 12px; font-family: sans-serif; font-size: 16px; color: #4f46e5; text-align: right; border-top: 2px solid #e2e8f0;">R$ {total_value}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -62,7 +50,7 @@
                 <p style="color: #64748b; margin: 0 0 25px 0; font-size: 15px; line-height: 1.5;">
                     Atenção: Os itens do seu carrinho não estão reservados e podem esgotar a qualquer momento. Clique no botão abaixo para garantir o seu pedido!
                 </p>
-                <a href="https://yampi.com.br" target="_blank" style="background-color: #4f46e5; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1);">
+                <a href="{recovery_url}" target="_blank" style="background-color: #4f46e5; color: #ffffff; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -1px rgba(79, 70, 229, 0.1);">
                     Concluir Meu Pedido
                 </a>
             </td>

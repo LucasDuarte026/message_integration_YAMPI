@@ -7,9 +7,12 @@ O diretório `core` abriga os componentes básicos de infraestrutura interna que
 - **`config.py`**: Gerenciador centralizado de variáveis de ambiente e credenciais. Garante a segurança retirando dados sensíveis do restante do código.
 - **`client.py`**: O cliente robusto `YampiClient`. Implementa as requisições HTTP, paginação, fallback, rate limits e autenticação para consumir a API da Yampi.
 - **`db.py`**: Implementação concreta em SQLite do repositório de persistência (`StateRepositoryProtocol`). Serve para salvar o estado da aplicação (ex: controle de disparo de mensagens duplicadas).
+- **`macros.py`**: Arquivo de configurações de constantes e macros de negócios. Define *timers* para STG (Pedidos) e STC (Carrinhos), definindo horas para disparos de cupons, tempos limite e intervalos de workers.
 
-## 🚨 Diretiva de Manutenção (Para IA)
+## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]
+> **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**
+> Sempre que for feito uma modificação, a documentação deve sofrer atualizações respectivas a essas mudanças.
 > Se você modificar, adicionar ou remover qualquer arquivo de infraestrutura neste diretório, **DEVE** atualizar este arquivo `README.md` imediatamente para refletir essas mudanças arquiteturais.
 
 ## Dependências

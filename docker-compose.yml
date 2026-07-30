@@ -12,10 +12,13 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # - ./init-scripts:/docker-entrypoint-initdb.d # documento para iniciar o db já com essas coisas
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-message_integration}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-      # Serviço da Aplicação (Configurado em modo ocioso para permitir execuções manuais do main.py)
-      # O webhook_server foi desativado por padrão (Feature Futura de WPP Meta Message)
+  # Serviço da Aplicação
   app:
     build: .
     container_name: message_integration_app
@@ -29,10 +32,12 @@ services:
       # Carrega as variáveis de credenciais do arquivo .env local (Yampi tokens, etc.)
       - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
-      - ./logs:/app/logs
+      - ./logs_from_container:/app/logs
       - ./src:/app/src
+      - ./emails_from_container:/app/emails
 
 volumes:
   pgdata:

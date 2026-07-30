@@ -142,9 +142,17 @@ Com os containers iniciados via `docker compose up -d`, você pode usar estes at
     ```bash
     docker compose exec app python -m unittest discover -s tests
     ```
-*   **Acessar o shell interativo do container da aplicação:**
+*   **Acessar o shell interativo do container da aplicação (onde os scripts rodam):**
     ```bash
-    docker compose exec app /bin/bash
+    # Via docker compose (recomendado, usa o nome do serviço)
+    docker compose exec app bash
+    
+    # Ou via docker exec (usa o nome do container)
+    docker exec -it message_integration_app bash
+    ```
+*   **Acessar o banco de dados PostgreSQL rodando:**
+    ```bash
+    docker exec -it message_integration_db psql -U postgres -d message_integration
     ```
 
 ---
@@ -163,16 +171,16 @@ Para acompanhar a execução do código passo a passo e depurar chamadas de fun�
 ---
 
 ### 📁 Logs do Projeto (Nova Pasta)
-A aplicação agora grava logs de forma automática no arquivo local `logs/app.log` (mapeado via volume).
+A aplicação agora grava logs de forma automática no arquivo local `logs_from_container/app.log` (mapeado via volume).
 *   **Visualizar logs no Host em tempo real:**
     ```bash
-    tail -f logs/app.log
+    tail -f logs_from_container/app.log
     ```
 *   **Redirecionar saída para outro arquivo de log se necessário:**
     ```bash
     # Como os logs saem no stdout, você pode redirecionar para um log customizado:
-    docker compose exec app python src/main.py abandoned-carts >> log_custom.log
+    docker compose exec app python src/main.py abandoned-carts >> logs_from_container/custom.log
     
     # Se quiser capturar também o stderr (erros do python/flask):
-    docker compose exec app python src/main.py abandoned-carts >> log_custom.log 2>&1
+    docker compose exec app python src/main.py abandoned-carts >> logs_from_container/custom.log 2>&1
     ```

@@ -11,7 +11,7 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
   - `cancelled` (Pedido Cancelado/Perdido) → validar se `status_id = 6`.
   - `shipped` (Em transporte/Despachado) → validar se `status_id = 7`.
   - `delivered` (Entregue) → validar se `status_id = 9`.
-  - `refunded` (Reembolsado) → validar se `status_id = 12`.
+  - `refunded` (Reembolsado) → validar se `status_id = 12` e checar se devem ir definitivamente para STG 8 (Morto/Terminal) ou se em algum cenário de negócio devem receber comunicações (cupons, reagendamento, etc).
 - **Payload Real de Despacho (`shipments`)**:
   Capturar amostra real de um pedido com status `shipped` para validar os nomes exatos das chaves `tracking_code` e `tracking_url` dentro de `shipments.data[0]`.
 
@@ -36,6 +36,12 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 - **Locking Atômico "Adquire-Processa-Grava"**:
   - Implementar transações atômicas de curta duração (milissegundos) no PostgreSQL (`SELECT FOR UPDATE`), garantindo que chamadas lentas de rede (disparo SMTP) sejam feitas 100% **fora** de transações SQL ativas para não travar o banco.
+- **Estudo de Gestão do Banco em Produção e Migrações DDL (`_init_db` vs `ALTER TABLE`)**:
+  - *Contexto Atual*: A aplicação executa DDLs inline (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`) na inicialização do repositório (`_init_db`).
+  - *Estudo Necessário para Produção*:
+    - **Risco de Concorrência DDL no Startup**: Em ambiente de alta vazão com múltiplos pods/containers subindo simultaneamente, executar `ALTER TABLE` na inicialização do Python pode causar contenção de locks de catálogo (`AccessExclusiveLock`) no PostgreSQL.
+    - **Evolução para Migrações Gerenciadas (ex: Alembic/Flyway)**: Avaliar a migração do DDL para uma ferramenta dedicada acionada na esteira de CI/CD ou em um job isolado de pré-deploy.
+    - **Estratégia de Alterações Não-Destrutivas**: Garantir que inclusões de colunas `NOT NULL` novas (como `order_number`) sempre utilizem valores padrões (`DEFAULT 'N/A'`) ou rotinas de *backfill* assíncrono antes da aplicação rígida da constraint.
 - **Purga e Arquivamento de Dados Históricos**:
   - Criar rotina no PostgreSQL para mover registros da `email_status_table` com mais de 365 dias para uma tabela de histórico (`email_status_archive`), mantendo o banco operacional enxuto e acelerando buscas O(1) por CPF/SKU.
 - **Limpeza de Lotes Intermediários e Pastas Temporárias**:
@@ -54,3 +60,27 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
   - Caso o disparo por e-mail falhe ou retorne *bounce*, acionar automaticamente um canal alternativo (WhatsApp via Meta Cloud API ou SMS) configurado na porta de mensageria (`MessageProviderProtocol`).
 - **Definição Final do Provedor CPaaS**:
   - Analisar a pesquisa do artefato de CPaaS e integrar a API vencedora utilizando o contrato `MessageProviderProtocol`.
+
+---
+
+## 5. Talvez Necessários (Message Brokers)
+
+- **Desacoplamento Assíncrono via Fila (RabbitMQ / Redis / Kafka)**:
+  - O pipeline de e-mail atual roda de forma síncrona por simplicidade. Porém, em cenários de alta escalabilidade (milhares de transições de STG simultâneas), pode ser necessário implementar um Message Broker assíncrono.
+  - O Worker de Pedidos apenas publicaria um evento (ex: `OrderTransitionEvent`) em uma fila, e um Worker de Notificações isolado consumiria essas mensagens para disparar os e-mails em segundo plano sem bloquear a esteira principal.
+
+---
+
+## 6. Observabilidade e Tracking de Erros (Obrigatório)
+
+- **Ferramenta Profissional de Tracking (Sentry / Datadog)**:
+  - *Responsável:* Usuário (luska) fará a implementação.
+  - *Motivo:* O projeto atualmente joga os logs e tracebacks capturados pelo `sys.excepthook` em um arquivo físico local (`logs/app.log`). Embora os erros agora estejam blindados e não escapem do log, não há alertas em tempo real.
+  - *Objetivo:* Integrar SDKs de ferramentas como Sentry ou Datadog (via `sentry-sdk` ou similar) no arquivo `src/core/logging_config.py` dentro da função `setup_global_exception_hooks()`, para que qualquer erro crítico dispare notificações imediatas (celular/e-mail/Slack) aos mantenedores, contendo o contexto e a pilha de execução da falha.
+- **Exportação de Logs Paralela em formato JSON**:
+  - *Motivo:* Formato em texto puro é excelente para a leitura humana no terminal, mas é péssimo para indexação automática e pesquisa em ferramentas externas (como ELK Stack, Splunk, Datadog Logs, etc).
+  - *Objetivo:* Adicionar um novo FileHandler no `src/core/logging_config.py` que gere logs estruturados em formato JSON.
+  - *Regra de Implementação:*
+    - O sistema de log deve ser **paralelo**: manteremos o `app.log` atual (para humanos) em formato texto amigável.
+    - Deverá ser criada uma nova pasta (ex: `logs/json/`) ou arquivo (`logs/app.json.log`) onde cada linha será um objeto JSON completo `{ "timestamp": "...", "level": "ERROR", "message": "...", "traceback": "..." }`.
+    - *Sugestão:* Utilizar bibliotecas como `python-json-logger` (`jsonlogger.JsonFormatter`) para aplicar esse formato paralelamente ao log de console e texto puro.
