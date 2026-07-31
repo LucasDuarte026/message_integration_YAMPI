@@ -200,9 +200,9 @@ if __name__ == "__main__":
             "output": "mock_carrinho_abandonado_cupom5.html",
             "data": {
                 "customer_name": "Lucas Duarte",
-                "coupon_code": "CART15",
+                "coupon_code": "ELEVEME15",
         "value_cupom": "15",
-                "simulate_url": "https://elevemeloja.com.br/checkout/cart?recover=15&coupon=CART15",
+                "simulate_url": "https://elevemeloja.com.br/checkout/cart?recover=15&coupon=ELEVEME15",
                 "header_image_url": find_image(os.path.join(ref_dir, "email_8_carrinho_abandonado_5", "header")),
                 "body_image_url": find_image(os.path.join(ref_dir, "email_8_carrinho_abandonado_5", "body")),
                 "instagram_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="instagram"),
@@ -216,9 +216,9 @@ if __name__ == "__main__":
             "output": "mock_carrinho_abandonado_cupom6.html",
             "data": {
                 "customer_name": "Lucas Duarte",
-                "coupon_code": "CART20",
+                "coupon_code": "ELEVEME20",
         "value_cupom": "20",
-                "simulate_url": "https://elevemeloja.com.br/checkout/cart?recover=20&coupon=CART20",
+                "simulate_url": "https://elevemeloja.com.br/checkout/cart?recover=20&coupon=ELEVEME20",
                 "header_image_url": find_image(os.path.join(ref_dir, "email_9_carrinho_abandonado_6", "header")),
                 "body_image_url": find_image(os.path.join(ref_dir, "email_9_carrinho_abandonado_6", "body")),
                 "instagram_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="instagram"),

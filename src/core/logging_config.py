@@ -10,6 +10,15 @@ def setup_logging(verbose: bool = False, log_file: str = "local_data/logs/app.lo
     """
     os.makedirs(os.path.dirname(log_file) if os.path.dirname(log_file) else "local_data/logs", exist_ok=True)
     
+    sentry_dsn = os.environ.get("SENTRY_DSN")
+    if sentry_dsn:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            traces_sample_rate=1.0,
+            send_default_pii=False, # Data Scrubbing habilitado (ignora dados sensíveis e PII locais)
+        )
+    
     log_level = logging.DEBUG if verbose else logging.INFO
     
     formatter = logging.Formatter(
@@ -54,8 +63,9 @@ def _setup_global_exception_hooks(logger: logging.Logger) -> None:
         logger.critical(
             "=================== FATAL ERROR ===================\n"
             "Exceção Não Tratada Global capturada pelo sys.excepthook!\n"
-            "A aplicação será encerrada logo após este log.",
-            exc_info=(exc_type, exc_value, exc_traceback)
+            f"Tipo: {exc_type.__name__} | Valor: {exc_value}\n"
+            "A stack trace completa foi omitida do disco por segurança e enviada ao Sentry (se configurado).\n"
+            "A aplicação será encerrada logo após este log."
         )
 
     def handle_thread_exception(args):
@@ -65,8 +75,9 @@ def _setup_global_exception_hooks(logger: logging.Logger) -> None:
         logger.critical(
             "=================== THREAD FATAL ERROR ===================\n"
             f"Exceção Não Tratada na Thread '{args.thread.name}' capturada pelo threading.excepthook!\n"
-            "A thread morreu silenciosamente.",
-            exc_info=(args.exc_type, args.exc_value, args.exc_traceback)
+            f"Tipo: {args.exc_type.__name__} | Valor: {args.exc_value}\n"
+            "A stack trace completa foi omitida do disco por segurança e enviada ao Sentry (se configurado).\n"
+            "A thread morreu silenciosamente."
         )
 
     sys.excepthook = handle_unhandled_exception

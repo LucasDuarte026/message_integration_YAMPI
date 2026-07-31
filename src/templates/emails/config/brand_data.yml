@@ -109,7 +109,7 @@ templates_copy:
       subject: "🔥 Não perca seus itens: 15% OFF para resgatar seu carrinho!"
       title: "Seu carrinho expira em breve! 🔥"
       discount: 15
-      coupon_code: "CART15"
+      coupon_code: "ELEVEME15"
       body: "Ainda dá tempo de garantir os produtos que você escolheu. Aumentamos o seu desconto para 15% para você finalizar sua compra agora."
       cta_button: "Recuperar Carrinho com 15% OFF"
 
@@ -117,7 +117,7 @@ templates_copy:
       subject: "⚠️ ÚLTIMA CHANCE: 20% OFF para resgatar seu carrinho!"
       title: "Último aviso: 20% OFF no seu carrinho! ⚠️"
       discount: 20
-      coupon_code: "CART20"
+      coupon_code: "ELEVEME20"
       body: "Este é o último lembrete antes que os itens do seu carrinho fiquem indisponíveis. Use o cupom de 20% de desconto antes do encerramento."
       cta_button: "Recuperar Carrinho com 20% OFF"
 

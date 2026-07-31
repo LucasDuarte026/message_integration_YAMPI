@@ -9,7 +9,7 @@ Este guia rápido contém os comandos mais comuns do Docker e Docker Compose par
 ### Inicialização e Parada
 *   **Subir os serviços em segundo plano (Background/Detached):**
     ```bash
-    docker compose up -d
+    docker compose up -d --build
     ```
 *   **Parar e remover os containers e redes criados:**
     ```bash

@@ -25,6 +25,9 @@ class SMTPEmailProvider(MessageProviderProtocol):
         self.from_addr = from_addr or user or "recuperacao@sualoja.com"
 
     def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
+        parts = email.split('@')
+        masked_email = f"{parts[0][0]}***@{parts[1]}" if len(parts) == 2 and len(parts[0]) > 0 else "***@***"
+        
         try:
             # Container raiz (related) para permitir imagens inline e HTML
             msg_root = MIMEMultipart("related")
@@ -105,12 +108,12 @@ class SMTPEmailProvider(MessageProviderProtocol):
                 logger.info(f"Autenticando usuário SMTP '{self.user}'...")
                 server.login(self.user, self.password)
             
-            logger.info(f"Despachando mensagem SMTP para {email}...")
+            logger.info(f"Despachando mensagem SMTP para {masked_email}...")
             server.sendmail(self.from_addr, [email], msg_root.as_string())
             server.quit()
             
-            logger.info(f"E-mail enviado com sucesso via SMTP para: {email}")
+            logger.info(f"E-mail enviado com sucesso via SMTP para: {masked_email}")
             return True
         except Exception as e:
-            logger.error(f"Erro ao enviar e-mail via SMTP para {email}: {e}")
+            logger.error(f"Erro ao enviar e-mail via SMTP para {masked_email}: {e}")
             return False

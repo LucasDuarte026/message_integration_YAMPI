@@ -61,7 +61,7 @@
           <mj-text align="center" padding="0px 20px 20px 20px">
             <div style="background-color: #ffffff; padding: 18px; border-radius: 10px; text-align: center; border: 2px dashed #f59e0b; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);">
               <span style="color: #64748b; font-size: 14px; display: block; margin-bottom: 6px; font-weight: 500;">Use o cupom no checkout:</span>
-              <strong style="color: #d97706; font-size: 26px; letter-spacing: 2px; font-family: monospace; display: block;">{{ coupon_code | default('CART15') }}</strong>
+              <strong style="color: #d97706; font-size: 26px; letter-spacing: 2px; font-family: monospace; display: block;">{{ coupon_code | default('ELEVEME15') }}</strong>
             </div>
           </mj-text>
 

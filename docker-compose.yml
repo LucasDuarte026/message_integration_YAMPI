@@ -5,15 +5,15 @@ services:
     container_name: message_integration_db
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-mysecretpassword}
-      POSTGRES_DB: ${DB_NAME:-message_integration}
+      POSTGRES_USER: ${DB_USER:?A variavel DB_USER nao esta definida no .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?A variavel DB_PASSWORD nao esta definida no .env}
+      POSTGRES_DB: ${DB_NAME:?A variavel DB_NAME nao esta definida no .env}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-message_integration}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -27,7 +27,7 @@ services:
       - "5000:5000"
     environment:
       # Sobrescreve a DATABASE_URL para apontar para o container 'db' em vez de 'localhost'
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-mysecretpassword}@db:5432/${DB_NAME:-message_integration}
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
     env_file:
       # Carrega as variáveis de credenciais do arquivo .env local (Yampi tokens, etc.)
       - .env
@@ -36,7 +36,6 @@ services:
         condition: service_healthy
     volumes:
       - ./containers/logs:/app/logs
-      - ./src:/app/src
       - ./containers/emails:/app/emails
 
 volumes:

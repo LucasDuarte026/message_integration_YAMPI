@@ -55,7 +55,7 @@ class YampiClient:
         url = f"{self.BASE_URL}/auth/me"
         try:
             # POST /auth/me não exige body
-            response = requests.post(url, headers=self.headers)
+            response = requests.post(url, headers=self.headers, timeout=(5, 15), verify=True)
             response.raise_for_status()
             data = response.json()
             
@@ -117,7 +117,9 @@ class YampiClient:
                     url=url,
                     headers=self.headers,
                     params=query_params,
-                    json=json_data
+                    json=json_data,
+                    timeout=(5, 15),
+                    verify=True
                 )
                 
                 # Trata Rate Limit (HTTP 429)
@@ -132,9 +134,9 @@ class YampiClient:
                     remaining = response.headers.get("X-RateLimit-Remaining")
                     logger.warning(
                         f"Rate limit atingido (HTTP 429). Limite: {limit}, Restantes: {remaining}. "
-                        f"Aguardando {backoff_delay} segundos antes da tentativa {retry_count}/{max_retries}..."
+                        f"Aguardando {min(backoff_delay, 60)} segundos antes da tentativa {retry_count}/{max_retries}..."
                     )
-                    time.sleep(backoff_delay)
+                    time.sleep(min(backoff_delay, 60))
                     backoff_delay *= 2  # Aumento exponencial do delay
                     continue
                 

@@ -7,6 +7,23 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.0.0] - 2026-07-31 (Auditoria de Segurança Reliable)
+
+### Adicionado / Modificado
+- **AppSec (Segurança da Aplicação)**:
+  - Implementado teto máximo (*cap*) de 60 segundos no backoff de Rate Limit (`client.py`).
+  - Adicionado timeout explícito `timeout=(5, 15)` nas chamadas HTTP (`requests`).
+  - Passado flag `verify=True` forçando verificação estrita de TLS contra ataques MitM.
+- **DataSec (Segurança de Dados e PII)**:
+  - Adicionado `sentry-sdk` (`v2.0.0`) para atuar como interceptador de erros globais (Data Scrubbing), prevenindo o vazamento de tokens e payloads no traceback salvo em disco (`app.log`).
+  - Ofuscação proativa do e-mail de destino no `SMTPEmailProvider` para complacência com LGPD.
+- **InfraSec (Infraestrutura e Docker)**:
+  - Mapeamento da porta do PostgreSQL restrito para `127.0.0.1:5432` garantindo isolamento da internet pública.
+  - Retirada definitiva do *bind mount* do código-fonte em desenvolvimento e produção. A imutabilidade do container via `COPY` no Dockerfile é forçada em ambos os ambientes, prevenindo tampering local.
+  - Ativação da política de Fail-Fast (Falha Rápida) nas credenciais do PostgreSQL no `docker-compose.yml` (`?A variavel nao esta definida`), extinguindo as senhas padrão perigosas (`mysecretpassword`).
+
+---
+
 ## [5.2.0] - 2026-07-31 (Nova Arquitetura de Templates e Suporte CID Nativo)
 
 ### Adicionado / Modificado
