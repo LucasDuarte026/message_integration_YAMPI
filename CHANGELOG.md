@@ -7,6 +7,17 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [5.2.0] - 2026-07-31 (Nova Arquitetura de Templates e Suporte CID Nativo)
+
+### Adicionado / Modificado
+- **Refatoração da Arquitetura de Assets (MVC)**:
+  - Criada nova estrutura para `templates/emails` separando configuração (`config/`), imagens brutas (`assets/images/`), código fonte MJML (`mjml/layouts/`, `mjml/views/`) e os arquivos compilados finais (`html_compiled/`).
+  - Atualizada classe `BaseEmailBuilder` para suportar a nova hierarquia dinâmica.
+- **Suporte Avançado a CID (Content-ID) Dinâmico**:
+  - `SMTPEmailProvider` aprimorado com inteligência de Regex para buscar automaticamente caminhos relativos no HTML renderizado, resgatar as imagens da pasta raiz e inseri-las como anexos inline CID `msg_root.attach(MIMEImage...)`.
+
+---
+
 ## [5.1.0] - 2026-07-30 (Clareza em Macros de Disparo e Teste)
 
 ### Adicionado / Modificado

@@ -11,12 +11,13 @@ logger = logging.getLogger(__name__)
 
 class BaseEmailBuilder(ABC):
     def __init__(self):
-        self.templates_dir = os.path.join(os.getcwd(), "src", "templates", "emails")
+        self.emails_dir = os.path.join(os.getcwd(), "src", "templates", "emails")
+        self.templates_dir = os.path.join(self.emails_dir, "html_compiled")
         self.jinja_env = Environment(loader=FileSystemLoader(self.templates_dir), autoescape=True)
         self.brand_data = self._load_brand_data()
 
     def _load_brand_data(self) -> Dict[str, Any]:
-        brand_data_path = os.path.join(self.templates_dir, "brand_data.yml")
+        brand_data_path = os.path.join(self.emails_dir, "config", "brand_data.yml")
         try:
             with open(brand_data_path, "r", encoding="utf-8") as f:
                 return yaml.safe_load(f) or {}

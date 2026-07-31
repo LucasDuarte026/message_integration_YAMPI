@@ -45,6 +45,8 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   │   ├── message_provider.py       # Mock Provider de Dry-run
 │   │   ├── smtp_email_provider.py    # Adaptador de envio de E-mail via SMTP
 │   │   └── whatsapp_meta_provider.py # Adaptador de envio de WhatsApp via Meta Cloud API
+│   ├── services/                     # Lógica de serviços injetáveis (ex: email_builders)
+│   ├── templates/                    # MVC de E-mails (config, mjml, assets, html_compiled e builder)
 │   ├── workers/                      # Casos de uso e regras de negócio orquestradas
 │   │   └── abandoned_cart.py         # Threaded-worker de recuperação de carrinhos
 │   ├── main.py                       # CLI principal do projeto (Orquestrador)

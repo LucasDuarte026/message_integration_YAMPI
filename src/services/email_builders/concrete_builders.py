@@ -107,7 +107,7 @@ class Coupon4CartBuilder(BaseEmailBuilder):
     def build(self, event: CartTransitionEvent) -> Tuple[str, str]:
         template_data = self._apply_common_replacements_cart(event)
         cupom_info = self.brand_data.get("templates_copy", {}).get("cupons_carrinho", {}).get("carrinho_cupom4", {})
-        template_data["coupon_code"] = cupom_info.get("coupon_code", "CART10")
+        template_data["coupon_code"] = cupom_info.get("coupon_code", "ELEVEME10")
         template_data["value_cupom"] = str(cupom_info.get("discount", "10")).replace("% OFF", "").strip()
         img_banner = self.brand_data.get("images", {}).get("body_banners", {}).get("carrinho_abandonado_4")
         template_data.setdefault("body_image_url", img_banner)

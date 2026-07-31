@@ -7,10 +7,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
 
 def generate_mock(template_name, mock_data, output_name):
     # Configurar Jinja2
-    templates_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    templates_dir = os.path.join(current_dir, "html_compiled")
     
     output_dir = os.path.join(
-        templates_dir,
+        current_dir,
         "mocks"
     )
     os.makedirs(output_dir, exist_ok=True)
@@ -23,7 +24,7 @@ def generate_mock(template_name, mock_data, output_name):
         template = env.get_template(template_name)
     except Exception as e:
         print(f"Erro ao carregar o template {template_name}: {e}")
-        print("Lembre-se de compilar o MJML primeiro: npx mjml src/templates/emails/mjml_src/*.mjml -o src/templates/emails/")
+        print("Lembre-se de compilar o MJML primeiro: npx mjml src/templates/emails/mjml/views/*.mjml -o src/templates/emails/html_compiled/")
         return
         
     html_output = template.render(**mock_data)
@@ -36,7 +37,7 @@ def generate_mock(template_name, mock_data, output_name):
 
 if __name__ == "__main__":
     # Mock data baseada nas regras de negócio e no brand_data.yml
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     # Criar URLs no formato file:/// para funcionar no browser local
     def to_file_url(path):
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         return "https://via.placeholder.com/600x400?text=No+Image"
     
     # Caminho para os assets
-    ref_dir = os.path.join(base_dir, "src", "templates", "emails", "mjml_src", "images")
+    ref_dir = os.path.join(base_dir, "src", "templates", "emails", "assets", "images")
     
     # Mocks definitions
     mocks = [
@@ -183,9 +184,9 @@ if __name__ == "__main__":
             "output": "mock_carrinho_abandonado_cupom4.html",
             "data": {
                 "customer_name": "Lucas Duarte",
-                "coupon_code": "CART10",
+                "coupon_code": "ELEVEME10",
         "value_cupom": "10",
-                "simulate_url": "https://elevemeloja.com.br/checkout/cart?recover=10&coupon=CART10",
+                "simulate_url": "https://elevemeloja.com.br/checkout/cart?recover=10&coupon=ELEVEME10",
                 "header_image_url": find_image(os.path.join(ref_dir, "email_7_carrinho_abandonado_4", "header")),
                 "body_image_url": find_image(os.path.join(ref_dir, "email_7_carrinho_abandonado_4", "body")),
                 "instagram_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="instagram"),

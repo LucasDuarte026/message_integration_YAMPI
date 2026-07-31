@@ -1,9 +1,15 @@
-.venv/
 __pycache__/
 *.pyc
 *.db
 .git/
+.venv/
 .agent/
 .gemini/
-emails/
+.vscode/
+
+analysis/
+docs/
+project_decisions/
+containers/
+local_data/
 tests/
