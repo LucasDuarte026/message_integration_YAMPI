@@ -47,8 +47,7 @@ class SMTPEmailProvider(MessageProviderProtocol):
             # Regex to find local file paths in src or background attributes
             # Matches anything that doesn't start with http, https, cid:, data:, mailto:
             pattern = r'(?:src|background)=["\'](?!http|https|cid:|data:|mailto:)([^"\']+)["\']'
-            
-            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
             
             for match in re.finditer(pattern, html_body):
                 full_url = match.group(1) # e.g. "src/templates/emails/..."
