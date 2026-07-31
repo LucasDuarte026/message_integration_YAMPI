@@ -23,7 +23,6 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - Ativação da política de Fail-Fast (Falha Rápida) nas credenciais do PostgreSQL no `docker-compose.yml` (`?A variavel nao esta definida`), extinguindo as senhas padrão perigosas (`mysecretpassword`).
 
 ---
-
 ## [5.2.0] - 2026-07-31 (Nova Arquitetura de Templates e Suporte CID Nativo)
 
 ### Adicionado / Modificado
