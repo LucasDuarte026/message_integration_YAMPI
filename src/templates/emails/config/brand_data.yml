@@ -3,34 +3,34 @@
 # Sempre que o telefone, copy ou links sociais mudarem, edite aqui para refletir nos designs.
 
 # URLs de Imagens e Ícones Padrão dos E-mails
-header_image_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_1_pedido_aprovado/header/logotipo.png"
-whatsapp_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/whatsapp.png"
-contact_mail_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/contact-mail.png"
-instagram_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/instagram.png"
-facebook_icon_url: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/facebook.png"
+header_image_url: "src/templates/emails/assets/images/email_1_pedido_aprovado/header/logotipo.png"
+whatsapp_icon_url: "src/templates/emails/assets/images/social_icons/whatsapp.png"
+contact_mail_icon_url: "src/templates/emails/assets/images/social_icons/contact-mail.png"
+instagram_icon_url: "src/templates/emails/assets/images/social_icons/instagram.png"
+facebook_icon_url: "src/templates/emails/assets/images/social_icons/facebook.png"
 
 # Mapeamento Estruturado de Imagens Locais / CDN
 images:
   headers:
-    default: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_1_pedido_aprovado/header/logotipo.png"
-    carrinho: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_7_carrinho_abandonado_4/header/logotipo.png"
+    default: "src/templates/emails/assets/images/email_1_pedido_aprovado/header/logotipo.png"
+    carrinho: "src/templates/emails/assets/images/email_7_carrinho_abandonado_4/header/logotipo.png"
   
   social_icons:
-    whatsapp: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/whatsapp.png"
-    email: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/contact-mail.png"
-    instagram: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/instagram.png"
-    facebook: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/social_icons/facebook.png"
+    whatsapp: "src/templates/emails/assets/images/social_icons/whatsapp.png"
+    email: "src/templates/emails/assets/images/social_icons/contact-mail.png"
+    instagram: "src/templates/emails/assets/images/social_icons/instagram.png"
+    facebook: "src/templates/emails/assets/images/social_icons/facebook.png"
 
   body_banners:
-    pedido_aprovado: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_1_pedido_aprovado/body/pedido_aprovado.png"
-    pedido_pendente: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_2_pedido_pendente/body/pedido_aprovado.png"
-    pedido_a_caminho: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_3_pedido_a_caminho/body/pedido_a_caminho.png"
-    cupom_pedido_1: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_4_cupom_pedido_1/body/10_off_primeira_compra.png"
-    cupom_pedido_2: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_5_cupom_pedido_2/body/5_desconto.png"
-    cupom_pedido_3: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_6_cupom_pedido_3/body/5_primeira_compra.png"
-    carrinho_abandonado_4: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_7_carrinho_abandonado_4/body/seu_carrinho_esta_te_esperando_header.png"
-    carrinho_abandonado_5: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_8_carrinho_abandonado_5/body/seu_carrinho_esta_te_esperando_header.png"
-    carrinho_abandonado_6: "file:///home/luska/Documents/projects/message_integration/src/templates/emails/mjml_src/images/email_9_carrinho_abandonado_6/body/seu_carrinho_esta_te_esperando_header.png"
+    pedido_aprovado: "src/templates/emails/assets/images/email_1_pedido_aprovado/body/pedido_aprovado.png"
+    pedido_pendente: "src/templates/emails/assets/images/email_2_pedido_pendente/body/pedido_aprovado.png"
+    pedido_a_caminho: "src/templates/emails/assets/images/email_3_pedido_a_caminho/body/pedido_a_caminho.png"
+    cupom_pedido_1: "src/templates/emails/assets/images/email_4_cupom_pedido_1/body/10_off_primeira_compra.png"
+    cupom_pedido_2: "src/templates/emails/assets/images/email_5_cupom_pedido_2/body/5_desconto.png"
+    cupom_pedido_3: "src/templates/emails/assets/images/email_6_cupom_pedido_3/body/5_primeira_compra.png"
+    carrinho_abandonado_4: "src/templates/emails/assets/images/email_7_carrinho_abandonado_4/body/seu_carrinho_esta_te_esperando_header.png"
+    carrinho_abandonado_5: "src/templates/emails/assets/images/email_8_carrinho_abandonado_5/body/seu_carrinho_esta_te_esperando_header.png"
+    carrinho_abandonado_6: "src/templates/emails/assets/images/email_9_carrinho_abandonado_6/body/seu_carrinho_esta_te_esperando_header.png"
 brand:
   name: "Eleveme"
   tagline: "Mais altura, mais conforto e mais confiança no seu dia a dia."
