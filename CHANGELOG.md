@@ -7,6 +7,11 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.1.0] - 2026-07-31 (Correção de CID no Docker)
+
+### Corrigido
+- **E-mails sem Imagem**: Corrigido um bug silencioso de _path traversal_ no `SMTPEmailProvider` ao ser rodado dentro do Docker. O algoritmo voltava 3 níveis (resultando em `/` no Linux) em vez de 2 níveis (`/app`), o que impedia a anexação de imagens locais via CID e resultava em e-mails com URLs originais relativas sendo reescritas (quebradas) pelo proxy do Gmail.
+
 ## [6.0.0] - 2026-07-31 (Auditoria de Segurança Reliable)
 
 ### Adicionado / Modificado
