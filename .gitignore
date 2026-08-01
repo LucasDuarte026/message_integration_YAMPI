@@ -13,4 +13,6 @@ analysis/
 local_data/
 emails_from_container/ 
 db_backups/
+containers/
+
 

@@ -76,7 +76,7 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [logging_config.py](../src/core/logging_config.py).
 - **Destinos da Saída:** Console (`sys.stdout`) e arquivo em disco (`logs/app.log`).
 - **Nível de Logs:** `INFO` por padrão (ou `DEBUG` com a flag `-v`).
-- **Interceptação Global e Data Scrubbing (Sentry):** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR` no `app.log`. No entanto, para evitar vazamento de dados sensíveis em disco (DataSec), o traceback completo da pilha é omitido do arquivo local e enviado de forma segura para a nuvem através da integração com o **Sentry SDK** (`SENTRY_DSN`), onde ocorre o *Data Scrubbing* automático antes do encerramento do processo.
+- **Interceptação Global e Notificação Reativa (Thread & Sentry):** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR`. O sistema ativa uma thread em background que envia um e-mail de alerta para o mantenedor via servidor `TRACEBACK_SMTP_*` contendo o traceback completo e os últimos 10MB (~50.000 linhas) do arquivo de log em anexo. Paralelamente, envia os eventos de erro para o **Sentry SDK** (`SENTRY_DSN`) com *Data Scrubbing* ativado.
 - **Rastreamento de Regras:** Os workers calculam e logam a idade de abandono em horas (`Analisando carrinho [id]: abandonado há [X.XX] horas. Regra aplicada: [fase]`), facilitando o rastreamento das regras aplicadas.
 
 ### Depuração Interativa e Execução Rápida
@@ -102,12 +102,21 @@ O arquivo [config.py](../src/core/config.py) carrega as configurações da aplic
 | `TEST_EMAIL_RECIPIENT` | E-mail de destino para envio em modo de teste/homologação. | `wpplucas026@gmail.com` | Não |
 | `MAX_CART_AGE_HOURS` | Limite de tempo em horas (cutoff) para desconsiderar carrinhos muito antigos. | `48` | Não |
 | `MAX_WORKERS` | Quantidade máxima de threads paralelas para processamento. | `10` | Não |
-| **SMTP Configs (Produção)** | | | |
-| `SMTP_USER` | Usuário de autenticação do servidor SMTP. | - | **Sim (Modo Produção)** |
+| **SMTP Configs (Clientes)** | | | |
+| `SMTP_USER` | Usuário de autenticação do servidor SMTP principal. | - | **Sim (Modo Produção)** |
 | `SMTP_PASSWORD` | Senha ou Token de App do e-mail SMTP. | - | **Sim (Modo Produção)** |
 | `SMTP_HOST` | Host do servidor de e-mail. | `smtp.gmail.com` | Não |
 | `SMTP_PORT` | Porta do servidor SMTP (usar `465` para SSL ou `587` para TLS). | `587` | Não |
-| `SMTP_FROM` | E-mail remetente que aparecerá no cabeçalho do destinatário. | `SMTP_USER` | Não |
+| `SMTP_FROM` | E-mail remetente que aparecerá no cabeçalho dos clientes. | `SMTP_USER` | Não |
+| **Traceback SMTP Configs (Alertas de Erros)** | | | |
+| `TRACEBACK_SMTP_USER` | Usuário SMTP exclusivo para alertas de exceção. | - | Não |
+| `TRACEBACK_SMTP_PASSWORD` | Senha/Token SMTP exclusivo para alertas. | - | Não |
+| `TRACEBACK_SMTP_HOST` | Host SMTP para alertas de exceção. | `smtp.gmail.com` | Não |
+| `TRACEBACK_SMTP_PORT` | Porta SMTP para alertas. | `587` | Não |
+| `TRACEBACK_SMTP_FROM` | E-mail remetente do alerta. | `TRACEBACK_SMTP_USER` | Não |
+| `TRACEBACK_EMAIL_RECIPIENT` | E-mail de destino (mantenedor) que receberá o aviso de crash com o log. | - | Não |
+| **Sentry Configs** | | | |
+| `SENTRY_DSN` | DSN do projeto no Sentry para monitoramento em nuvem. | - | Não |
 | **Meta WhatsApp Configs** | | | |
 | `META_WA_TOKEN` | Token temporário ou permanente da Meta Cloud API. | - | Não |
 | `META_PHONE_NUMBER_ID` | Identificador de número de telefone gerado na Meta Cloud API. | - | Não |
@@ -139,4 +148,9 @@ Este projeto adota estritamente o padrão **[Semantic Versioning (SemVer 2.0.0)]
 - **MINOR (`1.X.0`) — Novas Funcionalidades (Retrocompatíveis)**: Novos provedores de mensagens, novas regras de transição/cupons, melhorias de infraestrutura ou utilitários CLI.
 - **PATCH (`1.0.X`) — Bug Fixes e Ajustes Finos**: Correções de erros pontuais, ajustes de tratamento de logs ou refinamento em formatadores sem alteração de regras de negócio.
 
-Os registros de versão são mantidos no arquivo [VERSION](../VERSION), detalhados no [CHANGELOG.md](../CHANGELOG.md) e marcados no Git através de **Annotated Tags** (ex: `git tag -a v3.1.0 -m "..."`).
+Os registros de versão são mantidos no arquivo [VERSION](../VERSION), detalhados no [CHANGELOG.md](../CHANGELOG.md) e marcados no Git através de **Annotated Tags** (ex: `git tag -a v6.2.0 -m "..."`).
+
+> [!IMPORTANT]
+> 🌊 **DIVISOR DE ÁGUAS — Transição da Fase 1 para a Fase 2**
+> - **Fase 1 (v6.1.x e versões anteriores)**: Considerada a versão base oficial, 100% confiável (*reliable*) e totalmente operacional em produção para recuperação de carrinhos e acompanhamento de pedidos.
+> - **Fase 2 (v6.2.0+)**: Representa a fase de aprimoramento e otimização contínua do sistema. A v6.2.0 estabelece o sistema de notificação reativa de exceções por e-mail (thread isolada), anexo de histórico de logs (~10MB/50k linhas) e integração com o Sentry SDK em nuvem. O planejamento evolutivo segue norteado por [07_future_implementations.md](../project_decisions/07_future_implementations.md).
