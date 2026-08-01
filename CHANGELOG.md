@@ -7,6 +7,25 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.2.0] - 2026-08-01 (Notificação Reativa de Erros e Integração Sentry)
+
+### Adicionado / Modificado
+- **Observabilidade e Alertas de Erros (`src/core/logging_config.py`)**:
+  - Implementado interceptador de exceções não tratadas (`sys.excepthook` e `threading.excepthook`) acionando thread em background para envio automático de e-mail com relatório de falha e anexo contendo as últimas 50.000 linhas (~10MB) do log `app.log`.
+  - Adicionadas configurações dedicadas para servidor SMTP de traceback (`TRACEBACK_SMTP_*` e `TRACEBACK_EMAIL_RECIPIENT`) permitindo isolamento total do servidor SMTP de clientes.
+- **Integração Sentry SDK**:
+  - Atualizado `sentry-sdk` para `2.66.1` no `requirements.txt` com tratamento de resiliência `ImportError`.
+  - Documentação e padronização completa de variáveis no `.env.example`.
+- **Organização e Roadmap (`project_decisions/07_future_implementations.md`)**:
+  - Oficializada a estabilização da Fase 1 (v1.0.0 / v6.1.x) e movido o roadmap de implementações futuras para `project_decisions/07_future_implementations.md`.
+
+> [!IMPORTANT]
+> 🌊 **DIVISOR DE ÁGUAS — Transição para a Fase 2 (Aprimoramento do Sistema)**
+> - **Fase 1 (v6.1.x e anteriores)**: Declarada oficial, 100% confiável (*reliable*) e totalmente operacional para recuperação de carrinhos e pedidos Yampi via SMTP/WhatsApp.
+> - **Fase 2 (v6.2.0+)**: Início do ciclo de aprimoramentos técnicos, observabilidade avançada, notificações reativas de falha e evolução do produto descritos em `project_decisions/07_future_implementations.md`.
+
+---
+
 ## [6.1.2] - 2026-08-01 (Isolamento de Volumes Docker e Mapeamento de Logs)
 
 ### Adicionado / Modificado

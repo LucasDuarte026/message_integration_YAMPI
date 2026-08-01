@@ -121,4 +121,4 @@ Para desenvolvedores e arquitetos que desejam entender os detalhes internos, esp
 * ⚙️ **[Máquina de Estados (STG/STC)](./docs/email_state_machine.md)** — Regras de transição, temporizadores e esquema de dados.
 * 📊 **[Diagramas de Estados](./docs/diagramas/README.md)** — Diagramas Mermaid visuais dos fluxos de [Pedidos (STG)](./docs/diagramas/stateDiagramOrders.md) e [Carrinhos Abandonados (STC)](./docs/diagramas/stateDiagramAbandonedCarts.md).
 * 📋 **[Histórico de Alterações](./CHANGELOG.md)** — Registro detalhado de versões e releases.
-* 🔮 **[Roadmap de Implementações](./docs/future_implementations.md)** — Próximos passos e melhorias futuras.
+* 🔮 **[Roadmap de Implementações](./project_decisions/07_future_implementations.md)** — Próximos passos e melhorias futuras.
