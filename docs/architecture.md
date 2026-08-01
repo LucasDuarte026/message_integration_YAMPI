@@ -28,7 +28,6 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   ├── project_dependency_tree.md    # Árvore visual e conceitual de dependências
 │   ├── project_overview.md           # Guia funcional completo e decisões de design
 │   ├── email_state_machine.md        # Especificação técnica da Máquina de Estados (STG/STC)
-│   ├── future_implementations.md     # Débitos técnicos e roadmap de novas features
 │   └── docker_cheatsheet.md          # Guia de rotinas e comandos Docker
 ├── emails/                           # Diretório de auditoria contendo HTMLs de envios passados
 ├── estudos/                          # Documentações e relatórios de estudos de mercado/CPaaS

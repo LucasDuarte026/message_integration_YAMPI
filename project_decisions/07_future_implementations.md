@@ -1,10 +1,26 @@
-# Future Implementations & Roadmap Técnico
+# Future Implementations & Roadmap Técnico (Fase 2)
 
 Este documento rastreia débitos técnicos propositais, pendências de validação e funcionalidades deixadas para implementações futuras, servindo como guia de evolução do produto.
 
+> [!NOTE]
+> **Estabilização da Fase 1 (V1.0.0 Oficial):**
+> As funcionalidades base (processamento de carrinhos, status de pedidos e integração do Yampi e SMTP/WhatsApp) foram validadas no ambiente de homologação e a versão atual da `main` é declarada como oficial e "reliable". As pendências a seguir compõem o roadmap da Fase 2 (Refatoração v2.0.0+).
+
 ---
 
-## 1. Validação de Parâmetros e Status da API Yampi (Pendências de Homologação)
+## 1. Observabilidade e Microsserviço de Notificação de Erros (✅ Concluído na v6.2.0)
+
+- **Captura e Alerta Reativo de Crash**:
+  - Implementada thread isolada no `sys.excepthook` e `threading.excepthook` global (`logging_config.py`).
+  - Ao detectar um erro não tratado que derrubaria a aplicação, a thread dispara imediatamente um e-mail com as credenciais `TRACEBACK_SMTP_*` do `.env`.
+- **Corpo e Anexo**:
+  - O e-mail contém os detalhes completos da exceção (traceback).
+  - Anexo contendo os últimos 10MB (~50.000 linhas) do arquivo de log `app.log` via leitura reversa eficiente.
+- **Vantagem da Thread**: Baixa complexidade de infraestrutura mantendo o sistema em um único Docker container, suficiente para alertar de forma assíncrona antes do sistema encerrar por completo.
+
+---
+
+## 2. Validação de Parâmetros e Status da API Yampi (Pendências de Homologação)
 
 - **Validação do Endpoint de Status (`GET /v2/{alias}/checkout/statuses`)**:
   Fazer chamada na conta da loja para confirmar os IDs e aliases exatos dos status secundários de pedidos:
@@ -17,7 +33,7 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 ---
 
-## 2. Réguas de Comunicação e Máquina de Estados (Refatoração v2.0.0+)
+## 3. Réguas de Comunicação e Máquina de Estados
 
 - **Status 95, 96, 97 (Detecção de Recompra via Pedido)**:
   - *Regra*: `90 + STG_anterior` ao identificar que um cliente com CPF + SKU já existente no banco realizou uma nova compra paga.
@@ -32,7 +48,7 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 ---
 
-## 3. Persistência de Dados, Performance e Concorrência
+## 4. Persistência de Dados, Performance e Concorrência
 
 - **Locking Atômico "Adquire-Processa-Grava"**:
   - Implementar transações atômicas de curta duração (milissegundos) no PostgreSQL (`SELECT FOR UPDATE`), garantindo que chamadas lentas de rede (disparo SMTP) sejam feitas 100% **fora** de transações SQL ativas para não travar o banco.
@@ -50,7 +66,7 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 ---
 
-## 4. Orquestração, Webhooks e Mensageria (CPaaS)
+## 5. Orquestração, Webhooks e Mensageria (CPaaS)
 
 - **Recepção de Webhooks Yampi em Tempo Real**:
   - Substituir/complementar o sistema de polling rotativo de 5 minutos por recepção ativa de Webhooks (`order.paid`, `order.status.updated`), disparando notificações em milissegundos via FastAPI/Flask.
@@ -63,7 +79,7 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 ---
 
-## 5. Talvez Necessários (Message Brokers)
+## 6. Talvez Necessários (Message Brokers)
 
 - **Desacoplamento Assíncrono via Fila (RabbitMQ / Redis / Kafka)**:
   - O pipeline de e-mail atual roda de forma síncrona por simplicidade. Porém, em cenários de alta escalabilidade (milhares de transições de STG simultâneas), pode ser necessário implementar um Message Broker assíncrono.
@@ -71,16 +87,11 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 ---
 
-## 6. Observabilidade e Tracking de Erros (Obrigatório)
+## 7. Observabilidade e Tracking de Erros (Aprimoramento)
 
-- **Ferramenta Profissional de Tracking (Sentry / Datadog)**:
-  - *Responsável:* Usuário (luska) fará a implementação.
-  - *Motivo:* O projeto atualmente joga os logs e tracebacks capturados pelo `sys.excepthook` em um arquivo físico local (`logs/app.log`). Embora os erros agora estejam blindados e não escapem do log, não há alertas em tempo real.
-  - *Objetivo:* Integrar SDKs de ferramentas como Sentry ou Datadog (via `sentry-sdk` ou similar) no arquivo `src/core/logging_config.py` dentro da função `setup_global_exception_hooks()`, para que qualquer erro crítico dispare notificações imediatas (celular/e-mail/Slack) aos mantenedores, contendo o contexto e a pilha de execução da falha.
+- **Ferramenta Profissional de Tracking (Sentry SDK)**: (✅ Concluído na v6.2.0)
+  - Integração realizada com o SDK `sentry-sdk` (`v2.66.1`) configurado em `src/core/logging_config.py`.
+  - Captura e envia dados com Data Scrubbing (`send_default_pii=False`).
 - **Exportação de Logs Paralela em formato JSON**:
-  - *Motivo:* Formato em texto puro é excelente para a leitura humana no terminal, mas é péssimo para indexação automática e pesquisa em ferramentas externas (como ELK Stack, Splunk, Datadog Logs, etc).
-  - *Objetivo:* Adicionar um novo FileHandler no `src/core/logging_config.py` que gere logs estruturados em formato JSON.
-  - *Regra de Implementação:*
-    - O sistema de log deve ser **paralelo**: manteremos o `app.log` atual (para humanos) em formato texto amigável.
-    - Deverá ser criada uma nova pasta (ex: `logs/json/`) ou arquivo (`logs/app.json.log`) onde cada linha será um objeto JSON completo `{ "timestamp": "...", "level": "ERROR", "message": "...", "traceback": "..." }`.
-    - *Sugestão:* Utilizar bibliotecas como `python-json-logger` (`jsonlogger.JsonFormatter`) para aplicar esse formato paralelamente ao log de console e texto puro.
+  - *Motivo:* Formato em texto puro é excelente para a leitura humana no terminal, mas é péssimo para indexação automática e pesquisa em ferramentas externas.
+  - *Objetivo:* Adicionar um novo FileHandler que gere logs estruturados em formato JSON (ex: `python-json-logger`).
