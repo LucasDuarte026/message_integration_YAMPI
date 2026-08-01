@@ -8,14 +8,14 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 ---
 
-## 1. Observabilidade e Microsserviço de Notificação de Erros (Implementação Imediata)
+## 1. Observabilidade e Microsserviço de Notificação de Erros (✅ Concluído na v6.2.0)
 
 - **Captura e Alerta Reativo de Crash**:
-  - Implementar uma thread isolada no `sys.excepthook` global (`logging_config.py`).
-  - Ao detectar um erro não tratado que derrubaria a aplicação, a thread dispara imediatamente um e-mail.
+  - Implementada thread isolada no `sys.excepthook` e `threading.excepthook` global (`logging_config.py`).
+  - Ao detectar um erro não tratado que derrubaria a aplicação, a thread dispara imediatamente um e-mail com as credenciais `TRACEBACK_SMTP_*` do `.env`.
 - **Corpo e Anexo**:
   - O e-mail contém os detalhes completos da exceção (traceback).
-  - O e-mail deve vir anexado com as últimas 50.000 linhas do arquivo de log principal (estimativa de ~10MB). Para isso, implementaremos leitura reversa eficiente.
+  - Anexo contendo os últimos 10MB (~50.000 linhas) do arquivo de log `app.log` via leitura reversa eficiente.
 - **Vantagem da Thread**: Baixa complexidade de infraestrutura mantendo o sistema em um único Docker container, suficiente para alertar de forma assíncrona antes do sistema encerrar por completo.
 
 ---
@@ -89,9 +89,9 @@ Este documento rastreia débitos técnicos propositais, pendências de validaç�
 
 ## 7. Observabilidade e Tracking de Erros (Aprimoramento)
 
-- **Ferramenta Profissional de Tracking (Sentry / Datadog)**:
-  - *Responsável:* Usuário (luska) fará a implementação.
-  - *Motivo:* Integração adicional com SDKs de ferramentas como Sentry ou Datadog para que erros críticos disparem notificações imediatas aos mantenedores.
+- **Ferramenta Profissional de Tracking (Sentry SDK)**: (✅ Concluído na v6.2.0)
+  - Integração realizada com o SDK `sentry-sdk` (`v2.66.1`) configurado em `src/core/logging_config.py`.
+  - Captura e envia dados com Data Scrubbing (`send_default_pii=False`).
 - **Exportação de Logs Paralela em formato JSON**:
   - *Motivo:* Formato em texto puro é excelente para a leitura humana no terminal, mas é péssimo para indexação automática e pesquisa em ferramentas externas.
   - *Objetivo:* Adicionar um novo FileHandler que gere logs estruturados em formato JSON (ex: `python-json-logger`).
