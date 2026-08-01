@@ -37,7 +37,7 @@ def generate_mock(template_name, mock_data, output_name):
 
 if __name__ == "__main__":
     # Mock data baseada nas regras de negócio e no brand_data.yml
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    current_dir = os.path.dirname(os.path.abspath(__file__))
     
     # Criar URLs no formato file:/// para funcionar no browser local
     def to_file_url(path):
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         return "https://via.placeholder.com/600x400?text=No+Image"
     
     # Caminho para os assets
-    ref_dir = os.path.join(base_dir, "src", "templates", "emails", "assets", "images")
+    ref_dir = os.path.join(current_dir, "assets", "images")
     
     # Mocks definitions
     mocks = [
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         "value_cupom": "10",
                 "store_url": "https://elevemeloja.com.br",
                 "header_image_url": find_image(os.path.join(ref_dir, "email_4_cupom_pedido_1", "header")),
-                "body_image_url": find_image(os.path.join(ref_dir, "email_4_cupom_pedido_1", "body"), prefix="10_off"),
+                "body_image_url": find_image(os.path.join(ref_dir, "email_4_cupom_pedido_1", "body")),
                 "instagram_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="instagram"),
                 "facebook_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="facebook"),
                 "whatsapp_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="whatsapp"),
@@ -155,7 +155,7 @@ if __name__ == "__main__":
         "value_cupom": "15",
                 "store_url": "https://elevemeloja.com.br",
                 "header_image_url": find_image(os.path.join(ref_dir, "email_5_cupom_pedido_2", "header")),
-                "body_image_url": find_image(os.path.join(ref_dir, "email_5_cupom_pedido_2", "body"), prefix="5_desconto"),
+                "body_image_url": find_image(os.path.join(ref_dir, "email_5_cupom_pedido_2", "body")),
                 "instagram_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="instagram"),
                 "facebook_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="facebook"),
                 "whatsapp_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="whatsapp"),
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         "value_cupom": "20",
                 "store_url": "https://elevemeloja.com.br",
                 "header_image_url": find_image(os.path.join(ref_dir, "email_6_cupom_pedido_3", "header")),
-                "body_image_url": find_image(os.path.join(ref_dir, "email_6_cupom_pedido_3", "body"), prefix="5_primeira"),
+                "body_image_url": find_image(os.path.join(ref_dir, "email_6_cupom_pedido_3", "body")),
                 "instagram_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="instagram"),
                 "facebook_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="facebook"),
                 "whatsapp_icon_url": find_image(os.path.join(ref_dir, "social_icons"), prefix="whatsapp"),

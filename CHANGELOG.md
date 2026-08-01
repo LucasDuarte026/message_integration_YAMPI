@@ -7,6 +7,14 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.1.1] - 2026-08-01 (Correção do Carregamento Local de Imagens e Mocks de E-mail)
+
+### Corrigido
+- **Mocks de E-mail e Builder (`builder.py`)**:
+  - Corrigido cálculo de caminho base no `builder.py` para utilizar `current_dir / "assets" / "images"`, eliminando a busca em caminho duplicado `/src/src/...` e resolvendo a injeção do placeholder `Folder Not Found`.
+  - Removida restrição de prefixo hardcoded na busca de imagens de body nos e-mails de cupom (15% e 20% OFF), garantindo a detecção automática de imagens com novos nomes (`15_desconto.png.png` e `20_desconto.png.png`).
+  - Regerados todos os HTMLs de mock na pasta `src/templates/emails/mocks/` com caminhos de imagem `file:///` locais funcionais.
+
 ## [6.1.0] - 2026-07-31 (Correção de CID no Docker)
 
 ### Corrigido
