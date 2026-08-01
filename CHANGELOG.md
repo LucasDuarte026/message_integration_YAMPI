@@ -7,6 +7,15 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [6.1.2] - 2026-08-01 (Isolamento de Volumes Docker e Mapeamento de Logs)
+
+### Adicionado / Modificado
+- **Docker e Infraestrutura (`docker-compose.yml`)**:
+  - Ajustado o mapeamento de volumes no `docker-compose.yml` para direcionar a pasta do host `./containers/logs` e `./containers/emails` para `/app/local_data/logs` e `/app/local_data/emails` dentro do container.
+  - Garante o isolamento completo entre arquivos de teste locais (`./local_data/`) e arquivos gerados em container (`./containers/`).
+- **Configuração de Macros (`src/core/macros.py`)**:
+  - Atualizadas macros globais de disparo e avisos de segurança no modo de teste.
+
 ## [6.1.1] - 2026-08-01 (Correção do Carregamento Local de Imagens e Mocks de E-mail)
 
 ### Corrigido

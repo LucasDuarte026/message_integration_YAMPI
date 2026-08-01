@@ -35,8 +35,8 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./local_data/logs:/app/local_data/logs
-      - ./local_data/emails:/app/local_data/emails
+      - ./containers/logs:/app/local_data/logs
+      - ./containers/emails:/app/local_data/emails
 
 volumes:
   pgdata:
