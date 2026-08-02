@@ -56,9 +56,11 @@ python3 -m unittest discover -s tests
 For visual reference of how components talk to each other, see the Mermaid diagrams below:
 
 * 🏛️ [System Architecture & Clean Layers](./architecture.md)
+* 💻 [Hardware Specifications & Resource Limits (Benchmarking)](./architecture.md#-especificação-de-hardware-e-dimensionamento-benchmarking)
 * ⚙️ [State Machine Temporal Rules](./email_state_machine.md)
 * 📊 [Orders State Diagram (STG)](./diagramas/stateDiagramOrders.md)
 * 📊 [Abandoned Carts State Diagram (STC)](./diagramas/stateDiagramAbandonedCarts.md)
 
 ---
 *For business features and licensing inquiries, refer back to the [Main README](../README.md).*
+

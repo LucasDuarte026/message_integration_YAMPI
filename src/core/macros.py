@@ -61,11 +61,11 @@ MACRO_PRECHECK_ORDERS_MAX_DAYS = 15
 # Define se o sistema deve efetivamente conectar e enviar e-mails via SMTP/Meta API.
 # Se False, será instanciado o DryRunMessageProvider (Mock/Simulação).
 # Nota: Para os e-mails irem para o CLIENTE REAL, também é necessário MACRO_FORCE_TEST_EMAIL_RECIPIENT = False.
-MACRO_ENABLE_REAL_EMAIL_DISPATCH = True
+MACRO_ENABLE_REAL_EMAIL_DISPATCH = False
 
 # Define se o sistema deve gerar e salvar o corpo do e-mail HTML em local_data/emails
 # Útil para debugging ou acompanhamento local sem enviar e-mails reais.
-MACRO_ENABLE_LOCAL_HTML_SAVING = False 
+MACRO_ENABLE_LOCAL_HTML_SAVING = True 
 
 # Define se o sistema deve forçar o envio de todos os e-mails para um endereço de teste
 # (configurado na variável TEST_EMAIL_RECIPIENT no .env).

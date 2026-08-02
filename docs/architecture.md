@@ -88,3 +88,29 @@ Os sub-programas que executam as atividades (ex: Recuperação de Carrinho Aband
 
 ### 6. `src/webhook_server.py` (Servidor de Webhooks)
 Servidor Flask independente que escuta na porta 5000 para receber validações de token (GET) e payloads de mensagens/status em tempo real (POST) vindos da Meta API.
+
+---
+
+## 💻 Especificação de Hardware e Dimensionamento (Benchmarking)
+
+O sistema passou por baterias empíricas de testes de estresse e longa exposição (1h 35min contínuos), documentadas em [`project_decisions/estudos/hardware_specs/ESTUDO_CAPACIDADE_HARDWARE.md`](../project_decisions/estudos/hardware_specs/ESTUDO_CAPACIDADE_HARDWARE.md).
+
+### Requisitos Empíricos do Sistema
+* **Memória RAM Total do Stack:** ~177 MiB de pico máximo (ausência completa de *memory leaks* após 95 minutos de execução contínua).
+* **Processamento CPU Total do Stack:** ~1.72 vCPUs de pico máximo sob alta carga paralela.
+
+### Limites Definitivos no `docker-compose.yml`
+* **`app` (Aplicação):**
+  * `limits`: CPU: `1.50 vCPU` | RAM: `512 MB`
+  * `reservations`: CPU: `0.50 vCPU` | RAM: `256 MB`
+* **`db` (PostgreSQL):**
+  * `limits`: CPU: `0.80 vCPU` | RAM: `512 MB`
+  * `reservations`: CPU: `0.20 vCPU` | RAM: `128 MB`
+
+### Justificativa de Escolha de Infraestrutura (Sizing)
+* **Por que X vCPUs (2.30 vCPUs total estipulado no Docker Compose)?** Garante que o pico de 1.72 vCPUs da aplicação e banco de dados seja processado sem nenhum estrangulamento de CPU (*throttling*).
+* **Por que Y MB RAM (512 MB por contêiner / 1 GB total)?** Oferece uma margem de segurança de **3x sobre o consumo de pico real (~177 MB)**, prevenindo completamente qualquer risco de *Out of Memory Kill (OOMKill)*.
+* **Provedor de Nuvem Recomendado:**
+  * **Hostinger KVM 2** (2 vCPUs / 8 GB RAM) — R$ 42,99/mês (ou KVM 1 para MVP de custo reduzido por R$ 29,99/mês).
+  * **AWS EC2 `t3.medium`** (2 vCPUs / 4 GB RAM) ou **AWS ECS Fargate (2 vCPU / 4 GB RAM)**.
+

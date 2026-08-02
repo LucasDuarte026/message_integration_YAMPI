@@ -17,6 +17,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    # =========================================================================
+    # RECURSOS DEFINITIVOS - BANCO DE DADOS (BASEADO EM BENCHMARK DE CAMPO)
+    # Justificativa: Em testes de estresse, o DB consumiu no máximo ~45 MiB RAM
+    # e 0.56 vCPU. O limite de 512 MB e 0.8 vCPU garante estabilidade total.
+    # =========================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '0.80' # Limite máximo de 0.80 vCPU (80% de 1 núcleo)
+          memory: 512M # Limite máximo de 512 MB RAM (Sobram +450 MB de folga)
+        reservations:
+          cpus: '0.20' # Reserva mínima garantida de 0.20 vCPU
+          memory: 128M # Reserva mínima garantida de 128 MB RAM
 
   # Serviço da Aplicação
   app:
@@ -26,10 +39,8 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # Sobrescreve a DATABASE_URL para apontar para o container 'db' em vez de 'localhost'
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
     env_file:
-      # Carrega as variáveis de credenciais do arquivo .env local (Yampi tokens, etc.)
       - .env
     depends_on:
       db:
@@ -37,6 +48,14 @@ services:
     volumes:
       - ./containers/logs:/app/local_data/logs
       - ./containers/emails:/app/local_data/emails
+    deploy:
+      resources:
+        limits:
+          cpus: '1.50' # Limite máximo de 1.50 vCPUs
+          memory: 512M # Limite máximo de 512 MB RAM (Sobram +370 MB de folga)
+        reservations:
+          cpus: '0.50' # Reserva mínima garantida de 0.50 vCPU
+          memory: 256M # Reserva mínima garantida de 256 MB RAM
 
 volumes:
   pgdata:
