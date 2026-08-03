@@ -5,9 +5,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.3.0] - 2026-08-02 (Suporte a Retentativas de Conexão HTTP & Envio de E-mails em Duplicata - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Resiliência e Retentativas HTTP (`src/core/client.py`)**:
+  - Implementado sistema de até 3 tentativas (retries) com backoff exponencial (2s, 4s...) na classe `YampiClient.request` para falhas transitórias de conexão (`ConnectionResetError`, `Timeout`, `ChunkedEncodingError`) e erros HTTP 5xx na API da Yampi.
+  - Erros 4xx não transitórios (ex: 401, 404) continuam lançando exceção imediatamente sem retentativas desnecessárias.
+- **Envio de E-mail em Duplicata para Supervisão (`src/services/notification_service.py` & `src/core/macros.py`)**:
+  - Criada a nova macro `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH` que permite enviar simultaneamente uma cópia idêntica de cada e-mail disparado para um cliente real em produção para o e-mail de supervisão (`TEST_EMAIL_RECIPIENT`).
+- **Resiliência do Runner de Debug (`src/debug_main.py`)**:
+  - Atualizado `debug_main.py` para respeitar dinamicamente a macro `MACRO_ENABLE_REAL_EMAIL_DISPATCH`, permitindo homologar disparos reais via SMTP Hostinger diretamente nos testes locais.
+- **Documentação Técnica (`docs/README.md`)**:
+  - Atualizada a central de documentação com seções explicativas cobrindo o algoritmo de retentativas HTTP e o envio em duplicata para supervisão.
+
 ---
 
-## [6.2.1] - 2026-08-01 (Especificação Definitiva de Hardware e Limites Docker - STABLE)
+## [6.2.2] - 2026-08-01 (Especificação Definitiva de Hardware e Limites Docker - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
 
@@ -28,6 +43,23 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 > [!NOTE]
 > ⚠️ **AVISO DE PRODUÇÃO (NÃO OFICIAL PARA ENVIO REAL)**:
 > Esta versão é **estável** em termos de arquitetura, estabilidade e gerenciamento de recursos. No entanto, o envio oficial de e-mails para clientes reais via servidor Hostinger SMTP **ainda não está ativado** (`MACRO_ENABLE_REAL_EMAIL_DISPATCH = False` e `MACRO_FORCE_TEST_EMAIL_RECIPIENT = True` em `src/core/macros.py`).
+
+---
+
+## [6.2.1] - 2026-08-01 (Estabilização da Documentação Técnica Divio & Licença Proprietária - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Centralização da Documentação Técnica (`docs/README.md`)**:
+  - Criado o portal de referência técnica [`docs/README.md`](./docs/README.md) estruturado conforme a metodologia Divio (Tutorials, How-to, Reference, Explanation).
+  - Documentação detalhada sobre a arquitetura Clean/Hexagonal (`src/core`, `src/domain`, `src/ports`, `src/workers`), o funcionamento da Máquina de Estados (STG / STC), execução da suíte de testes unitários e variáveis de ambiente.
+- **Redesign da Landing Page (`README.md`)**:
+  - Reformulado o `README.md` raiz para servir como onboarding simplificado de desenvolvedores, com links diretos para a documentação técnica centralizada e instruções de inicialização rápida.
+- **Licenciamento Proprietário (`LICENSE`)**:
+  - Adicionada a licença comercial proprietária formalizando os termos de direito de uso e royalties para exploração comercial do software.
+- **Aprimoramento de Telemetria e Alertas**:
+  - Atualizada a matriz de observabilidade em `project_decisions/07_future_implementations.md` sinalizando o suporte concluído do Sentry SDK (`v2.66.1`) e fallback de e-mail de traceback SMTP.
 
 ---
 

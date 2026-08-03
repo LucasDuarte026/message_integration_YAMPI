@@ -48,7 +48,7 @@ MACRO_W_CARTS_PAGE_AMOUNT = 5
 # ==========================================
 # Limite de Itens em Modo Debug / Cache
 # ==========================================
-MACRO_DEBUG_LIMIT = 100
+MACRO_DEBUG_LIMIT = 10
 
 # ==========================================
 # Janela Máxima de Corte Precheck (Pedidos)
@@ -58,19 +58,34 @@ MACRO_PRECHECK_ORDERS_MAX_DAYS = 15
 # ==========================================
 # Configurações Globais de Disparo e Testes
 # ==========================================
-# Define se o sistema deve efetivamente conectar e enviar e-mails via SMTP/Meta API.
-# Se False, será instanciado o DryRunMessageProvider (Mock/Simulação).
-# Nota: Para os e-mails irem para o CLIENTE REAL, também é necessário MACRO_FORCE_TEST_EMAIL_RECIPIENT = False.
-MACRO_ENABLE_REAL_EMAIL_DISPATCH = False
 
-# Define se o sistema deve gerar e salvar o corpo do e-mail HTML em local_data/emails
-# Útil para debugging ou acompanhamento local sem enviar e-mails reais.
-MACRO_ENABLE_LOCAL_HTML_SAVING = True 
+# ------------------------------------------
+# 1. Habilitação de Conexão e Disparo Real
+# ------------------------------------------
+# True  ---> Ativa o provedor SMTP/Meta real. O sistema vai conectar na rede e despachar os e-mails.
+# False ---> Modo DRY-RUN (Simulação/Mock). Nenhum e-mail sai para a rede real; usa o DryRunMessageProvider.
+MACRO_ENABLE_REAL_EMAIL_DISPATCH = True
 
-# Define se o sistema deve forçar o envio de todos os e-mails para um endereço de teste
-# (configurado na variável TEST_EMAIL_RECIPIENT no .env).
-# Se False, os e-mails reais dos clientes serão utilizados no disparo (Risco de produção).
-# Se true, testa local, sem problemas
+# ------------------------------------------
+# 2. Salvamento Local de Arquivos HTML
+# ------------------------------------------
+# True  ---> Gera e salva cada e-mail renderizado em arquivo .html em local_data/emails/ para conferência visual.
+# False ---> Não salva arquivos HTML locais no disco durante o envio.
+MACRO_ENABLE_LOCAL_HTML_SAVING = False 
 
-#   PERIGO, SÓ ALTERE COM CERTEZA!!!
+# ------------------------------------------
+# 3. Redirecionamento de Segurança de Destinatário
+# ------------------------------------------
+# True  ---> MODO DE SEGURANÇA / HOMOLOGAÇÃO. Todos os e-mails disparados são forçados e retratados para 
+#            o seu e-mail de teste (configurado em TEST_EMAIL_RECIPIENT no .env). Nenhum cliente real recebe nada.
+# False ---> ⚠️ MODO DE PRODUÇÃO REAL (PERIGO). Os e-mails serão enviados diretamente para os endereços 
+#            REAIS dos clientes da loja obtidos via API da Yampi. Só altere para False com 100% de certeza!
 MACRO_FORCE_TEST_EMAIL_RECIPIENT = True
+
+# ------------------------------------------
+# 4. Envio de Cópia em Duplicata (Supervisão em Produção)
+# ------------------------------------------
+# True  ---> ENVIO EM DUPLICATA ATIVADO. Toda vez que um e-mail for enviado para o cliente real da loja,
+#            uma cópia idêntica será disparada simultaneamente para o e-mail de teste (TEST_EMAIL_RECIPIENT).
+# False ---> ENVIO EM DUPLICATA DESATIVADO. E-mails são enviados exclusivamente para o destinatário primário.
+MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = True

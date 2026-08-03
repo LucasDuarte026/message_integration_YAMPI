@@ -39,6 +39,15 @@ The daemon supports resilient crash reporting out of the box:
 - `TRACEBACK_SMTP_USER` / `PASSWORD`: Dedicated credentials for the system to email itself when a fatal crash occurs.
 - `TRACEBACK_EMAIL_RECIPIENT`: The email address (usually the developer) that receives the stack trace and the tail of `app.log` (~50,000 lines, 10MB limit).
 
+### HTTP Resilience & Auto-Retries (v6.3.0)
+The `YampiClient` includes automatic transient network retry mechanisms:
+- **Max Retries**: Performs up to 3 attempts with exponential backoff for transient connection resets (`ConnectionResetError`), network timeouts (`Timeout`), or HTTP 5xx server errors before raising an exception.
+- **Fail-Fast**: Non-retryable client errors (HTTP 4xx like 401/404) raise immediately without retrying.
+
+### Duplicate Supervision Email Dispatch (v6.3.0)
+Allows production monitoring via real-time duplicate emails:
+- **`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH`**: When set to `True` in `macros.py`, every email dispatched to a real customer in production simultaneously triggers a duplicate copy sent to `TEST_EMAIL_RECIPIENT` (`deutschlucas026@gmail.com`) for real-time audit.
+
 ## Tutorial: How to Run the Test Suite
 
 Before committing any modifications, ensure the core logic remains intact by running the unit tests:

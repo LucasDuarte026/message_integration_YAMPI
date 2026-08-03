@@ -9,10 +9,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.core.config import load_config
 from src.core.logging_config import setup_logging
-from src.core.macros import MACRO_DEBUG_LIMIT
+from src.core.macros import MACRO_DEBUG_LIMIT, MACRO_ENABLE_REAL_EMAIL_DISPATCH
 from src.core.client import YampiClient
 from src.ports.postgres_repo import PostgresStateRepository
 from src.ports.message_provider import DryRunMessageProvider
+from src.ports.smtp_email_provider import SMTPEmailProvider
 from src.workers.abandoned_cart import AbandonedCartProcessor
 from src.workers.orders import OrderProcessor
 
@@ -118,8 +119,22 @@ if __name__ == "__main__":
     # Embrulha o client real no nosso Cache
     api_client = CachedYampiClient(real_client=real_api_client, limit=MACRO_DEBUG_LIMIT)
     
-    # Provedor de logs apenas (não envia emails reais)
-    message_provider = DryRunMessageProvider()
+    # Provedor de mensagens: se MACRO_ENABLE_REAL_EMAIL_DISPATCH = True, usa o SMTPEmailProvider real
+    if not MACRO_ENABLE_REAL_EMAIL_DISPATCH:
+        logger.info("Executando debug em DRY-RUN MODE (Mocks de e-mail ativos)")
+        message_provider = DryRunMessageProvider()
+    else:
+        logger.info("Executando debug em MODO REAL (Disparo via SMTP ativado)")
+        if not config.SMTP_USER or not config.SMTP_PASSWORD:
+            logger.error("Erro: SMTP_USER e SMTP_PASSWORD devem ser configurados no arquivo .env para envio real.")
+            sys.exit(1)
+        message_provider = SMTPEmailProvider(
+            host=config.SMTP_HOST,
+            port=config.SMTP_PORT,
+            user=config.SMTP_USER,
+            password=config.SMTP_PASSWORD,
+            from_addr=config.SMTP_FROM
+        )
     
     # Banco real de testes (Certifique-se de usar o BD correto de testes localmente)
     state_repo = PostgresStateRepository(config.DATABASE_URL)

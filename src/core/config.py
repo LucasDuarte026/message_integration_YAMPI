@@ -17,7 +17,7 @@ class Config:
     DATABASE_URL: str = "postgresql://postgres:mysecretpassword@localhost:5432/message_integration"
     
     # Email Configurations
-    TEST_EMAIL_RECIPIENT: str = "wpplucas026@gmail.com"
+    TEST_EMAIL_RECIPIENT: str = "deutschlucas026@gmail.com"
     
     # SMTP Configurations (Produção)
     SMTP_HOST: str = "smtp.gmail.com"
@@ -51,7 +51,7 @@ def load_config() -> Config:
         YAMPI_USER_SECRET_KEY=secret,
         YAMPI_ALIAS=os.environ.get("YAMPI_ALIAS"),
         DATABASE_URL=os.environ.get("DATABASE_URL", "postgresql://postgres:mysecretpassword@localhost:5432/message_integration"),
-        TEST_EMAIL_RECIPIENT=os.environ.get("TEST_EMAIL_RECIPIENT", "wpplucas026@gmail.com"),
+        TEST_EMAIL_RECIPIENT=os.environ.get("TEST_EMAIL_RECIPIENT", "deutschlucas026@gmail.com"),
         SMTP_HOST=os.environ.get("SMTP_HOST", "smtp.gmail.com"),
         SMTP_PORT=int(os.environ.get("SMTP_PORT", 587)),
         SMTP_USER=os.environ.get("SMTP_USER"),

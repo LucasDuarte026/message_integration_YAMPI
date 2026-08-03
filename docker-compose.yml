@@ -17,11 +17,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    # =========================================================================
-    # RECURSOS DEFINITIVOS - BANCO DE DADOS (BASEADO EM BENCHMARK DE CAMPO)
-    # Justificativa: Em testes de estresse, o DB consumiu no máximo ~45 MiB RAM
-    # e 0.56 vCPU. O limite de 512 MB e 0.8 vCPU garante estabilidade total.
-    # =========================================================================
     deploy:
       resources:
         limits:

@@ -52,13 +52,8 @@ class YampiClient:
         Chama o endpoint POST /auth/me para obter as lojas (merchants) associadas
         ao token e retorna o alias da primeira loja ativa encontrada.
         """
-        url = f"{self.BASE_URL}/auth/me"
         try:
-            # POST /auth/me não exige body
-            response = requests.post(url, headers=self.headers, timeout=(5, 15), verify=True)
-            response.raise_for_status()
-            data = response.json()
-            
+            data = self.request("POST", "auth/me")
             merchants = data.get("data", {}).get("merchants", {}).get("data", [])
             if not merchants:
                 raise ValueError("Nenhuma loja (merchant) foi encontrada para estas credenciais.")
@@ -76,22 +71,24 @@ class YampiClient:
             return alias
             
         except requests.exceptions.HTTPError as e:
-            logger.error(f"Erro ao verificar credenciais: {e.response.status_code} - {e.response.text}")
+            logger.error(f"Erro ao verificar credenciais: {e.response.status_code if e.response else 'N/A'} - {e.response.text if e.response else str(e)}")
             raise
         except Exception as e:
             logger.error(f"Erro inesperado ao buscar dados do usuário: {str(e)}")
             raise
 
     def request(self, method: str, path: str, params: Optional[Dict[str, Any]] = None, 
-                json_data: Optional[Dict[str, Any]] = None, max_retries: int = 5) -> Dict[str, Any]:
+                json_data: Optional[Dict[str, Any]] = None, max_retries: int = 3) -> Dict[str, Any]:
         """
-        Faz uma requisição HTTP para a API da Yampi tratando paginação, cache e Rate Limits (HTTP 429).
+        Faz uma requisição HTTP para a API da Yampi tratando paginação, cache, oscilações de rede e Rate Limits.
+        Realiza até `max_retries` (padrão: 3) tentativas em caso de erro transitório de conexão (ConnectionResetError,
+        Timeout, 5xx ou HTTP 429). Se todas as 3 tentativas falharem, relança a exceção para encerrar o ciclo.
         
         :param method: Método HTTP (GET, POST, PUT, DELETE).
         :param path: Caminho do endpoint (sem a URL base e sem o alias, ex: 'orders' ou 'catalog/products').
         :param params: Parâmetros de consulta (Query Params).
         :param json_data: Corpo da requisição no formato JSON.
-        :param max_retries: Número máximo de tentativas em caso de erro 429 (Rate Limit).
+        :param max_retries: Número máximo de tentativas (padrão: 3).
         :return: Dicionário correspondente à resposta JSON da API.
         """
         # Garante o alias no início do path se for um endpoint específico de loja
@@ -107,10 +104,10 @@ class YampiClient:
         if method.upper() == "GET" and "skipCache" not in query_params:
             query_params["skipCache"] = "true"
 
-        retry_count = 0
-        backoff_delay = 2.0  # tempo inicial de espera para Rate Limit em segundos
+        attempt = 1
+        backoff_delay = 2.0  # tempo inicial de espera em segundos
 
-        while retry_count <= max_retries:
+        while attempt <= max_retries:
             try:
                 response = requests.request(
                     method=method,
@@ -124,31 +121,59 @@ class YampiClient:
                 
                 # Trata Rate Limit (HTTP 429)
                 if response.status_code == 429:
-                    retry_count += 1
-                    if retry_count > max_retries:
-                        logger.error("Limite máximo de tentativas atingido após receber HTTP 429.")
+                    if attempt >= max_retries:
+                        logger.error(f"Limite máximo de {max_retries} tentativas atingido após receber HTTP 429.")
                         response.raise_for_status()
                     
-                    # Loga os headers de Rate Limit se presentes
                     limit = response.headers.get("X-RateLimit-Limit")
                     remaining = response.headers.get("X-RateLimit-Remaining")
                     logger.warning(
                         f"Rate limit atingido (HTTP 429). Limite: {limit}, Restantes: {remaining}. "
-                        f"Aguardando {min(backoff_delay, 60)} segundos antes da tentativa {retry_count}/{max_retries}..."
+                        f"Aguardando {min(backoff_delay, 60)}s antes da tentativa {attempt + 1}/{max_retries}..."
                     )
                     time.sleep(min(backoff_delay, 60))
-                    backoff_delay *= 2  # Aumento exponencial do delay
+                    backoff_delay *= 2
+                    attempt += 1
+                    continue
+
+                # Trata erros temporários de servidor (HTTP 5xx)
+                if response.status_code >= 500:
+                    if attempt >= max_retries:
+                        logger.error(f"Erro de servidor (HTTP {response.status_code}) persistente na requisição ({method} {url}) após {max_retries} tentativas.")
+                        response.raise_for_status()
+                    
+                    logger.warning(
+                        f"Erro de servidor (HTTP {response.status_code}) na tentativa {attempt}/{max_retries} ({method} {url}). "
+                        f"Aguardando {min(backoff_delay, 60)}s antes da tentativa {attempt + 1}/{max_retries}..."
+                    )
+                    time.sleep(min(backoff_delay, 60))
+                    backoff_delay *= 2
+                    attempt += 1
                     continue
                 
-                # Levanta exceção para outros códigos de erro (4xx e 5xx)
+                # Levanta exceção para outros códigos de erro (4xx não 429)
                 response.raise_for_status()
                 return response.json()
 
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.ChunkedEncodingError) as e:
+                if attempt >= max_retries:
+                    logger.error(f"Erro de conexão persistente na requisição ({method} {url}) após {max_retries} tentativas: {str(e)}")
+                    raise
+                
+                logger.warning(
+                    f"Falha de conexão na tentativa {attempt}/{max_retries} ({method} {url}): {str(e)}. "
+                    f"Aguardando {min(backoff_delay, 60)}s antes da tentativa {attempt + 1}/{max_retries}..."
+                )
+                time.sleep(min(backoff_delay, 60))
+                backoff_delay *= 2
+                attempt += 1
+
             except requests.exceptions.RequestException as e:
+                # Exceções 4xx (como 401 Unauthorized ou 404 Not Found) levantam imediatamente sem retentativa
                 logger.error(f"Erro na requisição ({method} {url}): {str(e)}")
                 raise
 
-        raise requests.exceptions.RetryError("Falha na requisição devido ao excesso de retentativas de Rate Limit.")
+        raise requests.exceptions.RetryError(f"Falha na requisição devido ao excesso de retentativas ({max_retries}).")
 
     def get_paginated_data(self, path: str, params: Optional[Dict[str, Any]] = None, 
                            limit_per_page: int = 100) -> Generator[Dict[str, Any], None, None]:

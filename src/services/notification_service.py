@@ -58,6 +58,11 @@ class NotificationService:
         if recipient_email:
             self.provider.send_email_message(recipient_email, subject, html_body)
             logger.info(f"[NotificationService] E-mail STG {event.new_stg} ({template_name}) enviado para pedido ID: # {event.order_id} (Nº {event.order_number})")
+            
+            # Envio em duplicata (Cópia de acompanhamento/supervisão em produção)
+            if macros.MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH and self.config.TEST_EMAIL_RECIPIENT and recipient_email != self.config.TEST_EMAIL_RECIPIENT:
+                logger.info(f"[NotificationService] [DUPLICATA] Despachando cópia idêntica do pedido #{event.order_number} para: {self.config.TEST_EMAIL_RECIPIENT}")
+                self.provider.send_email_message(self.config.TEST_EMAIL_RECIPIENT, subject, html_body)
         else:
             logger.warning(f"[NotificationService] No recipient email found for order {event.order_id}")
 
@@ -96,6 +101,11 @@ class NotificationService:
         if recipient_email:
             self.provider.send_email_message(recipient_email, subject, html_body)
             logger.info(f"[NotificationService] E-mail STC {event.new_stc} ({template_name}) enviado para carrinho ID: {event.cart_id}")
+            
+            # Envio em duplicata (Cópia de acompanhamento/supervisão em produção)
+            if macros.MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH and self.config.TEST_EMAIL_RECIPIENT and recipient_email != self.config.TEST_EMAIL_RECIPIENT:
+                logger.info(f"[NotificationService] [DUPLICATA] Despachando cópia idêntica do carrinho {event.cart_id} para: {self.config.TEST_EMAIL_RECIPIENT}")
+                self.provider.send_email_message(self.config.TEST_EMAIL_RECIPIENT, subject, html_body)
         else:
             logger.warning(f"[NotificationService] No recipient email found for cart {event.cart_id}")
 

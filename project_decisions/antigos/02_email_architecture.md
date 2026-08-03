@@ -68,4 +68,4 @@ O controle local de persistência é dividido em duas frentes com responsabilida
 ## 4. Ambiente de Testes e Modo Homologação (Dry-Run)
 
 > [!IMPORTANT]
-> **Modo Provisório de Segurança:** Durante a fase de homologação e desenvolvimento, **todos os disparos de e-mail são redirecionados exclusivamente para a caixa de testes configurada** (`wpplucas026@gmail.com`), impedindo qualquer disparo acidental para e-mails de clientes reais da Yampi até a entrada oficial em produção.
+> **Modo Provisório de Segurança:** Durante a fase de homologação e desenvolvimento, **todos os disparos de e-mail são redirecionados exclusivamente para a caixa de testes configurada** (`deutschlucas026@gmail.com`), impedindo qualquer disparo acidental para e-mails de clientes reais da Yampi até a entrada oficial em produção.

@@ -99,7 +99,7 @@ O arquivo [config.py](../src/core/config.py) carrega as configurações da aplic
 | `YAMPI_ALIAS` | Alias da sua loja Yampi (opcional; detectado automaticamente se omitido). | - | Não |
 | `SQLITE_DB_PATH` | Caminho do arquivo SQLite para persistir estados locais em dev. | `state.db` | Não |
 | `POSTGRES_HOST` / `POSTGRES_DB` | Conexão com o banco PostgreSQL de produção. | `localhost` | **Sim (Produção)** |
-| `TEST_EMAIL_RECIPIENT` | E-mail de destino para envio em modo de teste/homologação. | `wpplucas026@gmail.com` | Não |
+| `TEST_EMAIL_RECIPIENT` | E-mail de destino para envio em modo de teste/homologação. | `deutschlucas026@gmail.com` | Não |
 | `MAX_CART_AGE_HOURS` | Limite de tempo em horas (cutoff) para desconsiderar carrinhos muito antigos. | `48` | Não |
 | `MAX_WORKERS` | Quantidade máxima de threads paralelas para processamento. | `10` | Não |
 | **SMTP Configs (Clientes)** | | | |
