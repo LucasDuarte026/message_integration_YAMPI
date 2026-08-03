@@ -5,6 +5,21 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.3.1] - 2026-08-02 (Hardening de Segurança e Resiliência de Payload do Cliente - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Hardening de Extração de Dados do Cliente (`src/workers/orders.py` & `src/workers/abandoned_cart.py`)**:
+  - Implementado helper de extração defensiva `_extract_customer_data()` imune a objetos `null`, dicionários planos ou envelopados em `{"data": ...}`, eliminando riscos de `AttributeError` em cadastros de clientes da Yampi.
+  - Higienização e sanitização de strings de e-mail com `.strip()` para evitar erros de sintaxe SMTP.
+- **Auditoria de Segurança para Produção (`src/core/macros.py` & `src/services/notification_service.py`)**:
+  - Validação profunda do fluxo com `MACRO_FORCE_TEST_EMAIL_RECIPIENT = False` garantindo a entrega segura para clientes reais e espelhamento por duplicata (`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = True`).
+- **Suíte de Testes de Extração (`tests/test_customer_extraction.py`)**:
+  - Adicionada bateria de 4 testes unitários cobrindo variações de payload e prevenindo regressões de runtime.
+
+---
+
 ## [6.3.0] - 2026-08-02 (Suporte a Retentativas de Conexão HTTP & Envio de E-mails em Duplicata - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**

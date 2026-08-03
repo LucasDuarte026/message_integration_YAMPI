@@ -133,6 +133,14 @@ class OrderProcessor:
             order_number = str(order.get('number', 'N/A'))
             logger.error(f"[Worker Pedidos] Erro fatal e não tratado ao processar pedido ID: # {order_id} (Nº {order_number}): {e}", exc_info=True)
 
+    def _extract_customer_data(self, order: Dict[str, Any]) -> Dict[str, Any]:
+        cust = order.get('customer')
+        if isinstance(cust, dict):
+            if 'data' in cust and isinstance(cust['data'], dict):
+                return cust['data']
+            return cust
+        return {}
+
     def _process_order_logic(self, order: Dict[str, Any]) -> None:
         order_id = str(order.get('id', ''))
         order_number = str(order.get('number', 'N/A'))
@@ -147,10 +155,12 @@ class OrderProcessor:
         except ValueError:
             data_pedido = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
 
-        customer_data = order.get('customer', {}).get('data', {})
+        customer_data = self._extract_customer_data(order)
         cpf = customer_data.get('cpf')
-        name = customer_data.get('name', 'Cliente').split()[0]
-        email = customer_data.get('email')
+        raw_name = customer_data.get('name', 'Cliente') or 'Cliente'
+        name = raw_name.strip().split()[0] if raw_name.strip() else 'Cliente'
+        raw_email = customer_data.get('email')
+        email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
 
         # Determinar SKU mais caro
         sku = None

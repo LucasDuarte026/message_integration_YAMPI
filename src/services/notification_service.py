@@ -53,7 +53,8 @@ class NotificationService:
         if macros.MACRO_FORCE_TEST_EMAIL_RECIPIENT:
             recipient_email = self.config.TEST_EMAIL_RECIPIENT
         else:
-            recipient_email = event.customer_data.get('email')
+            raw_email = event.customer_data.get('email')
+            recipient_email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
 
         if recipient_email:
             self.provider.send_email_message(recipient_email, subject, html_body)
@@ -96,7 +97,8 @@ class NotificationService:
         if macros.MACRO_FORCE_TEST_EMAIL_RECIPIENT:
             recipient_email = self.config.TEST_EMAIL_RECIPIENT
         else:
-            recipient_email = event.customer_data.get('email')
+            raw_email = event.customer_data.get('email')
+            recipient_email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
 
         if recipient_email:
             self.provider.send_email_message(recipient_email, subject, html_body)

@@ -80,7 +80,7 @@ MACRO_ENABLE_LOCAL_HTML_SAVING = False
 #            o seu e-mail de teste (configurado em TEST_EMAIL_RECIPIENT no .env). Nenhum cliente real recebe nada.
 # False ---> ⚠️ MODO DE PRODUÇÃO REAL (PERIGO). Os e-mails serão enviados diretamente para os endereços 
 #            REAIS dos clientes da loja obtidos via API da Yampi. Só altere para False com 100% de certeza!
-MACRO_FORCE_TEST_EMAIL_RECIPIENT = True
+MACRO_FORCE_TEST_EMAIL_RECIPIENT = False
 
 # ------------------------------------------
 # 4. Envio de Cópia em Duplicata (Supervisão em Produção)

@@ -92,13 +92,23 @@ class AbandonedCartProcessor:
         logger.debug(f"[PRECHECK] Carrinho: Idade <= {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
         return True, True
         
+    def _extract_customer_data(self, cart: Dict[str, Any]) -> Dict[str, Any]:
+        cust = cart.get('customer')
+        if isinstance(cust, dict):
+            if 'data' in cust and isinstance(cust['data'], dict):
+                return cust['data']
+            return cust
+        return {}
+
     def _process_cart_concurrently(self, cart: Dict[str, Any]) -> None:
         try:
             cart_id = str(cart.get('id', ''))
-            customer_data = cart.get('customer', {}).get('data', {})
+            customer_data = self._extract_customer_data(cart)
             cpf = customer_data.get('cpf')
-            name = customer_data.get('name', 'Cliente').split()[0]
-            email = customer_data.get('email')
+            raw_name = customer_data.get('name', 'Cliente') or 'Cliente'
+            name = raw_name.strip().split()[0] if raw_name.strip() else 'Cliente'
+            raw_email = customer_data.get('email')
+            email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
         
             if not email:
                 logger.warning(f"[Worker Carrinhos] Carrinho {cart_id} sem email. Ignorando.")
