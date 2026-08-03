@@ -63,6 +63,7 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 
 - **Infraestrutura Desacoplada:** Ao usar os contratos de `src/domain/interfaces.py`, o projeto pode trocar de provedor de mensagem (SMTP, Meta) alterando apenas a injeção no orquestrador principal sem que o Worker perceba.
 - **Tolerância a Falhas e Duplicidade:** O uso estrito do banco de dados relacional atua como uma máquina de estados (STG/STC). As transações garantem que gargalos de API ou execuções paralelas de workers não gerem duplicidade ou *race conditions*.
+- **Controle de Vazão e Resiliência SMTP:** A infraestrutura de envio utiliza *Connection Pooling*, *Throttling* centralizado (travas de `threading.Lock`) e *Exponential Backoff* para evitar banimentos por SPAM nos provedores de e-mail e falhas por *Timeouts*.
 - **Auto-documentação Estrita:** Exigência de que regras e contratos guiem o desenvolvimento. 
 > [!CAUTION]
 > **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**

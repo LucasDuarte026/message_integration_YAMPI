@@ -294,6 +294,7 @@ class OrderProcessor:
                     logger.debug(f"[REGRA APLICADA] STG 7 -> 8: Pedido ID: # {order_id} (Nº {order_number}) marcado como perdido ({diff_hours:.2f}h > {MACRO_PERDIDO_PEDIDO_HORAS}h).")
 
         if new_stg is not None:
+            success = True
             if template_name and email:
                 event = OrderTransitionEvent(
                     order_id=order_id,
@@ -302,10 +303,13 @@ class OrderProcessor:
                     customer_data=customer_data,
                     order_data=order
                 )
-                self.notification_service.handle_transition(event, template_name)
+                success = self.notification_service.handle_transition(event, template_name)
 
             # FASE 3: GRAVAÇÃO ATÔMICA
-            self.state_repo.update_stg(cart_id, new_stg)
-            logger.info(f"[Worker Pedidos] Estado do cart_id {cart_id} atualizado para STG={new_stg}")
+            if success:
+                self.state_repo.update_stg(cart_id, new_stg)
+                logger.info(f"[Worker Pedidos] Estado do cart_id {cart_id} atualizado para STG={new_stg}")
+            else:
+                logger.warning(f"[Worker Pedidos] Falha no envio de notificação para pedido {order_id}. Transição STG abortada (será retentada na próxima iteração).")
         else:
             logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) (cart_id={cart_id}): Nenhuma transição aplicável nesta rodada. Permanece STG={stg}.")

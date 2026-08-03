@@ -1,5 +1,7 @@
 import smtplib
 import logging
+import time
+import threading
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
@@ -9,6 +11,7 @@ import os
 import mimetypes
 import uuid
 from src.domain.interfaces import MessageProviderProtocol
+from src.core.macros import MACRO_SMTP_THROTTLE_DELAY_SEG, MACRO_SMTP_MAX_RETRIES, MACRO_SMTP_RETRY_BACKOFF_SEG
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +19,8 @@ class SMTPEmailProvider(MessageProviderProtocol):
     """
     Adaptador concreto para envio de E-mail utilizando o protocolo SMTP.
     Suporta conexão segura via SSL ou TLS (portas 465/587).
+    Mantém uma única conexão TCP/SMTP viva (Stateful/Pooling), gerencia concorrência com Lock (Throttling) e 
+    fornece mecanismo de Retry com Exponential Backoff.
     """
     def __init__(self, host: str, port: int, user: Optional[str], password: Optional[str], from_addr: Optional[str]):
         self.host = host
@@ -23,6 +28,38 @@ class SMTPEmailProvider(MessageProviderProtocol):
         self.user = user
         self.password = password
         self.from_addr = from_addr or user or "recuperacao@sualoja.com"
+        
+        self._lock = threading.Lock()
+        self._server = None
+
+    def _connect(self) -> None:
+        """
+        Garante que o cliente SMTP está conectado e logado.
+        Não é thread-safe por si só; deve ser chamado de dentro do self._lock.
+        """
+        if self._server is not None:
+            try:
+                status = self._server.noop()[0]
+                if status == 250:
+                    return
+            except smtplib.SMTPServerDisconnected:
+                self._server = None
+            except Exception as e:
+                logger.warning(f"[SMTP] Erro inesperado ao verificar conexão viva (noop): {e}")
+                self._server = None
+
+        if self._server is None:
+            if self.port == 465:
+                logger.info(f"Estabelecendo nova conexão SMTP segura (SSL) com {self.host}:{self.port}...")
+                self._server = smtplib.SMTP_SSL(self.host, self.port, timeout=15)
+            else:
+                logger.info(f"Estabelecendo nova conexão SMTP (STARTTLS) com {self.host}:{self.port}...")
+                self._server = smtplib.SMTP(self.host, self.port, timeout=15)
+                self._server.starttls()
+            
+            if self.user and self.password:
+                logger.info(f"Autenticando usuário SMTP '{self.user}'...")
+                self._server.login(self.user, self.password)
 
     def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
         parts = email.split('@')
@@ -92,27 +129,37 @@ class SMTPEmailProvider(MessageProviderProtocol):
                 except Exception as e:
                     logger.warning(f"Erro ao anexar imagem inline ({filepath}): {e}")
             
-            
-            # Conexão SSL direta na porta 465 ou TLS com STARTTLS na porta 587/outras
-            if self.port == 465:
-                logger.info(f"Estabelecendo conexão SMTP segura (SSL) com {self.host}:{self.port}...")
-                server = smtplib.SMTP_SSL(self.host, self.port, timeout=15)
-            else:
-                logger.info(f"Estabelecendo conexão SMTP (STARTTLS) com {self.host}:{self.port}...")
-                server = smtplib.SMTP(self.host, self.port, timeout=15)
-                server.starttls()
-            
-            # Login se credenciais fornecidas
-            if self.user and self.password:
-                logger.info(f"Autenticando usuário SMTP '{self.user}'...")
-                server.login(self.user, self.password)
-            
-            logger.info(f"Despachando mensagem SMTP para {masked_email}...")
-            server.sendmail(self.from_addr, [email], msg_root.as_string())
-            server.quit()
-            
-            logger.info(f"E-mail enviado com sucesso via SMTP para: {masked_email}")
-            return True
+            with self._lock:
+                for attempt in range(1, MACRO_SMTP_MAX_RETRIES + 1):
+                    try:
+                        self._connect()
+                        
+                        logger.info(f"Despachando mensagem SMTP para {masked_email}...")
+                        self._server.sendmail(self.from_addr, [email], msg_root.as_string())
+                        
+                        logger.info(f"E-mail enviado com sucesso via SMTP para: {masked_email}")
+                        
+                        # Throttle/Rate Limit
+                        time.sleep(MACRO_SMTP_THROTTLE_DELAY_SEG)
+                        return True
+                        
+                    except smtplib.SMTPServerDisconnected as e:
+                        logger.warning(f"[SMTP] Conexão caiu na tentativa {attempt}/{MACRO_SMTP_MAX_RETRIES}: {e}")
+                        self._server = None
+                    except (smtplib.SMTPException, OSError, TimeoutError) as e:
+                        logger.warning(f"[SMTP] Erro transitório na tentativa {attempt}/{MACRO_SMTP_MAX_RETRIES} para {masked_email}: {e}")
+                        self._server = None
+                    
+                    # Se não for a última tentativa, aplica o backoff
+                    if attempt < MACRO_SMTP_MAX_RETRIES:
+                        sleep_time = MACRO_SMTP_RETRY_BACKOFF_SEG * attempt
+                        logger.info(f"[SMTP] Aguardando {sleep_time}s antes da próxima tentativa...")
+                        time.sleep(sleep_time)
+                
+                # Se esgotou os retries e não retornou True, falhou miseravelmente.
+                logger.error(f"[SMTP] Falha definitiva ao enviar e-mail para {masked_email} após {MACRO_SMTP_MAX_RETRIES} tentativas.")
+                return False
+                
         except Exception as e:
-            logger.error(f"Erro ao enviar e-mail via SMTP para {masked_email}: {e}")
+            logger.error(f"Erro fatal ao formatar/enviar e-mail via SMTP para {masked_email}: {e}", exc_info=True)
             return False

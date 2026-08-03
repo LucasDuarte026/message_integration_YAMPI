@@ -21,7 +21,7 @@ class NotificationService:
         self.provider = message_provider
         self.config = config
         
-    def handle_transition(self, event: OrderTransitionEvent, template_name: str) -> None:
+    def handle_transition(self, event: OrderTransitionEvent, template_name: str) -> bool:
         builders = {
             "pedido_aprovado": PaymentConfirmedBuilder(),
             "pedido_pendente": PaymentIncentiveBuilder(),
@@ -34,7 +34,7 @@ class NotificationService:
         builder = builders.get(template_name)
         if not builder:
             logger.warning(f"No builder found for template {template_name}")
-            return
+            return False
             
         subject, html_body = builder.build(event)
         
@@ -57,18 +57,23 @@ class NotificationService:
             recipient_email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
 
         if recipient_email:
-            self.provider.send_email_message(recipient_email, subject, html_body)
-            logger.info(f"[NotificationService] E-mail STG {event.new_stg} ({template_name}) enviado para pedido ID: # {event.order_id} (Nº {event.order_number})")
-            
-            # Envio em duplicata (Cópia de acompanhamento/supervisão em produção)
-            if macros.MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH and self.config.TEST_EMAIL_RECIPIENT and recipient_email != self.config.TEST_EMAIL_RECIPIENT:
-                logger.info(f"[NotificationService] [DUPLICATA] Despachando cópia idêntica do pedido #{event.order_number} para: {self.config.TEST_EMAIL_RECIPIENT}")
-                self.provider.send_email_message(self.config.TEST_EMAIL_RECIPIENT, subject, html_body)
+            success = self.provider.send_email_message(recipient_email, subject, html_body)
+            if success:
+                logger.info(f"[NotificationService] E-mail STG {event.new_stg} ({template_name}) enviado para pedido ID: # {event.order_id} (Nº {event.order_number})")
+                
+                # Envio em duplicata (Cópia de acompanhamento/supervisão em produção)
+                if macros.MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH and self.config.TEST_EMAIL_RECIPIENT and recipient_email != self.config.TEST_EMAIL_RECIPIENT:
+                    logger.info(f"[NotificationService] [DUPLICATA] Despachando cópia idêntica do pedido #{event.order_number} para: {self.config.TEST_EMAIL_RECIPIENT}")
+                    self.provider.send_email_message(self.config.TEST_EMAIL_RECIPIENT, subject, html_body)
+                return True
+            else:
+                logger.error(f"[NotificationService] Falha ao enviar e-mail STG {event.new_stg} para pedido ID: # {event.order_id}")
+                return False
         else:
             logger.warning(f"[NotificationService] No recipient email found for order {event.order_id}")
+            return False
 
-
-    def handle_cart_transition(self, event: CartTransitionEvent, template_name: str) -> None:
+    def handle_cart_transition(self, event: CartTransitionEvent, template_name: str) -> bool:
         builders = {
             "carrinho_abandonado_cupom4": Coupon4CartBuilder(),
             "carrinho_abandonado_cupom5": Coupon5CartBuilder(),
@@ -77,7 +82,7 @@ class NotificationService:
         builder = builders.get(template_name)
         if not builder:
             logger.warning(f"No builder found for cart template {template_name}")
-            return
+            return False
             
         subject, html_body = builder.build(event)
         
@@ -101,13 +106,19 @@ class NotificationService:
             recipient_email = raw_email.strip() if isinstance(raw_email, str) and raw_email.strip() else None
 
         if recipient_email:
-            self.provider.send_email_message(recipient_email, subject, html_body)
-            logger.info(f"[NotificationService] E-mail STC {event.new_stc} ({template_name}) enviado para carrinho ID: {event.cart_id}")
-            
-            # Envio em duplicata (Cópia de acompanhamento/supervisão em produção)
-            if macros.MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH and self.config.TEST_EMAIL_RECIPIENT and recipient_email != self.config.TEST_EMAIL_RECIPIENT:
-                logger.info(f"[NotificationService] [DUPLICATA] Despachando cópia idêntica do carrinho {event.cart_id} para: {self.config.TEST_EMAIL_RECIPIENT}")
-                self.provider.send_email_message(self.config.TEST_EMAIL_RECIPIENT, subject, html_body)
+            success = self.provider.send_email_message(recipient_email, subject, html_body)
+            if success:
+                logger.info(f"[NotificationService] E-mail STC {event.new_stc} ({template_name}) enviado para carrinho ID: {event.cart_id}")
+                
+                # Envio em duplicata (Cópia de acompanhamento/supervisão em produção)
+                if macros.MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH and self.config.TEST_EMAIL_RECIPIENT and recipient_email != self.config.TEST_EMAIL_RECIPIENT:
+                    logger.info(f"[NotificationService] [DUPLICATA] Despachando cópia idêntica do carrinho {event.cart_id} para: {self.config.TEST_EMAIL_RECIPIENT}")
+                    self.provider.send_email_message(self.config.TEST_EMAIL_RECIPIENT, subject, html_body)
+                return True
+            else:
+                logger.error(f"[NotificationService] Falha ao enviar e-mail STC {event.new_stc} para carrinho ID: {event.cart_id}")
+                return False
         else:
             logger.warning(f"[NotificationService] No recipient email found for cart {event.cart_id}")
+            return False
 

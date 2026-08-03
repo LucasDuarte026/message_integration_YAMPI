@@ -60,6 +60,14 @@ MACRO_PRECHECK_ORDERS_MAX_DAYS = 15
 # ==========================================
 
 # ------------------------------------------
+# 0. Limites e Controle do Servidor SMTP
+# ------------------------------------------
+MACRO_SMTP_THROTTLE_DELAY_SEG = 2.0  # Tempo em segundos de espera (Rate Limit) entre cada disparo SMTP
+MACRO_SMTP_MAX_RETRIES = 3           # Quantidade de vezes para tentar reconectar/reenviar e-mail em caso de falha/timeout
+MACRO_SMTP_RETRY_BACKOFF_SEG = 5.0   # Segundos do backoff exponencial (multiplicado pela tentativa)
+
+
+# ------------------------------------------
 # 1. Habilitação de Conexão e Disparo Real
 # ------------------------------------------
 # True  ---> Ativa o provedor SMTP/Meta real. O sistema vai conectar na rede e despachar os e-mails.

@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.3.2] - 2026-08-03 (Resiliência do Provedor SMTP e Tolerância a Falhas na Fase 3 - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Throttling e Pooling de Conexões SMTP (`src/ports/smtp_email_provider.py`)**:
+  - Implementada manutenção de conexão única (Connection Pooling) para evitar desconexões bruscas (Timeouts) do provedor Hostinger por excesso de requests concorrentes.
+  - Adicionado `threading.Lock()` e delay estratégico de 2.0s entre disparos, contendo o fluxo de multithreading num funil controlado (Rate Limit).
+  - Integrado mecanismo de Retry com **Exponential Backoff** (3 tentativas: 5s, 10s, 15s) no handshake e disparo SMTP.
+- **Prevenção de Transições Fantasmas na Máquina de Estados (`src/workers/abandoned_cart.py` e `src/workers/orders.py`)**:
+  - O banco de dados (SQLite) **não será mais atualizado (Fase 3)** se o SMTP Provider reportar falha de entrega (retornando `False`). Isso garante que os carrinhos e pedidos não transicionem seus status (STG/STC) sem o real disparo da comunicação.
+  - Com essa barreira, o cronjob nativo da aplicação efetuará o **retry orgânico** processando as filas ignoradas na próxima rodada, assegurando que nenhum cliente fique sem receber o incentivo de compra.
+- **Autodocumentação (`docs/`, `src/`)**:
+  - Nova política de resiliência e rate limit documentada através de novos sumários técnicos em todos os diretórios internos.
+
+---
+
 ## [6.3.1] - 2026-08-02 (Hardening de Segurança e Resiliência de Payload do Cliente - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**

@@ -192,6 +192,7 @@ class AbandonedCartProcessor:
                     new_stc = 18
 
             if new_stc is not None:
+                success = True
                 if template_name:
                     event = CartTransitionEvent(
                         cart_id=cart_id,
@@ -199,11 +200,15 @@ class AbandonedCartProcessor:
                         customer_data=customer_data,
                         cart_data=cart
                     )
-                    self.notification_service.handle_cart_transition(event, template_name)
+                    success = self.notification_service.handle_cart_transition(event, template_name)
 
                 # FASE 3: GRAVAÇÃO ATÔMICA
-                self.state_repo.update_stc(cart_id, new_stc)
-                logger.info(f"[Worker Carrinhos] Estado do cart_id {cart_id} atualizado para STC={new_stc}")
+                if success:
+                    self.state_repo.update_stc(cart_id, new_stc)
+                    logger.info(f"[Worker Carrinhos] Estado do cart_id {cart_id} atualizado para STC={new_stc}")
+                else:
+                    logger.warning(f"[Worker Carrinhos] Falha no envio de notificação para cart_id {cart_id}. Transição STC abortada (será retentada na próxima iteração).")
+
         except Exception as e:
             cart_id = str(cart.get('id', 'N/A'))
             logger.error(f"[Worker Carrinhos] Erro fatal e não tratado ao processar carrinho ID: {cart_id}: {e}", exc_info=True)

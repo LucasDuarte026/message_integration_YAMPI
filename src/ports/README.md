@@ -6,7 +6,7 @@ Baseado nos conceitos de Hexagonal Architecture (Ports and Adapters), este diret
 ## Arquivos e Responsabilidades
 - **`message_provider.py`**: Implementa o provedor de mensageria da aplicação. Atualmente, possui a classe `DryRunMessageProvider` que serve como Mock para simular disparos no terminal sem gerar custos de API.
 - **`postgres_repo.py`**: Implementa o `StateRepositoryProtocol` conectando-se a um banco de dados PostgreSQL. Ele faz `upsert` das informações (pedidos e carrinhos), mantendo os estados atualizados (STG e STC) utilizando travas transacionais (`FOR UPDATE`) para evitar concorrência.
-- **`smtp_email_provider.py`**: Implementa o `MessageProviderProtocol` conectando-se via SMTP para despachar as mensagens de e-mail formatadas nativamente aos clientes, permitindo configurações SSL/TLS explícitas.
+- **`smtp_email_provider.py`**: Implementa o `MessageProviderProtocol` conectando-se via SMTP para despachar as mensagens de e-mail. Este adaptador agora é **Stateful e Thread-Safe**, mantendo uma única conexão viva (Pooling), usando um `threading.Lock` para rate limiting (Throttle) e realizando repetições de envio com *Exponential Backoff* em caso de instabilidades.
 
 ## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]
