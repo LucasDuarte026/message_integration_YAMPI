@@ -14,9 +14,10 @@ def setup_logging(verbose: bool = False, log_file: str = "local_data/logs/app.lo
     if sentry_dsn:
         try:
             import sentry_sdk
+            traces_rate = float(os.environ.get("TRACES_SAMPLE_RATE", "1.0"))
             sentry_sdk.init(
                 dsn=sentry_dsn,
-                traces_sample_rate=1.0,
+                traces_sample_rate=traces_rate,
                 send_default_pii=False, # Data Scrubbing habilitado (ignora dados sensíveis e PII locais)
             )
         except (ImportError, Exception) as e:

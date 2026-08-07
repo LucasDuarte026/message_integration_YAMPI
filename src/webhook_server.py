@@ -1,4 +1,20 @@
+import os
 from flask import Flask, request
+
+sentry_dsn = os.environ.get("SENTRY_DSN")
+if sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        traces_rate = float(os.environ.get("TRACES_SAMPLE_RATE", "1.0"))
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            integrations=[FlaskIntegration()],
+            traces_sample_rate=traces_rate,
+            send_default_pii=False,
+        )
+    except Exception as e:
+        print(f"Não foi possível inicializar o Sentry no Webhook Server: {e}")
 
 app = Flask(__name__)
 

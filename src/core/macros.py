@@ -30,10 +30,11 @@ MACRO_STC_16_TIMER_17 = MACRO_CUPOM_CARRINHO_3_HORAS * 3600
 MACRO_STC_17_TIMER_18 = MACRO_PERDIDO_CARRINHO_HORAS * 3600
 
 # ==========================================
-# Intervalos de Execução (Worker)
+# Intervalos de Execução (Worker e Daemon)
 # ==========================================
 MACRO_W_ORDERS_INTERVAL = 30 * 60    # 30 minutos
 MACRO_W_CARTS_INTERVAL = 30 * 60     # 30 minutos
+MACRO_DAEMON_SLEEP_INTERVAL_SEG = 300 # 5 minutos (300 segundos)
 
 # ==========================================
 # Paginação e Limites da API

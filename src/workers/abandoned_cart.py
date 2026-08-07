@@ -206,6 +206,16 @@ class AbandonedCartProcessor:
                 if success:
                     self.state_repo.update_stc(cart_id, new_stc)
                     logger.info(f"[Worker Carrinhos] Estado do cart_id {cart_id} atualizado para STC={new_stc}")
+                    try:
+                        import sentry_sdk
+                        sentry_sdk.add_breadcrumb(
+                            category="cart_state_machine",
+                            message=f"Carrinho {cart_id} transitou para STC={new_stc}",
+                            level="info",
+                            data={"cart_id": cart_id, "new_stc": new_stc, "previous_stc": stc}
+                        )
+                    except Exception:
+                        pass
                 else:
                     logger.warning(f"[Worker Carrinhos] Falha no envio de notificação para cart_id {cart_id}. Transição STC abortada (será retentada na próxima iteração).")
 

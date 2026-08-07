@@ -4,8 +4,13 @@ from datetime import datetime, timedelta
 import logging
 from typing import Optional, Dict, Any
 from src.domain.interfaces import StateRepositoryProtocol
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from psycopg2.pool import ThreadedConnectionPool
+
+try:
+    import sentry_sdk
+except ImportError:
+    sentry_sdk = None
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +84,19 @@ class PostgresStateRepository(StateRepositoryProtocol):
         """
         lock_query = "SELECT * FROM email_status_table WHERE cart_id = %s FOR UPDATE;"
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query, (cart_id, order_id, safe_order_number, data_pedido, safe_cpf, safe_sku))
-                    cur.execute(lock_query, (cart_id,))
-                    result = cur.fetchone()
-                conn.commit()
-                return dict(result) if result else None
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres upsert_from_order") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(query, (cart_id, order_id, safe_order_number, data_pedido, safe_cpf, safe_sku))
+                        cur.execute(lock_query, (cart_id,))
+                        result = cur.fetchone()
+                    conn.commit()
+                    return dict(result) if result else None
         except Exception as e:
             logger.error(f"Erro no upsert_from_order para cart_id {cart_id}: {e}")
             return None
@@ -105,13 +116,19 @@ class PostgresStateRepository(StateRepositoryProtocol):
         """
         lock_query = "SELECT * FROM email_status_table WHERE cart_id = %s FOR UPDATE;"
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query, (cart_id, data_carrinho, safe_cpf, safe_sku))
-                    cur.execute(lock_query, (cart_id,))
-                    result = cur.fetchone()
-                conn.commit()
-                return dict(result) if result else None
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres upsert_from_cart") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(query, (cart_id, data_carrinho, safe_cpf, safe_sku))
+                        cur.execute(lock_query, (cart_id,))
+                        result = cur.fetchone()
+                    conn.commit()
+                    return dict(result) if result else None
         except Exception as e:
             logger.error(f"Erro no upsert_from_cart para cart_id {cart_id}: {e}")
             return None
@@ -123,11 +140,17 @@ class PostgresStateRepository(StateRepositoryProtocol):
             WHERE cart_id = %s;
         """
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    now_utc3 = datetime.utcnow() - timedelta(hours=3)
-                    cur.execute(query, (new_stg, now_utc3, cart_id))
-                conn.commit()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres update_stg") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        now_utc3 = datetime.utcnow() - timedelta(hours=3)
+                        cur.execute(query, (new_stg, now_utc3, cart_id))
+                    conn.commit()
         except Exception as e:
             logger.error(f"Erro ao atualizar STG do cart_id {cart_id} para {new_stg}: {e}")
 
@@ -138,11 +161,17 @@ class PostgresStateRepository(StateRepositoryProtocol):
             WHERE cart_id = %s;
         """
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    now_utc3 = datetime.utcnow() - timedelta(hours=3)
-                    cur.execute(query, (new_stc, now_utc3, cart_id))
-                conn.commit()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres update_stc") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        now_utc3 = datetime.utcnow() - timedelta(hours=3)
+                        cur.execute(query, (new_stc, now_utc3, cart_id))
+                    conn.commit()
         except Exception as e:
             logger.error(f"Erro ao atualizar STC do cart_id {cart_id} para {new_stc}: {e}")
 

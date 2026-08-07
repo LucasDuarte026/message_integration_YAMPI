@@ -309,6 +309,16 @@ class OrderProcessor:
             if success:
                 self.state_repo.update_stg(cart_id, new_stg)
                 logger.info(f"[Worker Pedidos] Estado do cart_id {cart_id} atualizado para STG={new_stg}")
+                try:
+                    import sentry_sdk
+                    sentry_sdk.add_breadcrumb(
+                        category="order_state_machine",
+                        message=f"Pedido {order_id} (cart_id={cart_id}) transitou para STG={new_stg}",
+                        level="info",
+                        data={"order_id": order_id, "cart_id": cart_id, "new_stg": new_stg, "previous_stg": stg}
+                    )
+                except Exception:
+                    pass
             else:
                 logger.warning(f"[Worker Pedidos] Falha no envio de notificação para pedido {order_id}. Transição STG abortada (será retentada na próxima iteração).")
         else:

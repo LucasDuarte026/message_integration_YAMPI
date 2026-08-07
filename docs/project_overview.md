@@ -5,7 +5,7 @@ Este projeto é um sistema de integração de mensagens projetado para atuar no 
 
 O sistema foi concebido utilizando metodologias ágeis sólidas:
 - **Spec-driven development (SDD)**: Onde as interfaces e contratos são definidos antes das implementações.
-- **Test-driven development (TDD)**: Onde testes orientam a lógica.
+- **Test-driven development (TDD)**: Onde testes no padrão **Pytest** orientam a lógica do sistema (detalhado em [Diretrizes de Testes](./testing_guidelines.md)).
 
 Este documento serve como o "Manual do Usuário" e o "Manual do Desenvolvedor" consolidado, fornecendo uma visão ampla, não-técnica e técnica detalhada do projeto de ponta a ponta.
 
@@ -63,6 +63,7 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 
 - **Infraestrutura Desacoplada:** Ao usar os contratos de `src/domain/interfaces.py`, o projeto pode trocar de provedor de mensagem (SMTP, Meta) alterando apenas a injeção no orquestrador principal sem que o Worker perceba.
 - **Tolerância a Falhas e Duplicidade:** O uso estrito do banco de dados relacional atua como uma máquina de estados (STG/STC). As transações garantem que gargalos de API ou execuções paralelas de workers não gerem duplicidade ou *race conditions*.
+- **PostgreSQL Connection Pooling (`psycopg2.pool.ThreadedConnectionPool`):** As conexões com o PostgreSQL utilizam um pool thread-safe de 1 a 20 conexões reutilizadas via context managers (`_get_connection()`), prevenindo sobrecarga de conexões TCP e falhas de resolução de DNS interno do Docker em alta concorrência.
 - **Controle de Vazão e Resiliência SMTP:** A infraestrutura de envio utiliza *Connection Pooling*, *Throttling* centralizado (travas de `threading.Lock`) e *Exponential Backoff* para evitar banimentos por SPAM nos provedores de e-mail e falhas por *Timeouts*.
 - **Auto-documentação Estrita:** Exigência de que regras e contratos guiem o desenvolvimento. 
 > [!CAUTION]
@@ -77,7 +78,13 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [logging_config.py](../src/core/logging_config.py).
 - **Destinos da Saída:** Console (`sys.stdout`) e arquivo em disco (`logs/app.log`).
 - **Nível de Logs:** `INFO` por padrão (ou `DEBUG` com a flag `-v`).
-- **Interceptação Global e Notificação Reativa (Thread & Sentry):** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR`. O sistema ativa uma thread em background que envia um e-mail de alerta para o mantenedor via servidor `TRACEBACK_SMTP_*` contendo o traceback completo e os últimos 10MB (~50.000 linhas) do arquivo de log em anexo. Paralelamente, envia os eventos de erro para o **Sentry SDK** (`SENTRY_DSN`) com *Data Scrubbing* ativado.
+- **Interceptação Global e Notificação Reativa (Thread & Sentry):** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR`. O sistema ativa uma thread em background que envia um e-mail de alerta para o mantenedor via servidor `TRACEBACK_SMTP_*` contendo o traceback completo e os últimos 10MB (~50.000 linhas) do arquivo de log em anexo.
+- **Observabilidade Total com Sentry (Fase 2):**
+  - **Sentry Crons / Heartbeats (`daemon.py`):** Monitora a saúde do daemon de 5 em 5 minutos (`yampi-daemon-cycle`), emitindo alertas se o ciclo congelar ou for morto silenciosamente.
+  - **Flask Integration (`webhook_server.py`):** Coleta latência, throughput e exceções nos webhooks do WhatsApp.
+  - **Breadcrumbs de Negócio (`orders.py` e `abandoned_cart.py`):** Grava o histórico de transições de status (`STG` e `STC`) antes de qualquer erro.
+  - **APM & Distributed Tracing (`client.py` e `postgres_repo.py`):** Mede com precisão milimétrica a latência de requisições HTTP da API Yampi (`http.client`) e queries de banco de dados (`db.sql.query`).
+  - **Data Scrubbing (`send_default_pii=False`):** Descarte de dados sensíveis e PII para aderência estrita à LGPD.
 - **Rastreamento de Regras:** Os workers calculam e logam a idade de abandono em horas (`Analisando carrinho [id]: abandonado há [X.XX] horas. Regra aplicada: [fase]`), facilitando o rastreamento das regras aplicadas.
 
 ### Depuração Interativa e Execução Rápida

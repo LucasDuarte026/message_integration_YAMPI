@@ -5,9 +5,11 @@ O diretório `core` abriga os componentes básicos de infraestrutura interna que
 
 ## Arquivos e Responsabilidades
 - **`config.py`**: Gerenciador centralizado de variáveis de ambiente e credenciais. Garante a segurança retirando dados sensíveis do restante do código.
-- **`client.py`**: O cliente robusto `YampiClient`. Implementa as requisições HTTP, paginação, fallback, rate limits e autenticação para consumir a API da Yampi.
-- **`db.py`**: Implementação concreta em SQLite do repositório de persistência (`StateRepositoryProtocol`). Serve para salvar o estado da aplicação (ex: controle de disparo de mensagens duplicadas).
-- **`macros.py`**: Arquivo de configurações de constantes e macros de negócios. Define *timers* para STG (Pedidos) e STC (Carrinhos), limites e intervalos de workers. Também atua como o ponto de controle central de disparo através das flags de feature independentes:
+- **`client.py`**: O cliente robusto `YampiClient`. Implementa as requisições HTTP, paginação, fallback, rate limits e autenticação para consumir a API da Yampi. Instrumentado com spans do Sentry APM (`http.client`) para medição de latência das chamadas de rede.
+- **`db.py`**: Implementação concreta em SQLite do repositório de persistência (`StateRepositoryProtocol`). Serve para salvar o estado da aplicação em modo local/standalone.
+- **`logging_config.py`**: Configuração central de telemetria e logs. Inicializa o Sentry SDK (com taxa de amostragem `TRACES_SAMPLE_RATE` configurável e `send_default_pii=False` para LGPD), além dos interceptadores globais de crash (`sys.excepthook` e `threading.excepthook`) com disparo de e-mail SMTP de emergência.
+- **`macros.py`**: Arquivo de configurações de constantes e macros de negócios. Define *timers* para STG (Pedidos) e STC (Carrinhos), limites, paginação, e intervalos de workers e daemon:
+  - `MACRO_DAEMON_SLEEP_INTERVAL_SEG`: Intervalo de ciclo do daemon (padrão: 300 segundos / 5 minutos).
   - `MACRO_SMTP_THROTTLE_DELAY_SEG`, `MACRO_SMTP_MAX_RETRIES`, `MACRO_SMTP_RETRY_BACKOFF_SEG`: Controle estrito de throttling e resiliência das conexões SMTP contra bans.
   - `MACRO_ENABLE_REAL_EMAIL_DISPATCH`: Habilita ou desabilita o disparo real aos provedores SMTP/API.
   - `MACRO_FORCE_TEST_EMAIL_RECIPIENT`: Força o redirecionamento de todos os e-mails para um único e-mail de teste (`TEST_EMAIL_RECIPIENT`) sem impactar clientes reais.
@@ -20,9 +22,8 @@ O diretório `core` abriga os componentes básicos de infraestrutura interna que
 
 ## Dependências
 - **Nenhuma no Nível de Regras de Negócio**: O `core` não depende de workers ou ports (embora instancie a conexão HTTP que as interfaces definem).
-- **Externas**: Bibliotecas como `requests` para requisições HTTP, biblioteca nativa do `sqlite3` e gerência de variáveis de ambiente.
+- **Externas**: Bibliotecas como `requests` para requisições HTTP, biblioteca nativa do `sqlite3`, `sentry-sdk` para telemetria e gerência de variáveis de ambiente.
 
 ## Future Updates (Pontos a serem modificados e melhorados)
-- Expandir o `client.py` para suportar *Retries* exponenciais usando bibliotecas como `tenacity` em caso de instabilidade na Yampi.
-- Migrar o `db.py` de SQLite para uma solução mais escalável via ORM assíncrono (ex: SQLAlchemy ou Tortoise ORM) caso o deploy se torne Serverless, o que impediria o uso fácil de um banco de dados em arquivo local.
-- Adicionar validações mais robustas no `config.py` (usando pydantic) no carregamento das variáveis de ambiente.
+- Expandir o `client.py` para suportar *Retries* com decorators ou Circuit Breaker caso a API da Yampi passe por instabilidades prolongadas.
+- Adicionar validações mais robustas no `config.py` (usando Pydantic) no carregamento das variáveis de ambiente.
