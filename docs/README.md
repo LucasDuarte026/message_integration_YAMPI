@@ -1,75 +1,72 @@
-# Reference: Message Integration Architecture
+# Referência: Arquitetura do Message Integration
 
-Welcome to the engineering documentation for the Message Integration Yampi project. This guide is built for developers who need to understand the underlying infrastructure, modify state machine behavior, or troubleshoot the running system.
+Bem-vindo à documentação de engenharia do projeto Message Integration Yampi. Este guia foi criado para desenvolvedores que precisam entender a infraestrutura subjacente, modificar o comportamento da máquina de estados ou solucionar problemas no sistema em execução.
 
-## Explanation: Architecture & Component Boundaries
+## Explicação: Arquitetura e Limites dos Componentes
 
-The project strictly follows **Clean Architecture (Hexagonal)**. Business rules are completely isolated from infrastructure (databases, APIs, Email).
+O projeto segue estritamente a **Clean Architecture (Arquitetura Hexagonal)**. As regras de negócio estão completamente isoladas da infraestrutura (bancos de dados, APIs, E-mail).
 
-- `src/core/`: Domain entities, global configurations (`config.py`), and fixed feature flags (`macros.py`).
-- `src/domain/`: Use cases handling specific messaging logic (e.g., Abandoned Carts, Pending Orders).
-- `src/ports/`: Interfaces for I/O operations (SQLite state persistence, Sentry telemetry, SMTP, Yampi API HTTP clients).
-- `src/workers/`: Concurrent routines that periodically run Use Cases using `ThreadPoolExecutor`.
-- `src/daemon.py`: The main orchestrator that manages thread lifecycles and timings.
+- `src/core/`: Entidades de domínio, configurações globais (`config.py`) e feature flags fixas (`macros.py`).
+- `src/domain/`: Casos de uso lidando com a lógica específica de mensagens (ex: Carrinhos Abandonados, Pedidos Pendentes).
+- `src/ports/`: Interfaces para operações de I/O (persistência de estado em SQLite, telemetria Sentry, clientes HTTP da API Yampi e SMTP).
+- `src/workers/`: Rotinas concorrentes que executam periodicamente os Casos de Uso usando `ThreadPoolExecutor`.
+- `src/daemon.py`: O orquestrador principal que gerencia o ciclo de vida e o tempo das threads.
 
-## Explanation: The State Machine (STG / STC)
+## Explicação: A Máquina de Estados (STG / STC)
 
-To prevent messaging loops, duplication, and spam, the system persists state in a local SQLite database (`state.db`).
-Every Cart (STC) and Order (STG) moves through a strict lifecycle:
+Para prevenir loops de mensagens, duplicação e spam, o sistema persiste o estado em um banco de dados SQLite local (`state.db`).
+Cada Carrinho (STC) e Pedido (STG) passa por um ciclo de vida rigoroso:
 
-### Cart State Machine (STC)
-- `STC1`: Triggered at 15 minutes (10% discount).
-- `STC2`: Triggered at 24 hours (15% discount).
-- `STC3`: Triggered at 72 hours (20% discount).
+### Máquina de Estados de Carrinho (STC)
+- `STC1`: Acionado em 15 minutos (10% de desconto).
+- `STC2`: Acionado em 24 horas (15% de desconto).
+- `STC3`: Acionado em 72 horas (20% de desconto).
 
-### Order State Machine (STG)
-- `PIX_PENDING`: Triggered 30 minutes after order creation if unpaid.
-- `PIX_APPROVED`: Triggered upon payment confirmation.
-- `ON_CARRIAGE`: Triggered when package is dispatched, sending tracking info.
+### Máquina de Estados de Pedido (STG)
+- `PIX_PENDING`: Acionado 30 minutos após a criação do pedido se não for pago.
+- `PIX_APPROVED`: Acionado após a confirmação do pagamento.
+- `ON_CARRIAGE`: Acionado quando o pacote é despachado, enviando informações de rastreio.
 
-When an entity reaches a terminal state (e.g., cart converted, or 72h elapsed), it transitions to `completed` and is skipped in all future loops.
+Quando uma entidade atinge um estado terminal (ex: carrinho convertido ou decorridas 72h), ela transita para `completed` (concluído) e é ignorada em todos os loops futuros.
 
-## Reference: Advanced Configuration (.env & Macros)
+## Referência: Configuração Avançada (.env & Macros)
 
-Dependency injection and feature flags are governed by your `.env` file and `macros.py`.
+A injeção de dependências e as feature flags são governadas pelo seu arquivo `.env` e pelo `macros.py`.
 
-### Telemetry & Crash Reports (v6.2.1)
-The daemon supports resilient crash reporting out of the box:
-- `SENTRY_DSN`: Endpoint for Sentry error tracking. If left blank, it falls back to Email reporting.
-- `TRACEBACK_SMTP_USER` / `PASSWORD`: Dedicated credentials for the system to email itself when a fatal crash occurs.
-- `TRACEBACK_EMAIL_RECIPIENT`: The email address (usually the developer) that receives the stack trace and the tail of `app.log` (~50,000 lines, 10MB limit).
+### Telemetria e Rastreamento de Erros
+O daemon suporta relatórios de falhas resilientes de forma nativa:
+- `SENTRY_DSN`: Endpoint para erros do Sentry e rastreamento distribuído APM (`TRACES_SAMPLE_RATE`). Todas as exceções não tratadas e travamentos de thread são despachadas automaticamente para o Sentry.
 
-### HTTP Resilience & Auto-Retries (v6.3.0)
-The `YampiClient` includes automatic transient network retry mechanisms:
-- **Max Retries**: Performs up to 3 attempts with exponential backoff for transient connection resets (`ConnectionResetError`), network timeouts (`Timeout`), or HTTP 5xx server errors before raising an exception.
-- **Fail-Fast**: Non-retryable client errors (HTTP 4xx like 401/404) raise immediately without retrying.
+### Resiliência HTTP e Auto-Retries (v6.3.0)
+O `YampiClient` inclui mecanismos automáticos de nova tentativa (retry) em rede transiente:
+- **Max Retries**: Realiza até 3 tentativas com backoff exponencial para resets transientes de conexão (`ConnectionResetError`), timeouts de rede (`Timeout`) ou erros de servidor HTTP 5xx antes de lançar uma exceção.
+- **Fail-Fast**: Erros de cliente não passíveis de nova tentativa (HTTP 4xx como 401/404) levantam exceção imediatamente sem novas tentativas.
 
-### Duplicate Supervision Email Dispatch (v6.3.0)
-Allows production monitoring via real-time duplicate emails:
-- **`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH`**: When set to `True` in `macros.py`, every email dispatched to a real customer in production simultaneously triggers a duplicate copy sent to `TEST_EMAIL_RECIPIENT` (`deutschlucas026@gmail.com`) for real-time audit.
+### Disparo de E-mail Duplicado para Supervisão (v6.3.0)
+Permite monitoramento em produção através de e-mails duplicados em tempo real:
+- **`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH`**: Quando definido como `True` em `macros.py`, cada e-mail despachado para um cliente real em produção aciona simultaneamente uma cópia enviada para `TEST_EMAIL_RECIPIENT` (`deutschlucas026@gmail.com`) para auditoria em tempo real.
 
-## Tutorial: How to Run the Test Suite
+## Tutorial: Como Rodar a Suíte de Testes
 
-Before committing any modifications, ensure the core logic remains intact by running the unit tests:
+Antes de fazer o commit de qualquer modificação, garanta que a lógica principal permaneça intacta executando os testes unitários:
 
 ```bash
-# Activate your virtual environment
+# Ative seu ambiente virtual
 source venv/bin/activate
 
-# Discover and run all unit tests
+# Descubra e rode todos os testes unitários
 python3 -m unittest discover -s tests
 ```
 
-## Visual Diagrams
+## Diagramas Visuais
 
-For visual reference of how components talk to each other, see the Mermaid diagrams below:
+Para uma referência visual de como os componentes se comunicam entre si, veja os diagramas Mermaid abaixo:
 
-* 🏛️ [System Architecture & Clean Layers](./architecture.md)
-* 💻 [Hardware Specifications & Resource Limits (Benchmarking)](./architecture.md#-especificação-de-hardware-e-dimensionamento-benchmarking)
-* ⚙️ [State Machine Temporal Rules](./email_state_machine.md)
-* 📊 [Orders State Diagram (STG)](./diagramas/stateDiagramOrders.md)
-* 📊 [Abandoned Carts State Diagram (STC)](./diagramas/stateDiagramAbandonedCarts.md)
+* 🏛️ [Arquitetura do Sistema & Clean Layers](./architecture.md)
+* 💻 [Especificações de Hardware e Limites de Recursos (Benchmarking)](./architecture.md#-especificação-de-hardware-e-dimensionamento-benchmarking)
+* ⚙️ [Regras Temporais da Máquina de Estados](./email_state_machine.md)
+* 📊 [Diagrama de Estados de Pedidos (STG)](./diagramas/stateDiagramOrders.md)
+* 📊 [Diagrama de Estados de Carrinhos Abandonados (STC)](./diagramas/stateDiagramAbandonedCarts.md)
 
 ---
-*For business features and licensing inquiries, refer back to the [Main README](../README.md).*
-
+*Para funcionalidades de negócio e dúvidas sobre licenciamento, consulte o [README Principal](../README.md).*

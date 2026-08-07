@@ -135,8 +135,9 @@ MACRO_HTTP_INITIAL_BACKOFF_SEG = 2.0      # Backoff inicial de espera pós-rate 
 MACRO_HTTP_MAX_BACKOFF_SEG = 60.0         # Teto máximo de espera em backoff (segundos)
 
 # ------------------------------------------------------------------------------
-# 3.3. Telemetria, Crash Report e Logs
+# 3.3. Telemetria e Logs
 # ------------------------------------------------------------------------------
 MACRO_DEFAULT_LOG_PATH = "local_data/logs/app.log"    # Caminho do arquivo de logs principal
-MACRO_CRASH_REPORT_MAX_BYTES = 10 * 1024 * 1024       # 10 MB (Limite de anexo no e-mail de crash)
+MACRO_LOG_MAX_BYTES = 200 * 1024 * 1024               # Tamanho máximo de cada log (200 MB)
+MACRO_LOG_BACKUP_COUNT = 10                           # Número máximo de arquivos antigos mantidos (Total: ~2 GB)
 MACRO_SENTRY_CRON_MONITOR_SLUG = "yampi-daemon-cycle" # Identificador do Cron Monitor no Sentry Cloud

@@ -78,7 +78,7 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [logging_config.py](../src/core/logging_config.py).
 - **Destinos da Saída:** Console (`sys.stdout`) e arquivo em disco (`logs/app.log`).
 - **Nível de Logs:** `INFO` por padrão (ou `DEBUG` com a flag `-v`).
-- **Interceptação Global e Notificação Reativa (Thread & Sentry):** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR`. O sistema ativa uma thread em background que envia um e-mail de alerta para o mantenedor via servidor `TRACEBACK_SMTP_*` contendo o traceback completo e os últimos 10MB (~50.000 linhas) do arquivo de log em anexo.
+- **Interceptação Global e Telemetria de Exceções:** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR`, sendo despachado imediatamente para o **Sentry SDK** (`SENTRY_DSN`) com rastreamento completo e *Data Scrubbing* ativado.
 - **Observabilidade Total com Sentry (Fase 2):**
   - **Sentry Crons / Heartbeats (`daemon.py`):** Monitora a saúde do daemon de 5 em 5 minutos (`yampi-daemon-cycle`), emitindo alertas se o ciclo congelar ou for morto silenciosamente.
   - **Flask Integration (`webhook_server.py`):** Coleta latência, throughput e exceções nos webhooks do WhatsApp.
@@ -116,15 +116,9 @@ O arquivo [config.py](../src/core/config.py) carrega as configurações da aplic
 | `SMTP_HOST` | Host do servidor de e-mail. | `smtp.gmail.com` | Não |
 | `SMTP_PORT` | Porta do servidor SMTP (usar `465` para SSL ou `587` para TLS). | `587` | Não |
 | `SMTP_FROM` | E-mail remetente que aparecerá no cabeçalho dos clientes. | `SMTP_USER` | Não |
-| **Traceback SMTP Configs (Alertas de Erros)** | | | |
-| `TRACEBACK_SMTP_USER` | Usuário SMTP exclusivo para alertas de exceção. | - | Não |
-| `TRACEBACK_SMTP_PASSWORD` | Senha/Token SMTP exclusivo para alertas. | - | Não |
-| `TRACEBACK_SMTP_HOST` | Host SMTP para alertas de exceção. | `smtp.gmail.com` | Não |
-| `TRACEBACK_SMTP_PORT` | Porta SMTP para alertas. | `587` | Não |
-| `TRACEBACK_SMTP_FROM` | E-mail remetente do alerta. | `TRACEBACK_SMTP_USER` | Não |
-| `TRACEBACK_EMAIL_RECIPIENT` | E-mail de destino (mantenedor) que receberá o aviso de crash com o log. | - | Não |
 | **Sentry Configs** | | | |
 | `SENTRY_DSN` | DSN do projeto no Sentry para monitoramento em nuvem. | - | Não |
+| `TRACES_SAMPLE_RATE` | Taxa de amostragem de transações APM (ex: `1.0` para 100% ou `0.5`). | `1.0` | Não |
 | **Meta WhatsApp Configs** | | | |
 | `META_WA_TOKEN` | Token temporário ou permanente da Meta Cloud API. | - | Não |
 | `META_PHONE_NUMBER_ID` | Identificador de número de telefone gerado na Meta Cloud API. | - | Não |

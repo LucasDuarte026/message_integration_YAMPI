@@ -5,7 +5,40 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.4.0] - 2026-08-07 (Pool de Conexões Postgres, Sentry APM, Rotação de Logs e Governança de Macros - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Pool de Conexões e Concorrência de Banco (`src/ports/postgres_repo.py`)**:
+  - Implementação de `ThreadedConnectionPool` configurável (1 a 20 conexões) para contenção de concorrência e eliminação de vazamento de sockets TCP.
+  - Adição do context manager `_get_connection()` garantindo devolução automática (`pool.putconn()`) via blocos `try/finally` e método `close()` para finalização limpa.
+- **Observabilidade Completa e APM Sentry (`src/core/client.py`, `src/ports/postgres_repo.py`, `src/daemon.py`, `src/webhook_server.py` e `src/workers/`)**:
+  - Instrumentação de Spans de APM manuais (`sentry_sdk.start_span`) em chamadas HTTP da Yampi e consultas SQL no PostgreSQL.
+  - Fingerprinting customizado para isolamento de erros de rede (`yampi-rate-limit-429`, `yampi-upstream-downtime-5xx` e `yampi-client-error-4xx`).
+  - Monitoramento de Daemons via `sentry_sdk.crons.monitor` com heartbeat configurado para o slug `yampi-daemon-cycle`.
+  - Integração do Flask com `FlaskIntegration()` no `src/webhook_server.py` para medição de latência e erros 5xx em tempo real.
+  - Emissão de breadcrumbs de negócio (`cart_state_machine` e `order_state_machine`) a cada transição de status `STC` e `STG`.
+  - Unificação de captura de exceções globais (processo e threads) diretamente via `sentry_sdk.capture_exception()`.
+- **Rotação de Logs e Proteção de I/O em Disco (`src/core/logging_config.py` & `src/core/macros.py`)**:
+  - Substituição do `FileHandler` estático por `RotatingFileHandler` com rotação de 200 MB por arquivo (`MACRO_LOG_MAX_BYTES`) e retenção de até 10 backups (`MACRO_LOG_BACKUP_COUNT`), evitando esgotamento de disco em produção.
+- **Governança de Macros e Erradicação de Magic Numbers (`src/core/macros.py`)**:
+  - Centralização de todas as constantes e literais de Sentry, Postgres, SMTP, Webhooks e Yampi em um único arquivo de referência (`src/core/macros.py`).
+  - Implementação de mascaramento dinâmico de e-mails (`_mask_email()`) no `SMTPEmailProvider` respeitando `MACRO_EMAIL_MASK_VISIBLE_PREFIX_CHARS`.
+- **Ferramental Operacional e CLI (`scripts/`)**:
+  - `scripts/find_by_id.sh`: consulta rápida e flexível por qualquer campo/coluna do banco de dados (ex: sku, order_id, cpf) com exibição formatada.
+  - `scripts/delete_by_id.sh`: utilitário interativo de exclusão segura com preview em tabela e confirmações de proteção.
+- **Padronização de Testes com Pytest (`requirements.txt` & `docs/testing_guidelines.md`)**:
+  - Inclusão das dependências `pytest`, `pytest-mock` e `pytest-cov` no `requirements.txt`.
+  - Criação do manual oficial de testes com TDD, injeção de fixtures e parametrização em `docs/testing_guidelines.md`.
+- **Documentação e Guias de Arquitetura (`docs/` & `project_decisions/`)**:
+  - Guia completo de Git Flow, branches `feature/*`/`hotfix/*` e ciclo de PRs em `docs/project_overview.md`.
+  - Elaboração do estudo técnico de observabilidade em `project_decisions/antigos/08_sentry_architecture_and_potential.md`.
+
+---
+
 ## [6.3.2] - 2026-08-03 (Resiliência do Provedor SMTP e Tolerância a Falhas na Fase 3 - STABLE)
+
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
 

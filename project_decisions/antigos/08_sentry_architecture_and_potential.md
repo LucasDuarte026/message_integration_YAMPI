@@ -70,20 +70,16 @@ flowchart TD
     H --> J[Oculta Stack Trace do app.log por Segurança]
     I --> J
     
-    J --> K[Sentry SDK captura evento com Data Scrubbing]
-    J --> L[_trigger_crash_report_thread: Fallback SMTP de Emergência]
-    
-    L --> M[Envia e-mail com Traceback + 10MB finais do app.log]
+    J --> K[Sentry SDK captura evento com Data Scrubbing e Telemetria]
 ```
 
-### 2.3. Arquitetura de Redundância: Sentry + Fallback SMTP
+### 2.3. Arquitetura Unificada de Telemetria e Alertas com Sentry
 
-O sistema adota uma estratégia de defesa em profundidade com duas camadas de alerta:
+O sistema adota o **Sentry Cloud** como seu canal exclusivo e oficial de observabilidade de exceções:
 
 | Canal | Papel Arquitetural | Vantagem Principal |
 | :--- | :--- | :--- |
-| **Sentry Cloud** | **Observabilidade Principal** | Dashboard interativo, gráficos de tendência, agrupamento automático de incidentes, alertas em tempo real e isolamento seguro de PII. |
-| **Fallback SMTP** (`_trigger_crash_report_thread`) | **Caixa-Preta de Emergência** | Dispara um e-mail direto para o mantenedor via SMTP com os últimos ~10MB do `app.log` anexados, funcionando mesmo se a conexão externa com o Sentry for bloqueada por firewall ou restrições de rede. |
+| **Sentry Cloud** | **Observabilidade Principal & Alertas** | Dashboard interativo, gráficos de tendência, agrupamento automático de incidentes, alertas em tempo real e isolamento seguro de PII. |
 
 ---
 
