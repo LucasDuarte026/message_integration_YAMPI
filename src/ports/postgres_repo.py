@@ -4,16 +4,46 @@ from datetime import datetime, timedelta
 import logging
 from typing import Optional, Dict, Any
 from src.domain.interfaces import StateRepositoryProtocol
+from contextlib import contextmanager, nullcontext
+from psycopg2.pool import ThreadedConnectionPool
+from src.core.macros import (
+    MACRO_PG_POOL_MIN_CONN,
+    MACRO_PG_POOL_MAX_CONN,
+    MACRO_TIMEZONE_OFFSET_HOURS,
+    MACRO_DEFAULT_FALLBACK_CPF,
+    MACRO_DEFAULT_FALLBACK_SKU,
+    MACRO_DEFAULT_FALLBACK_ORDER_NUMBER
+)
+
+try:
+    import sentry_sdk
+except ImportError:
+    sentry_sdk = None
 
 logger = logging.getLogger(__name__)
 
 class PostgresStateRepository(StateRepositoryProtocol):
     def __init__(self, database_url: str):
         self.database_url = database_url
+        self.pool = ThreadedConnectionPool(
+            MACRO_PG_POOL_MIN_CONN, 
+            MACRO_PG_POOL_MAX_CONN, 
+            self.database_url, 
+            cursor_factory=RealDictCursor
+        )
         self._init_db()
 
+    @contextmanager
     def _get_connection(self):
-        return psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
+        conn = self.pool.getconn()
+        try:
+            yield conn
+        finally:
+            self.pool.putconn(conn)
+
+    def close(self):
+        if hasattr(self, 'pool') and self.pool:
+            self.pool.closeall()
 
     def _init_db(self):
         create_table = """
@@ -49,9 +79,9 @@ class PostgresStateRepository(StateRepositoryProtocol):
 
     def upsert_from_order(self, cart_id: str, order_id: str, order_number: Optional[str], data_pedido: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
         # Fallbacks de dados cadastrais para satisfazer NOT NULL da Spec 04
-        safe_cpf = cpf if cpf else "00000000000"
-        safe_sku = sku if sku else "N/A"
-        safe_order_number = str(order_number) if order_number else "N/A"
+        safe_cpf = cpf if cpf else MACRO_DEFAULT_FALLBACK_CPF
+        safe_sku = sku if sku else MACRO_DEFAULT_FALLBACK_SKU
+        safe_order_number = str(order_number) if order_number else MACRO_DEFAULT_FALLBACK_ORDER_NUMBER
 
         # data_carrinho eh gravada como NULL quando criada pelo Pedido, a menos que o Worker de Carrinhos ja a tenha gravado
         query = """
@@ -67,20 +97,26 @@ class PostgresStateRepository(StateRepositoryProtocol):
         """
         lock_query = "SELECT * FROM email_status_table WHERE cart_id = %s FOR UPDATE;"
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query, (cart_id, order_id, safe_order_number, data_pedido, safe_cpf, safe_sku))
-                    cur.execute(lock_query, (cart_id,))
-                    result = cur.fetchone()
-                conn.commit()
-                return dict(result) if result else None
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres upsert_from_order") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(query, (cart_id, order_id, safe_order_number, data_pedido, safe_cpf, safe_sku))
+                        cur.execute(lock_query, (cart_id,))
+                        result = cur.fetchone()
+                    conn.commit()
+                    return dict(result) if result else None
         except Exception as e:
             logger.error(f"Erro no upsert_from_order para cart_id {cart_id}: {e}")
             return None
 
     def upsert_from_cart(self, cart_id: str, data_carrinho: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
-        safe_cpf = cpf if cpf else "00000000000"
-        safe_sku = sku if sku else "N/A"
+        safe_cpf = cpf if cpf else MACRO_DEFAULT_FALLBACK_CPF
+        safe_sku = sku if sku else MACRO_DEFAULT_FALLBACK_SKU
         
         query = """
             INSERT INTO email_status_table (cart_id, order_number, data_carrinho, cpf, sku)
@@ -93,13 +129,19 @@ class PostgresStateRepository(StateRepositoryProtocol):
         """
         lock_query = "SELECT * FROM email_status_table WHERE cart_id = %s FOR UPDATE;"
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query, (cart_id, data_carrinho, safe_cpf, safe_sku))
-                    cur.execute(lock_query, (cart_id,))
-                    result = cur.fetchone()
-                conn.commit()
-                return dict(result) if result else None
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres upsert_from_cart") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(query, (cart_id, data_carrinho, safe_cpf, safe_sku))
+                        cur.execute(lock_query, (cart_id,))
+                        result = cur.fetchone()
+                    conn.commit()
+                    return dict(result) if result else None
         except Exception as e:
             logger.error(f"Erro no upsert_from_cart para cart_id {cart_id}: {e}")
             return None
@@ -111,11 +153,17 @@ class PostgresStateRepository(StateRepositoryProtocol):
             WHERE cart_id = %s;
         """
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    now_utc3 = datetime.utcnow() - timedelta(hours=3)
-                    cur.execute(query, (new_stg, now_utc3, cart_id))
-                conn.commit()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres update_stg") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        now_utc3 = datetime.utcnow() - timedelta(hours=MACRO_TIMEZONE_OFFSET_HOURS)
+                        cur.execute(query, (new_stg, now_utc3, cart_id))
+                    conn.commit()
         except Exception as e:
             logger.error(f"Erro ao atualizar STG do cart_id {cart_id} para {new_stg}: {e}")
 
@@ -126,11 +174,17 @@ class PostgresStateRepository(StateRepositoryProtocol):
             WHERE cart_id = %s;
         """
         try:
-            with self._get_connection() as conn:
-                with conn.cursor() as cur:
-                    now_utc3 = datetime.utcnow() - timedelta(hours=3)
-                    cur.execute(query, (new_stc, now_utc3, cart_id))
-                conn.commit()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres update_stc") if sentry_sdk else nullcontext()
+        except Exception:
+            span_ctx = nullcontext()
+
+        try:
+            with span_ctx:
+                with self._get_connection() as conn:
+                    with conn.cursor() as cur:
+                        now_utc3 = datetime.utcnow() - timedelta(hours=MACRO_TIMEZONE_OFFSET_HOURS)
+                        cur.execute(query, (new_stc, now_utc3, cart_id))
+                    conn.commit()
         except Exception as e:
             logger.error(f"Erro ao atualizar STC do cart_id {cart_id} para {new_stc}: {e}")
 

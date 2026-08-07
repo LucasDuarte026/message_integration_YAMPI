@@ -1,14 +1,14 @@
 <mjml>
   <mj-head>
     <mj-title>Seu Pedido foi Reservado - Conclua o Pagamento!</mj-title>
-    <mj-include path="./components/styles.mjml" />
+    <mj-include path="../layouts/components/styles.mjml" />
   </mj-head>
 
   <mj-body background-color="#F8FAFC">
     <mj-wrapper css-class="content-card" padding="0">
       
       <!-- Cabeçalho (Header) - Imagem Fina no Topo -->
-      <mj-include path="./components/header.mjml" />
+      <mj-include path="../layouts/components/header.mjml" />
       
       <!-- Introdução (Body) -->
       <mj-section background-color="#FFFFFF" padding="30px 20px 10px 20px">
@@ -48,7 +48,7 @@
               <span style="color: #64748b; font-size: 13px; font-weight: bold; display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Chave PIX Copia e Cola:</span>
               <span style="color: #94A3B8; font-size: 12px; display: block; margin-bottom: 12px;">Pressione e segure o código abaixo para copiar:</span>
               <div style="background-color: #F8FAFC; padding: 14px; border-radius: 8px; border: 1px dashed #10B981;">
-                <strong style="color: #10B981; font-size: 13px; font-family: monospace; word-break: break-all; display: block; line-height: 1.5; user-select: all;">{{ pix_code }}</strong>
+                <strong style="color: #10B981; font-size: 13px; font-family: monospace; word-break: break-all; display: block; line-height: 1.5; user-select: all;"><a href="#pix" style="text-decoration: none !important; color: #10B981 !important; cursor: text;">{{ pix_code | safe }}</a></strong>
               </div>
             </div>
           </mj-text>
@@ -101,7 +101,7 @@
       </mj-section>
       
       <!-- Footer -->
-      <mj-include path="./components/footer.mjml" />
+      <mj-include path="../layouts/components/footer.mjml" />
 
     </mj-wrapper>
   </mj-body>

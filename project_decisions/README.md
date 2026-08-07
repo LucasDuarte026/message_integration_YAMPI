@@ -47,5 +47,12 @@ Nesta pasta estão concentradas as diretrizes de mudanças locais, propostas de 
    * **Data**: 2026-07-27
    * **Status**: Aprovado e Implementado (v4.1.0).
 
+7. [07_future_implementations.md](./antigos/07_future_implementations.md)
+   * **Assunto**: Roadmap técnico, débitos técnicos controlados, integrações futuras e evolução da Fase 2.
+   * **Data**: 2026-08-01
+   * **Status**: Aprovado e em Acompanhamento.
 
-
+8. [08_sentry_architecture_and_potential.md](./antigos/08_sentry_architecture_and_potential.md)
+   * **Assunto**: Diagnóstico do uso atual do Sentry SDK, interceptadores globais de crash, segurança e guia das potencialidades inexploradas (APM, Sentry Crons, Breadcrumbs e Spans).
+   * **Data**: 2026-08-07
+   * **Status**: Aprovado / Referência Técnica.

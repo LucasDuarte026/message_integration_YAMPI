@@ -1,14 +1,14 @@
 <mjml>
   <mj-head>
     <mj-title>Último Aviso: {{ value_cupom }}% OFF no seu Carrinho! ⚠️</mj-title>
-    <mj-include path="./components/styles.mjml" />
+    <mj-include path="../layouts/components/styles.mjml" />
   </mj-head>
 
   <mj-body background-color="#F8FAFC">
     <mj-wrapper css-class="content-card" padding="0">
       
       <!-- Cabeçalho (Header) - Imagem Fina no Topo -->
-      <mj-include path="./components/header.mjml" />
+      <mj-include path="../layouts/components/header.mjml" />
       
       <!-- Introdução (Body) -->
       <mj-section background-color="#FFFFFF" padding="30px 20px 10px 20px">
@@ -87,7 +87,7 @@
       </mj-section>
       
       <!-- Footer -->
-      <mj-include path="./components/footer.mjml" />
+      <mj-include path="../layouts/components/footer.mjml" />
 
     </mj-wrapper>
   </mj-body>

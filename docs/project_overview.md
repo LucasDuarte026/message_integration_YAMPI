@@ -5,7 +5,7 @@ Este projeto é um sistema de integração de mensagens projetado para atuar no 
 
 O sistema foi concebido utilizando metodologias ágeis sólidas:
 - **Spec-driven development (SDD)**: Onde as interfaces e contratos são definidos antes das implementações.
-- **Test-driven development (TDD)**: Onde testes orientam a lógica.
+- **Test-driven development (TDD)**: Onde testes no padrão **Pytest** orientam a lógica do sistema (detalhado em [Diretrizes de Testes](./testing_guidelines.md)).
 
 Este documento serve como o "Manual do Usuário" e o "Manual do Desenvolvedor" consolidado, fornecendo uma visão ampla, não-técnica e técnica detalhada do projeto de ponta a ponta.
 
@@ -63,6 +63,7 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 
 - **Infraestrutura Desacoplada:** Ao usar os contratos de `src/domain/interfaces.py`, o projeto pode trocar de provedor de mensagem (SMTP, Meta) alterando apenas a injeção no orquestrador principal sem que o Worker perceba.
 - **Tolerância a Falhas e Duplicidade:** O uso estrito do banco de dados relacional atua como uma máquina de estados (STG/STC). As transações garantem que gargalos de API ou execuções paralelas de workers não gerem duplicidade ou *race conditions*.
+- **PostgreSQL Connection Pooling (`psycopg2.pool.ThreadedConnectionPool`):** As conexões com o PostgreSQL utilizam um pool thread-safe de 1 a 20 conexões reutilizadas via context managers (`_get_connection()`), prevenindo sobrecarga de conexões TCP e falhas de resolução de DNS interno do Docker em alta concorrência.
 - **Controle de Vazão e Resiliência SMTP:** A infraestrutura de envio utiliza *Connection Pooling*, *Throttling* centralizado (travas de `threading.Lock`) e *Exponential Backoff* para evitar banimentos por SPAM nos provedores de e-mail e falhas por *Timeouts*.
 - **Auto-documentação Estrita:** Exigência de que regras e contratos guiem o desenvolvimento. 
 > [!CAUTION]
@@ -77,7 +78,13 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 O sistema utiliza o módulo de logging nativo do Python configurado globalmente em [logging_config.py](../src/core/logging_config.py).
 - **Destinos da Saída:** Console (`sys.stdout`) e arquivo em disco (`logs/app.log`).
 - **Nível de Logs:** `INFO` por padrão (ou `DEBUG` com a flag `-v`).
-- **Interceptação Global e Notificação Reativa (Thread & Sentry):** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR`. O sistema ativa uma thread em background que envia um e-mail de alerta para o mantenedor via servidor `TRACEBACK_SMTP_*` contendo o traceback completo e os últimos 10MB (~50.000 linhas) do arquivo de log em anexo. Paralelamente, envia os eventos de erro para o **Sentry SDK** (`SENTRY_DSN`) com *Data Scrubbing* ativado.
+- **Interceptação Global e Telemetria de Exceções:** O sistema substitui o comportamento padrão do Python instalando `sys.excepthook` e `threading.excepthook`. Qualquer exceção inesperada ou erro fatal é capturado e registrado como `FATAL ERROR`, sendo despachado imediatamente para o **Sentry SDK** (`SENTRY_DSN`) com rastreamento completo e *Data Scrubbing* ativado.
+- **Observabilidade Total com Sentry (Fase 2):**
+  - **Sentry Crons / Heartbeats (`daemon.py`):** Monitora a saúde do daemon de 5 em 5 minutos (`yampi-daemon-cycle`), emitindo alertas se o ciclo congelar ou for morto silenciosamente.
+  - **Flask Integration (`webhook_server.py`):** Coleta latência, throughput e exceções nos webhooks do WhatsApp.
+  - **Breadcrumbs de Negócio (`orders.py` e `abandoned_cart.py`):** Grava o histórico de transições de status (`STG` e `STC`) antes de qualquer erro.
+  - **APM & Distributed Tracing (`client.py` e `postgres_repo.py`):** Mede com precisão milimétrica a latência de requisições HTTP da API Yampi (`http.client`) e queries de banco de dados (`db.sql.query`).
+  - **Data Scrubbing (`send_default_pii=False`):** Descarte de dados sensíveis e PII para aderência estrita à LGPD.
 - **Rastreamento de Regras:** Os workers calculam e logam a idade de abandono em horas (`Analisando carrinho [id]: abandonado há [X.XX] horas. Regra aplicada: [fase]`), facilitando o rastreamento das regras aplicadas.
 
 ### Depuração Interativa e Execução Rápida
@@ -109,15 +116,9 @@ O arquivo [config.py](../src/core/config.py) carrega as configurações da aplic
 | `SMTP_HOST` | Host do servidor de e-mail. | `smtp.gmail.com` | Não |
 | `SMTP_PORT` | Porta do servidor SMTP (usar `465` para SSL ou `587` para TLS). | `587` | Não |
 | `SMTP_FROM` | E-mail remetente que aparecerá no cabeçalho dos clientes. | `SMTP_USER` | Não |
-| **Traceback SMTP Configs (Alertas de Erros)** | | | |
-| `TRACEBACK_SMTP_USER` | Usuário SMTP exclusivo para alertas de exceção. | - | Não |
-| `TRACEBACK_SMTP_PASSWORD` | Senha/Token SMTP exclusivo para alertas. | - | Não |
-| `TRACEBACK_SMTP_HOST` | Host SMTP para alertas de exceção. | `smtp.gmail.com` | Não |
-| `TRACEBACK_SMTP_PORT` | Porta SMTP para alertas. | `587` | Não |
-| `TRACEBACK_SMTP_FROM` | E-mail remetente do alerta. | `TRACEBACK_SMTP_USER` | Não |
-| `TRACEBACK_EMAIL_RECIPIENT` | E-mail de destino (mantenedor) que receberá o aviso de crash com o log. | - | Não |
 | **Sentry Configs** | | | |
 | `SENTRY_DSN` | DSN do projeto no Sentry para monitoramento em nuvem. | - | Não |
+| `TRACES_SAMPLE_RATE` | Taxa de amostragem de transações APM (ex: `1.0` para 100% ou `0.5`). | `1.0` | Não |
 | **Meta WhatsApp Configs** | | | |
 | `META_WA_TOKEN` | Token temporário ou permanente da Meta Cloud API. | - | Não |
 | `META_PHONE_NUMBER_ID` | Identificador de número de telefone gerado na Meta Cloud API. | - | Não |
@@ -150,6 +151,81 @@ Este projeto adota estritamente o padrão **[Semantic Versioning (SemVer 2.0.0)]
 - **PATCH (`1.0.X`) — Bug Fixes e Ajustes Finos**: Correções de erros pontuais, ajustes de tratamento de logs ou refinamento em formatadores sem alteração de regras de negócio.
 
 Os registros de versão são mantidos no arquivo [VERSION](../VERSION), detalhados no [CHANGELOG.md](../CHANGELOG.md) e marcados no Git através de **Annotated Tags** (ex: `git tag -a v6.2.0 -m "..."`).
+
+---
+
+## 10. Estratégia de Branches e Workflow Git (GitHub Flow)
+
+Este projeto segue estritamente o **GitHub Flow** com Pull Requests obrigatórios para garantir estabilidade, rastreabilidade e isolamento de código.
+
+### 🛡️ Proteção da Branch Principal (`main`)
+- **Proibição de Desenvolvimento Direto:** É estritamente proibido criar commits ou desenvolver funcionalidades diretamente na branch `main`.
+- **Origem de Produção:** A branch `main` representa o código estável e pronto para implantação. Todas as mudanças entram na `main` exclusivamente através de **Pull Requests (PR)** aprovados no GitHub.
+
+### 🔀 Nomenclatura e Tipos de Branches
+Todo novo desenvolvimento deve ser isolado em uma branch criada a partir da `main` utilizando os seguintes prefixos padrão:
+
+1. **`feature/*` ou `features/*` (Funcionalidades e Otimizações Planejadas)**
+   - Utilizada para criar novas funcionalidades, adicionar novos provedores, atualizar templates, criar testes ou refatorar módulos.
+   - **Exemplos:** `feature/newman-tests`, `feature/smtp-connection-pooling`, `feature/fastapi-webhook`.
+
+2. **`hotfix/*` (Correções Emergenciais de Produção)**
+   - Utilizada exclusivamente para corrigir bugs críticos e imediatos encontrados em ambiente de teste/produção.
+   - **Exemplos:** `hotfix/fix-pix-link-formatting`, `hotfix/db-lock-timeout`, `hotfix/image-asset-path`.
+
+### 🔄 Ciclo de Vida de uma Alteração (Do Card ao Merge)
+
+```mermaid
+graph LR
+    A[main] -->|git checkout -b| B[feature/minha-feature]
+    B -->|commits locais| C[Conventional Commits]
+    C -->|git push -u origin| D[Branch Remota no GitHub]
+    D -->|Abrir PR| E[Pull Request no GitHub]
+    E -->|Revisão e Validação| F[Merge PR para main]
+    F -->|git checkout main && git pull| G[main local atualizada]
+    G -->|Tag de Release se aplicável| H[git tag -a vX.Y.Z]
+```
+
+1. **Criação da Branch:**
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b feature/nome-da-funcionalidade
+   # Ou para correções:
+   git checkout -b hotfix/descricao-do-bug
+   ```
+
+2. **Desenvolvimento com Conventional Commits:**
+   Commits devem ser atômicos e seguir a convenção:
+   - `feat: ...` ➔ Nova funcionalidade
+   - `fix: ...` ➔ Correção de bug
+   - `docs: ...` ➔ Alterações em documentação
+   - `test: ...` ➔ Adição ou correção de testes
+   - `refactor: ...` ➔ Refatoração de código sem alterar regra de negócio
+   - `chore: ...` ➔ Tarefas de manutenção ou dependências
+
+3. **Publicação da Branch e Abertura do Pull Request:**
+   ```bash
+   git push -u origin feature/nome-da-funcionalidade
+   ```
+   Acesse o repositório no **GitHub** e abra o **Pull Request** direcionado para a branch `main`.
+
+4. **Merge no GitHub e Sincronização Local:**
+   Após a aprovação e *Merge* do PR na interface do GitHub:
+   ```bash
+   git checkout main
+   git pull origin main
+   git branch -d feature/nome-da-funcionalidade
+   ```
+
+5. **Release e Versionamento (Quando aplicável):**
+   Se o merge contiver um marco/release, estampar a tag SemVer correspondente na `main`:
+   ```bash
+   git tag -a vX.Y.Z -m "Release vX.Y.Z: Descrição sumária"
+   git push origin main --tags
+   ```
+
+---
 
 > [!IMPORTANT]
 > 🌊 **DIVISOR DE ÁGUAS — Transição da Fase 1 para a Fase 2**

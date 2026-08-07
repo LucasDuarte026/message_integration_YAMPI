@@ -26,24 +26,25 @@ Todas as constantes temporais e de paginação devem ser declaradas como variáv
 # ============================================================
 
 # --- Execução e Consulta ---
-MACRO_INTERVALO_EXECUCAO_SEG = 300       # 5 min — intervalo entre ciclos do sistema
-MACRO_JANELA_CONSULTA_HORAS = 48         # horas de histórico consultadas na API Yampi
-MACRO_TAMANHO_PAGINA = 100               # itens por página na consulta à API Yampi
+MACRO_W_ORDERS_INTERVAL = 1800           # 30 min — intervalo de pedidos
+MACRO_W_CARTS_INTERVAL = 1800            # 30 min — intervalo de carrinhos
+MACRO_PRECHECK_MAX_DAYS = 15             # janela de histórico máxima na API Yampi (15 dias = 360 horas)
+MACRO_W_ORDERS_PAGE_LIMIT = 100          # itens por página na consulta à API Yampi (Pedidos)
 
 # --- Timers de Pedido (STG) — referência: data_pedido ---
 MACRO_TIMEOUT_PAGAMENTO_SEG = 1800       # 30 min — janela máxima de incentivo de pagamento inicial
 MACRO_DELAY_ORDER_PIX_EMAIL_SEG = 300    # 5 min — gordurinha/delay mínimo antes de disparar o Email 2 (PIX)
-MACRO_CUPOM_PEDIDO_1_HORAS = 12          # STG 4→5 — email cupom 1 (10%)
-MACRO_CUPOM_PEDIDO_2_HORAS = 14          # STG 5→6 — email cupom 2 (15%)
-MACRO_CUPOM_PEDIDO_3_HORAS = 16          # STG 6→7 — email cupom 3 (20%)
+MACRO_CUPOM_PEDIDO_1_HORAS = 24          # STG 4→5 — email cupom 1 (10%)
+MACRO_CUPOM_PEDIDO_2_HORAS = 48          # STG 5→6 — email cupom 2 (15%)
+MACRO_CUPOM_PEDIDO_3_HORAS = 72          # STG 6→7 — email cupom 3 (20%)
 
-MACRO_PERDIDO_PEDIDO_HORAS = 18          # STG 7→8 — cliente perdido
+MACRO_PERDIDO_PEDIDO_HORAS = 96          # STG 7→8 — cliente perdido
 
 # --- Timers de Carrinho Abandonado (STC) — referência: data_carrinho ---
-MACRO_CUPOM_CARRINHO_1_HORAS = 14        # STC null→15 — email cupom 4 + link recuperação
-MACRO_CUPOM_CARRINHO_2_HORAS = 16        # STC 15→16  — email cupom 5 + link recuperação
-MACRO_CUPOM_CARRINHO_3_HORAS = 18        # STC 16→17  — email cupom 6 + link recuperação
-MACRO_PERDIDO_CARRINHO_HORAS = 20        # STC 17→18  — cliente perdido
+MACRO_CUPOM_CARRINHO_1_HORAS = 4         # STC null→15 — email cupom 4 + link recuperação
+MACRO_CUPOM_CARRINHO_2_HORAS = 24        # STC 15→16  — email cupom 5 + link recuperação
+MACRO_CUPOM_CARRINHO_3_HORAS = 48        # STC 16→17  — email cupom 6 + link recuperação
+MACRO_PERDIDO_CARRINHO_HORAS = 96        # STC 17→18  — cliente perdido
 ```
 
 ---

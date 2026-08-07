@@ -23,11 +23,11 @@ images:
 
   body_banners:
     pedido_aprovado: "src/templates/emails/assets/images/email_1_pedido_aprovado/body/pedido_aprovado.png"
-    pedido_pendente: "src/templates/emails/assets/images/email_2_pedido_pendente/body/pedido_aprovado.png"
+    pedido_pendente: "src/templates/emails/assets/images/email_2_pedido_pendente/body/aguardando_pagamento.png"
     pedido_a_caminho: "src/templates/emails/assets/images/email_3_pedido_a_caminho/body/pedido_a_caminho.png"
     cupom_pedido_1: "src/templates/emails/assets/images/email_4_cupom_pedido_1/body/10_off_primeira_compra.png"
-    cupom_pedido_2: "src/templates/emails/assets/images/email_5_cupom_pedido_2/body/5_desconto.png"
-    cupom_pedido_3: "src/templates/emails/assets/images/email_6_cupom_pedido_3/body/5_primeira_compra.png"
+    cupom_pedido_2: "src/templates/emails/assets/images/email_5_cupom_pedido_2/body/15_desconto.png.png"
+    cupom_pedido_3: "src/templates/emails/assets/images/email_6_cupom_pedido_3/body/20_desconto.png.png"
     carrinho_abandonado_4: "src/templates/emails/assets/images/email_7_carrinho_abandonado_4/body/seu_carrinho_esta_te_esperando_header.png"
     carrinho_abandonado_5: "src/templates/emails/assets/images/email_8_carrinho_abandonado_5/body/seu_carrinho_esta_te_esperando_header.png"
     carrinho_abandonado_6: "src/templates/emails/assets/images/email_9_carrinho_abandonado_6/body/seu_carrinho_esta_te_esperando_header.png"

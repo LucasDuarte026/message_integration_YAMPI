@@ -12,7 +12,7 @@ from src.core.macros import (
     MACRO_CUPOM_CARRINHO_2_HORAS,
     MACRO_CUPOM_CARRINHO_3_HORAS,
     MACRO_PERDIDO_CARRINHO_HORAS,
-    MACRO_PRECHECK_ORDERS_MAX_DAYS
+    MACRO_PRECHECK_MAX_DAYS
 )
 from src.domain.interfaces import YampiClientProtocol, MessageProviderProtocol, StateRepositoryProtocol
 
@@ -85,11 +85,11 @@ class AbandonedCartProcessor:
         now_utc3 = datetime.utcnow() - timedelta(hours=3)
         days_since_creation = (now_utc3 - created_at).total_seconds() / 86400
         
-        # Limite de busca: Não olhar mais longe que 168 horas (1 semana)
-        if days_since_creation > MACRO_PRECHECK_ORDERS_MAX_DAYS:
+        # Limite de busca: Não olhar mais longe que 15 dias
+        if days_since_creation > MACRO_PRECHECK_MAX_DAYS:
             return False, False
             
-        logger.debug(f"[PRECHECK] Carrinho: Idade <= {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
+        logger.debug(f"[PRECHECK] Carrinho: Idade <= {MACRO_PRECHECK_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
         return True, True
         
     def _extract_customer_data(self, cart: Dict[str, Any]) -> Dict[str, Any]:
@@ -206,6 +206,16 @@ class AbandonedCartProcessor:
                 if success:
                     self.state_repo.update_stc(cart_id, new_stc)
                     logger.info(f"[Worker Carrinhos] Estado do cart_id {cart_id} atualizado para STC={new_stc}")
+                    try:
+                        import sentry_sdk
+                        sentry_sdk.add_breadcrumb(
+                            category="cart_state_machine",
+                            message=f"Carrinho {cart_id} transitou para STC={new_stc}",
+                            level="info",
+                            data={"cart_id": cart_id, "new_stc": new_stc, "previous_stc": stc}
+                        )
+                    except Exception:
+                        pass
                 else:
                     logger.warning(f"[Worker Carrinhos] Falha no envio de notificação para cart_id {cart_id}. Transição STC abortada (será retentada na próxima iteração).")
 
