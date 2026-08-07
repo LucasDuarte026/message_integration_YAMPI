@@ -151,6 +151,81 @@ Este projeto adota estritamente o padrão **[Semantic Versioning (SemVer 2.0.0)]
 
 Os registros de versão são mantidos no arquivo [VERSION](../VERSION), detalhados no [CHANGELOG.md](../CHANGELOG.md) e marcados no Git através de **Annotated Tags** (ex: `git tag -a v6.2.0 -m "..."`).
 
+---
+
+## 10. Estratégia de Branches e Workflow Git (GitHub Flow)
+
+Este projeto segue estritamente o **GitHub Flow** com Pull Requests obrigatórios para garantir estabilidade, rastreabilidade e isolamento de código.
+
+### 🛡️ Proteção da Branch Principal (`main`)
+- **Proibição de Desenvolvimento Direto:** É estritamente proibido criar commits ou desenvolver funcionalidades diretamente na branch `main`.
+- **Origem de Produção:** A branch `main` representa o código estável e pronto para implantação. Todas as mudanças entram na `main` exclusivamente através de **Pull Requests (PR)** aprovados no GitHub.
+
+### 🔀 Nomenclatura e Tipos de Branches
+Todo novo desenvolvimento deve ser isolado em uma branch criada a partir da `main` utilizando os seguintes prefixos padrão:
+
+1. **`feature/*` ou `features/*` (Funcionalidades e Otimizações Planejadas)**
+   - Utilizada para criar novas funcionalidades, adicionar novos provedores, atualizar templates, criar testes ou refatorar módulos.
+   - **Exemplos:** `feature/newman-tests`, `feature/smtp-connection-pooling`, `feature/fastapi-webhook`.
+
+2. **`hotfix/*` (Correções Emergenciais de Produção)**
+   - Utilizada exclusivamente para corrigir bugs críticos e imediatos encontrados em ambiente de teste/produção.
+   - **Exemplos:** `hotfix/fix-pix-link-formatting`, `hotfix/db-lock-timeout`, `hotfix/image-asset-path`.
+
+### 🔄 Ciclo de Vida de uma Alteração (Do Card ao Merge)
+
+```mermaid
+graph LR
+    A[main] -->|git checkout -b| B[feature/minha-feature]
+    B -->|commits locais| C[Conventional Commits]
+    C -->|git push -u origin| D[Branch Remota no GitHub]
+    D -->|Abrir PR| E[Pull Request no GitHub]
+    E -->|Revisão e Validação| F[Merge PR para main]
+    F -->|git checkout main && git pull| G[main local atualizada]
+    G -->|Tag de Release se aplicável| H[git tag -a vX.Y.Z]
+```
+
+1. **Criação da Branch:**
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b feature/nome-da-funcionalidade
+   # Ou para correções:
+   git checkout -b hotfix/descricao-do-bug
+   ```
+
+2. **Desenvolvimento com Conventional Commits:**
+   Commits devem ser atômicos e seguir a convenção:
+   - `feat: ...` ➔ Nova funcionalidade
+   - `fix: ...` ➔ Correção de bug
+   - `docs: ...` ➔ Alterações em documentação
+   - `test: ...` ➔ Adição ou correção de testes
+   - `refactor: ...` ➔ Refatoração de código sem alterar regra de negócio
+   - `chore: ...` ➔ Tarefas de manutenção ou dependências
+
+3. **Publicação da Branch e Abertura do Pull Request:**
+   ```bash
+   git push -u origin feature/nome-da-funcionalidade
+   ```
+   Acesse o repositório no **GitHub** e abra o **Pull Request** direcionado para a branch `main`.
+
+4. **Merge no GitHub e Sincronização Local:**
+   Após a aprovação e *Merge* do PR na interface do GitHub:
+   ```bash
+   git checkout main
+   git pull origin main
+   git branch -d feature/nome-da-funcionalidade
+   ```
+
+5. **Release e Versionamento (Quando aplicável):**
+   Se o merge contiver um marco/release, estampar a tag SemVer correspondente na `main`:
+   ```bash
+   git tag -a vX.Y.Z -m "Release vX.Y.Z: Descrição sumária"
+   git push origin main --tags
+   ```
+
+---
+
 > [!IMPORTANT]
 > 🌊 **DIVISOR DE ÁGUAS — Transição da Fase 1 para a Fase 2**
 > - **Fase 1 (v6.1.x e versões anteriores)**: Considerada a versão base oficial, 100% confiável (*reliable*) e totalmente operacional em produção para recuperação de carrinhos e acompanhamento de pedidos.

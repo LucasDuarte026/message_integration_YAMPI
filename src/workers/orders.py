@@ -12,7 +12,7 @@ from src.core.macros import (
     MACRO_CUPOM_PEDIDO_2_HORAS,
     MACRO_CUPOM_PEDIDO_3_HORAS,
     MACRO_PERDIDO_PEDIDO_HORAS,
-    MACRO_PRECHECK_ORDERS_MAX_DAYS
+    MACRO_PRECHECK_MAX_DAYS
 )
 from src.domain.interfaces import YampiClientProtocol, MessageProviderProtocol, StateRepositoryProtocol
 from src.domain.events import OrderTransitionEvent
@@ -97,11 +97,11 @@ class OrderProcessor:
             f"Idade: {days_since_creation:.2f} dias"
         )
         
-        if days_since_creation > MACRO_PRECHECK_ORDERS_MAX_DAYS:
-            logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Idade > {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Regra atingida: Parar busca de novos pedidos (should_continue=False, is_eligible=False).")
+        if days_since_creation > MACRO_PRECHECK_MAX_DAYS:
+            logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Idade > {MACRO_PRECHECK_MAX_DAYS} dias ({days_since_creation:.2f}d). Regra atingida: Parar busca de novos pedidos (should_continue=False, is_eligible=False).")
             return False, False
             
-        logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Idade <= {MACRO_PRECHECK_ORDERS_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
+        logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Idade <= {MACRO_PRECHECK_MAX_DAYS} dias ({days_since_creation:.2f}d). Decisão: Qualificado para processamento (should_continue=True, is_eligible=True).")
         return True, True
 
 

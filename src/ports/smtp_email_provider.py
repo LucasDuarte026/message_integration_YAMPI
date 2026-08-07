@@ -61,9 +61,27 @@ class SMTPEmailProvider(MessageProviderProtocol):
                 logger.info(f"Autenticando usuário SMTP '{self.user}'...")
                 self._server.login(self.user, self.password)
 
+    def _mask_email(self, email: str) -> str:
+        if not email or '@' not in email:
+            return "***@***"
+        parts = email.split('@', 1)
+        user_part, domain_part = parts[0], parts[1]
+        
+        if len(user_part) > 6:
+            first_five = user_part[:5]
+            last_char = user_part[-1]
+            stars = '*' * (len(user_part) - 6)
+            return f"{first_five}{stars}{last_char}@{domain_part}"
+        elif len(user_part) > 2:
+            first_char = user_part[0]
+            last_char = user_part[-1]
+            stars = '*' * (len(user_part) - 2)
+            return f"{first_char}{stars}{last_char}@{domain_part}"
+        else:
+            return f"{'*' * len(user_part)}@{domain_part}"
+
     def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
-        parts = email.split('@')
-        masked_email = f"{parts[0][0]}***@{parts[1]}" if len(parts) == 2 and len(parts[0]) > 0 else "***@***"
+        masked_email = self._mask_email(email)
         
         try:
             # Container raiz (related) para permitir imagens inline e HTML

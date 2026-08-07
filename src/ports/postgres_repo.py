@@ -4,16 +4,28 @@ from datetime import datetime, timedelta
 import logging
 from typing import Optional, Dict, Any
 from src.domain.interfaces import StateRepositoryProtocol
+from contextlib import contextmanager
+from psycopg2.pool import ThreadedConnectionPool
 
 logger = logging.getLogger(__name__)
 
 class PostgresStateRepository(StateRepositoryProtocol):
     def __init__(self, database_url: str):
         self.database_url = database_url
+        self.pool = ThreadedConnectionPool(1, 20, self.database_url, cursor_factory=RealDictCursor)
         self._init_db()
 
+    @contextmanager
     def _get_connection(self):
-        return psycopg2.connect(self.database_url, cursor_factory=RealDictCursor)
+        conn = self.pool.getconn()
+        try:
+            yield conn
+        finally:
+            self.pool.putconn(conn)
+
+    def close(self):
+        if hasattr(self, 'pool') and self.pool:
+            self.pool.closeall()
 
     def _init_db(self):
         create_table = """
