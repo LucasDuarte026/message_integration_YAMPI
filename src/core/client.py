@@ -4,6 +4,15 @@ import logging
 from typing import Dict, Any, Generator, Optional, List
 import requests
 
+from src.core.macros import (
+    MACRO_YAMPI_BASE_URL,
+    MACRO_HTTP_CONNECT_TIMEOUT,
+    MACRO_HTTP_READ_TIMEOUT,
+    MACRO_HTTP_MAX_RETRIES,
+    MACRO_HTTP_INITIAL_BACKOFF_SEG,
+    MACRO_HTTP_MAX_BACKOFF_SEG
+)
+
 # Configuração de logs
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -17,7 +26,7 @@ class YampiClient:
     - Autenticação: https://docs.yampi.com.br/api-reference/auth/auth-user-token
     """
     
-    BASE_URL = "https://api.dooki.com.br/v2"
+    BASE_URL = MACRO_YAMPI_BASE_URL
 
     def __init__(self, user_token: str, user_secret_key: str, merchant_alias: Optional[str] = None):
         """
@@ -78,18 +87,11 @@ class YampiClient:
             raise
 
     def request(self, method: str, path: str, params: Optional[Dict[str, Any]] = None, 
-                json_data: Optional[Dict[str, Any]] = None, max_retries: int = 3) -> Dict[str, Any]:
+                json_data: Optional[Dict[str, Any]] = None, max_retries: int = MACRO_HTTP_MAX_RETRIES) -> Dict[str, Any]:
         """
         Faz uma requisição HTTP para a API da Yampi tratando paginação, cache, oscilações de rede e Rate Limits.
-        Realiza até `max_retries` (padrão: 3) tentativas em caso de erro transitório de conexão (ConnectionResetError,
-        Timeout, 5xx ou HTTP 429). Se todas as 3 tentativas falharem, relança a exceção para encerrar o ciclo.
-        
-        :param method: Método HTTP (GET, POST, PUT, DELETE).
-        :param path: Caminho do endpoint (sem a URL base e sem o alias, ex: 'orders' ou 'catalog/products').
-        :param params: Parâmetros de consulta (Query Params).
-        :param json_data: Corpo da requisição no formato JSON.
-        :param max_retries: Número máximo de tentativas (padrão: 3).
-        :return: Dicionário correspondente à resposta JSON da API.
+        Realiza até `max_retries` (padrão via macro: 3) tentativas em caso de erro transitório de conexão (ConnectionResetError,
+        Timeout, 5xx ou HTTP 429). Se todas as tentativas falharem, relança a exceção para encerrar o ciclo.
         """
         # Garante o alias no início do path se for um endpoint específico de loja
         # Endpoints globais como 'auth/me' ou 'auth' não levam o alias
@@ -105,7 +107,7 @@ class YampiClient:
             query_params["skipCache"] = "true"
 
         attempt = 1
-        backoff_delay = 2.0  # tempo inicial de espera em segundos
+        backoff_delay = MACRO_HTTP_INITIAL_BACKOFF_SEG
 
         try:
             import sentry_sdk
@@ -123,7 +125,7 @@ class YampiClient:
                         headers=self.headers,
                         params=query_params,
                         json=json_data,
-                        timeout=(5, 15),
+                        timeout=(MACRO_HTTP_CONNECT_TIMEOUT, MACRO_HTTP_READ_TIMEOUT),
                         verify=True
                     )
                     
@@ -137,9 +139,9 @@ class YampiClient:
                         remaining = response.headers.get("X-RateLimit-Remaining")
                         logger.warning(
                             f"Rate limit atingido (HTTP 429). Limite: {limit}, Restantes: {remaining}. "
-                            f"Aguardando {min(backoff_delay, 60)}s antes da tentativa {attempt + 1}/{max_retries}..."
+                            f"Aguardando {min(backoff_delay, MACRO_HTTP_MAX_BACKOFF_SEG)}s antes da tentativa {attempt + 1}/{max_retries}..."
                         )
-                        time.sleep(min(backoff_delay, 60))
+                        time.sleep(min(backoff_delay, MACRO_HTTP_MAX_BACKOFF_SEG))
                         backoff_delay *= 2
                         attempt += 1
                         continue
@@ -152,9 +154,9 @@ class YampiClient:
                         
                         logger.warning(
                             f"Erro de servidor (HTTP {response.status_code}) na tentativa {attempt}/{max_retries} ({method} {url}). "
-                            f"Aguardando {min(backoff_delay, 60)}s antes da tentativa {attempt + 1}/{max_retries}..."
+                            f"Aguardando {min(backoff_delay, MACRO_HTTP_MAX_BACKOFF_SEG)}s antes da tentativa {attempt + 1}/{max_retries}..."
                         )
-                        time.sleep(min(backoff_delay, 60))
+                        time.sleep(min(backoff_delay, MACRO_HTTP_MAX_BACKOFF_SEG))
                         backoff_delay *= 2
                         attempt += 1
                         continue

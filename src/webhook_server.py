@@ -1,5 +1,5 @@
-import os
 from flask import Flask, request
+from src.core.macros import MACRO_META_WEBHOOK_VERIFY_TOKEN, MACRO_WEBHOOK_SERVER_PORT
 
 sentry_dsn = os.environ.get("SENTRY_DSN")
 if sentry_dsn:
@@ -19,8 +19,7 @@ if sentry_dsn:
 app = Flask(__name__)
 
 # Token de verificação que você digitará no painel da Meta
-# Você pode alterá-lo para qualquer valor de sua preferência
-VERIFY_TOKEN = "rodolfo_hulk_tasmania"
+VERIFY_TOKEN = MACRO_META_WEBHOOK_VERIFY_TOKEN
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
@@ -73,6 +72,6 @@ def webhook():
         return "EVENT_RECEIVED", 200
 
 if __name__ == "__main__":
-    print("Iniciando servidor de Webhook local na porta 5000...")
+    print(f"Iniciando servidor de Webhook local na porta {MACRO_WEBHOOK_SERVER_PORT}...")
     print(f"Configure o token de verificação na Meta como: '{VERIFY_TOKEN}'")
-    app.run(port=5000)
+    app.run(port=MACRO_WEBHOOK_SERVER_PORT)

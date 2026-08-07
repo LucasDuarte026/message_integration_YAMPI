@@ -1,8 +1,6 @@
-import os
-import sys
-import logging
+from src.core.macros import MACRO_DEFAULT_LOG_PATH, MACRO_CRASH_REPORT_MAX_BYTES, MACRO_SMTP_TIMEOUT_SEG
 
-def setup_logging(verbose: bool = False, log_file: str = "local_data/logs/app.log") -> None:
+def setup_logging(verbose: bool = False, log_file: str = MACRO_DEFAULT_LOG_PATH) -> None:
     """
     Configura o sistema de logging da aplicação.
     Se verbose=True, define o nível de log para DEBUG.
@@ -137,10 +135,10 @@ def _trigger_crash_report_thread(exc_info_str: str) -> None:
             msg.set_content(body)
 
             # Anexa os últimos ~10MB do arquivo de log (aprox. 50.000 linhas)
-            log_path = "local_data/logs/app.log"
+            log_path = MACRO_DEFAULT_LOG_PATH
             if os.path.exists(log_path):
                 file_size = os.path.getsize(log_path)
-                max_bytes = 10 * 1024 * 1024  # 10 MB limite SMTP (aprox 50 mil linhas)
+                max_bytes = MACRO_CRASH_REPORT_MAX_BYTES
 
                 with open(log_path, 'rb') as f:
                     if file_size > max_bytes:
@@ -156,9 +154,9 @@ def _trigger_crash_report_thread(exc_info_str: str) -> None:
                 )
 
             if port == 465:
-                server = smtplib.SMTP_SSL(host, port, timeout=15)
+                server = smtplib.SMTP_SSL(host, port, timeout=MACRO_SMTP_TIMEOUT_SEG)
             else:
-                server = smtplib.SMTP(host, port, timeout=15)
+                server = smtplib.SMTP(host, port, timeout=MACRO_SMTP_TIMEOUT_SEG)
                 server.starttls()
 
             if user and password:

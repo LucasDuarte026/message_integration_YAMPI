@@ -11,7 +11,14 @@ import os
 import mimetypes
 import uuid
 from src.domain.interfaces import MessageProviderProtocol
-from src.core.macros import MACRO_SMTP_THROTTLE_DELAY_SEG, MACRO_SMTP_MAX_RETRIES, MACRO_SMTP_RETRY_BACKOFF_SEG
+from src.core.macros import (
+    MACRO_SMTP_THROTTLE_DELAY_SEG,
+    MACRO_SMTP_MAX_RETRIES,
+    MACRO_SMTP_RETRY_BACKOFF_SEG,
+    MACRO_SMTP_TIMEOUT_SEG,
+    MACRO_DEFAULT_FALLBACK_FROM_EMAIL,
+    MACRO_EMAIL_MASK_VISIBLE_PREFIX_CHARS
+)
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +34,7 @@ class SMTPEmailProvider(MessageProviderProtocol):
         self.port = port
         self.user = user
         self.password = password
-        self.from_addr = from_addr or user or "recuperacao@sualoja.com"
+        self.from_addr = from_addr or user or MACRO_DEFAULT_FALLBACK_FROM_EMAIL
         
         self._lock = threading.Lock()
         self._server = None
@@ -51,10 +58,10 @@ class SMTPEmailProvider(MessageProviderProtocol):
         if self._server is None:
             if self.port == 465:
                 logger.info(f"Estabelecendo nova conexão SMTP segura (SSL) com {self.host}:{self.port}...")
-                self._server = smtplib.SMTP_SSL(self.host, self.port, timeout=15)
+                self._server = smtplib.SMTP_SSL(self.host, self.port, timeout=MACRO_SMTP_TIMEOUT_SEG)
             else:
                 logger.info(f"Estabelecendo nova conexão SMTP (STARTTLS) com {self.host}:{self.port}...")
-                self._server = smtplib.SMTP(self.host, self.port, timeout=15)
+                self._server = smtplib.SMTP(self.host, self.port, timeout=MACRO_SMTP_TIMEOUT_SEG)
                 self._server.starttls()
             
             if self.user and self.password:
@@ -67,11 +74,12 @@ class SMTPEmailProvider(MessageProviderProtocol):
         parts = email.split('@', 1)
         user_part, domain_part = parts[0], parts[1]
         
-        if len(user_part) > 6:
-            first_five = user_part[:5]
+        prefix_len = MACRO_EMAIL_MASK_VISIBLE_PREFIX_CHARS
+        if len(user_part) > (prefix_len + 1):
+            first_chars = user_part[:prefix_len]
             last_char = user_part[-1]
-            stars = '*' * (len(user_part) - 6)
-            return f"{first_five}{stars}{last_char}@{domain_part}"
+            stars = '*' * (len(user_part) - (prefix_len + 1))
+            return f"{first_chars}{stars}{last_char}@{domain_part}"
         elif len(user_part) > 2:
             first_char = user_part[0]
             last_char = user_part[-1]

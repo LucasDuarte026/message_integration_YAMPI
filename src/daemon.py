@@ -9,7 +9,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # Ao importar run_all, as configurações globais de logging em main.py serão ativadas
 from src.main import run_all
 from src.core.logging_config import setup_logging
-from src.core.macros import MACRO_DAEMON_SLEEP_INTERVAL_SEG
+from src.core.macros import (
+    MACRO_DAEMON_SLEEP_INTERVAL_SEG,
+    MACRO_DEFAULT_LOG_PATH,
+    MACRO_SENTRY_CRON_MONITOR_SLUG
+)
 
 try:
     import sentry_sdk
@@ -21,7 +25,7 @@ except ImportError:
 is_verbose = os.environ.get("VERBOSE", "0").lower() in ("1", "true", "yes")
 
 # Força a configuração de logs para que o FileHandler grave no app.log corretamente
-setup_logging(verbose=is_verbose, log_file="local_data/logs/app.log")
+setup_logging(verbose=is_verbose, log_file=MACRO_DEFAULT_LOG_PATH)
 
 logger = logging.getLogger("daemon")
 
@@ -36,7 +40,7 @@ def main():
         try:
             logger.info("--- [DAEMON] Iniciando novo ciclo de processamento ---")
             if sentry_sdk and hasattr(sentry_sdk, "crons"):
-                with sentry_sdk.crons.monitor(monitor_slug="yampi-daemon-cycle"):
+                with sentry_sdk.crons.monitor(monitor_slug=MACRO_SENTRY_CRON_MONITOR_SLUG):
                     run_all()
             else:
                 run_all()

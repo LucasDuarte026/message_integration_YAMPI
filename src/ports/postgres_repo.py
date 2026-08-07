@@ -6,6 +6,14 @@ from typing import Optional, Dict, Any
 from src.domain.interfaces import StateRepositoryProtocol
 from contextlib import contextmanager, nullcontext
 from psycopg2.pool import ThreadedConnectionPool
+from src.core.macros import (
+    MACRO_PG_POOL_MIN_CONN,
+    MACRO_PG_POOL_MAX_CONN,
+    MACRO_TIMEZONE_OFFSET_HOURS,
+    MACRO_DEFAULT_FALLBACK_CPF,
+    MACRO_DEFAULT_FALLBACK_SKU,
+    MACRO_DEFAULT_FALLBACK_ORDER_NUMBER
+)
 
 try:
     import sentry_sdk
@@ -17,7 +25,12 @@ logger = logging.getLogger(__name__)
 class PostgresStateRepository(StateRepositoryProtocol):
     def __init__(self, database_url: str):
         self.database_url = database_url
-        self.pool = ThreadedConnectionPool(1, 20, self.database_url, cursor_factory=RealDictCursor)
+        self.pool = ThreadedConnectionPool(
+            MACRO_PG_POOL_MIN_CONN, 
+            MACRO_PG_POOL_MAX_CONN, 
+            self.database_url, 
+            cursor_factory=RealDictCursor
+        )
         self._init_db()
 
     @contextmanager
@@ -66,9 +79,9 @@ class PostgresStateRepository(StateRepositoryProtocol):
 
     def upsert_from_order(self, cart_id: str, order_id: str, order_number: Optional[str], data_pedido: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
         # Fallbacks de dados cadastrais para satisfazer NOT NULL da Spec 04
-        safe_cpf = cpf if cpf else "00000000000"
-        safe_sku = sku if sku else "N/A"
-        safe_order_number = str(order_number) if order_number else "N/A"
+        safe_cpf = cpf if cpf else MACRO_DEFAULT_FALLBACK_CPF
+        safe_sku = sku if sku else MACRO_DEFAULT_FALLBACK_SKU
+        safe_order_number = str(order_number) if order_number else MACRO_DEFAULT_FALLBACK_ORDER_NUMBER
 
         # data_carrinho eh gravada como NULL quando criada pelo Pedido, a menos que o Worker de Carrinhos ja a tenha gravado
         query = """
@@ -102,8 +115,8 @@ class PostgresStateRepository(StateRepositoryProtocol):
             return None
 
     def upsert_from_cart(self, cart_id: str, data_carrinho: datetime, cpf: Optional[str], sku: Optional[str]) -> Optional[Dict[str, Any]]:
-        safe_cpf = cpf if cpf else "00000000000"
-        safe_sku = sku if sku else "N/A"
+        safe_cpf = cpf if cpf else MACRO_DEFAULT_FALLBACK_CPF
+        safe_sku = sku if sku else MACRO_DEFAULT_FALLBACK_SKU
         
         query = """
             INSERT INTO email_status_table (cart_id, order_number, data_carrinho, cpf, sku)
@@ -148,7 +161,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
             with span_ctx:
                 with self._get_connection() as conn:
                     with conn.cursor() as cur:
-                        now_utc3 = datetime.utcnow() - timedelta(hours=3)
+                        now_utc3 = datetime.utcnow() - timedelta(hours=MACRO_TIMEZONE_OFFSET_HOURS)
                         cur.execute(query, (new_stg, now_utc3, cart_id))
                     conn.commit()
         except Exception as e:
@@ -169,7 +182,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
             with span_ctx:
                 with self._get_connection() as conn:
                     with conn.cursor() as cur:
-                        now_utc3 = datetime.utcnow() - timedelta(hours=3)
+                        now_utc3 = datetime.utcnow() - timedelta(hours=MACRO_TIMEZONE_OFFSET_HOURS)
                         cur.execute(query, (new_stc, now_utc3, cart_id))
                     conn.commit()
         except Exception as e:

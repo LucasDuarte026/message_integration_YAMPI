@@ -8,12 +8,10 @@ O diretório `core` abriga os componentes básicos de infraestrutura interna que
 - **`client.py`**: O cliente robusto `YampiClient`. Implementa as requisições HTTP, paginação, fallback, rate limits e autenticação para consumir a API da Yampi. Instrumentado com spans do Sentry APM (`http.client`) para medição de latência das chamadas de rede.
 - **`db.py`**: Implementação concreta em SQLite do repositório de persistência (`StateRepositoryProtocol`). Serve para salvar o estado da aplicação em modo local/standalone.
 - **`logging_config.py`**: Configuração central de telemetria e logs. Inicializa o Sentry SDK (com taxa de amostragem `TRACES_SAMPLE_RATE` configurável e `send_default_pii=False` para LGPD), além dos interceptadores globais de crash (`sys.excepthook` e `threading.excepthook`) com disparo de e-mail SMTP de emergência.
-- **`macros.py`**: Arquivo de configurações de constantes e macros de negócios. Define *timers* para STG (Pedidos) e STC (Carrinhos), limites, paginação, e intervalos de workers e daemon:
-  - `MACRO_DAEMON_SLEEP_INTERVAL_SEG`: Intervalo de ciclo do daemon (padrão: 300 segundos / 5 minutos).
-  - `MACRO_SMTP_THROTTLE_DELAY_SEG`, `MACRO_SMTP_MAX_RETRIES`, `MACRO_SMTP_RETRY_BACKOFF_SEG`: Controle estrito de throttling e resiliência das conexões SMTP contra bans.
-  - `MACRO_ENABLE_REAL_EMAIL_DISPATCH`: Habilita ou desabilita o disparo real aos provedores SMTP/API.
-  - `MACRO_FORCE_TEST_EMAIL_RECIPIENT`: Força o redirecionamento de todos os e-mails para um único e-mail de teste (`TEST_EMAIL_RECIPIENT`) sem impactar clientes reais.
-  - `MACRO_ENABLE_LOCAL_HTML_SAVING`: Habilita ou desabilita a geração local de e-mails em HTML (útil para debug e fallback).
+- **`macros.py`**: Arquivo visual e modular de configurações, constantes e macros de negócios dividido em 3 setores:
+  - **Seção 1 (Planos de Horários e Timers de Cupons):** Timers das réguas de relacionamento de e-mails (`STG` para Pedidos e `STC` para Carrinhos), janelas de cupons e pre-check cutoff.
+  - **Seção 2 (Configurações Médias de Operação e Workers):** Flags de disparo (`MACRO_ENABLE_REAL_EMAIL_DISPATCH`, etc.), intervalos de workers e do daemon (`MACRO_DAEMON_SLEEP_INTERVAL_SEG`), parâmetros de SMTP/Rate Limit e dimensionamento do pool PostgreSQL (`MACRO_PG_POOL_MIN_CONN` e `MACRO_PG_POOL_MAX_CONN`).
+  - **Seção 3 (Constantes Estáticas e Infraestrutura Profunda):** Timezone offset (UTC-3), fallbacks de integridade SQL, timeouts da API Yampi (`MACRO_YAMPI_BASE_URL`, connect/read timeouts) e telemetria.
 ## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]
 > **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**
