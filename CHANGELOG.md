@@ -5,7 +5,28 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.4.1] - 2026-08-08 (Transações APM de Workers, Guia do Dashboard Sentry e Telemetria em Nuvem - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Transações e Tracing em Workers (`src/workers/abandoned_cart.py` e `src/workers/orders.py`)**:
+  - Encapsulamento dos loops de processamento em transações atômicas de APM (`sentry_sdk.start_transaction(op="worker.process", ...)`) garantindo medição precisa de ponta a ponta dos ciclos de execução.
+  - Extração e enriquecimento de dados de contexto e breadcrumbs para depuração instantânea no painel do Sentry.
+- **Configuração e Variáveis de Telemetria (`.env.example` e `src/core/logging_config.py`)**:
+  - Adição de suporte a taxas dinâmicas de amostragem (`TRACES_SAMPLE_RATE`, `PROFILES_SAMPLE_RATE`) e identificação de ambiente (`SENTRY_ENVIRONMENT`).
+  - Suporte a profiling de performance contínua em ambientes de produção.
+- **Guia do Usuário e Operação do Sentry Dashboard (`docs/sentry_dashboard_guide.md`)**:
+  - Criação do manual visual e operacional completo do Sentry cobrindo Issues, Agrupamento, Breadcrumbs, Transações, Spans em Cascata, Monitoramento de Heartbeat (Crons) e Alertas.
+- **Documentação de Decisões e Estudos (`project_decisions/`)**:
+  - Inclusão do guia prático de observabilidade [`08_sentry_aulas_praticas.md`](./project_decisions/antigos/08_sentry_aulas_praticas.md);
+  - Estudo de arquitetura para persistência e agentes de memória temporal [`graphiti_implementation.md`](./project_decisions/estudo/graphiti_implementation.md);
+  - Atualização do índice consolidado no `project_decisions/README.md`.
+
+---
+
 ## [6.4.0] - 2026-08-07 (Pool de Conexões Postgres, Sentry APM, Rotação de Logs e Governança de Macros - STABLE)
+
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
 

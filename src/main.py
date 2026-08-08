@@ -16,18 +16,12 @@ from src.workers.abandoned_cart import AbandonedCartProcessor
 from src.workers.orders import OrderProcessor
 from src.core import macros
 
-# Garante que a pasta de logs exista
-os.makedirs("local_data/logs", exist_ok=True)
+from src.core.logging_config import setup_logging
+from src.core.macros import MACRO_DEFAULT_LOG_PATH
 
-# Configuração global de log para o ponto de entrada principal (escreve no console e no arquivo)
-logging.basicConfig(
-    level=logging.INFO, 
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("local_data/logs/app.log", encoding="utf-8")
-    ]
-)
+# Configura o sistema de logs e inicializa o Sentry Tracing
+is_verbose = os.environ.get("VERBOSE", "0").lower() in ("1", "true", "yes")
+setup_logging(verbose=is_verbose, log_file=MACRO_DEFAULT_LOG_PATH)
 logger = logging.getLogger(__name__)
 
 def get_dependencies():

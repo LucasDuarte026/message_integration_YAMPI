@@ -67,6 +67,7 @@ Para uma referência visual de como os componentes se comunicam entre si, veja o
 * ⚙️ [Regras Temporais da Máquina de Estados](./email_state_machine.md)
 * 📊 [Diagrama de Estados de Pedidos (STG)](./diagramas/stateDiagramOrders.md)
 * 📊 [Diagrama de Estados de Carrinhos Abandonados (STC)](./diagramas/stateDiagramAbandonedCarts.md)
+* 📡 [Especificação Técnica de Telemetria e Observabilidade (Sentry)](./sentry_dashboard_guide.md)
 
 ---
 *Para funcionalidades de negócio e dúvidas sobre licenciamento, consulte o [README Principal](../README.md).*

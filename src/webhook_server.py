@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request
 from src.core.macros import MACRO_META_WEBHOOK_VERIFY_TOKEN, MACRO_WEBHOOK_SERVER_PORT
 
@@ -7,10 +8,12 @@ if sentry_dsn:
         import sentry_sdk
         from sentry_sdk.integrations.flask import FlaskIntegration
         traces_rate = float(os.environ.get("TRACES_SAMPLE_RATE", "1.0"))
+        env_name = os.environ.get("ENVIRONMENT", "production")
         sentry_sdk.init(
             dsn=sentry_dsn,
             integrations=[FlaskIntegration()],
             traces_sample_rate=traces_rate,
+            environment=env_name,
             send_default_pii=False,
         )
     except Exception as e:

@@ -111,7 +111,7 @@ class YampiClient:
 
         try:
             import sentry_sdk
-            span_ctx = sentry_sdk.start_span(op="http.client", description=f"Yampi API {method.upper()} {path}")
+            span_ctx = sentry_sdk.start_span(op="http.client", name=f"Yampi API {method.upper()} {path}")
         except Exception:
             from contextlib import nullcontext
             span_ctx = nullcontext()

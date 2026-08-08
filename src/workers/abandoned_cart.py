@@ -40,34 +40,42 @@ class AbandonedCartProcessor:
         logger.info("Iniciando processamento de carrinhos abandonados (STC)...")
         
         try:
-            carts_generator = self.api_client.get_abandoned_carts(include=['customer', 'items'])
-            
-            eligible_carts = []
-            for cart in carts_generator:
-                should_continue, is_eligible = self._precheck_cart(cart)
-                if is_eligible:
-                    eligible_carts.append(cart)
-                if not should_continue:
-                    break
-            
-            if not eligible_carts:
-                logger.info("Nenhum carrinho qualificado para processamento nesta rodada.")
-                return
-                
-            if self.config.MAX_WORKERS <= 1: # util no modo debug
-                logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_carts)} carrinhos um a um...")
-                for idx, cart in enumerate(eligible_carts, 1):
-                    logger.info(f">>> Processando Carrinho {idx}/{len(eligible_carts)}")
-                    self._process_cart_concurrently(cart)
-            else:
-                logger.info(f"Iniciando processamento assíncrono para {len(eligible_carts)} carrinhos com até {self.config.MAX_WORKERS} workers...")
-                with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
-                    # O list() força a iteração, garantindo que qualquer exceção que fuja do worker vaze para a main thread
-                    list(executor.map(self._process_cart_concurrently, eligible_carts))
+            import sentry_sdk
+            tx_ctx = sentry_sdk.start_transaction(op="worker.process", name="AbandonedCartProcessor.process")
+        except Exception:
+            from contextlib import nullcontext
+            tx_ctx = nullcontext()
 
-            logger.info("Processamento finalizado.")
-        except Exception as e:
-            logger.error(f"Erro no processamento concorrente de carrinhos: {e}")
+        with tx_ctx:
+            try:
+                carts_generator = self.api_client.get_abandoned_carts(include=['customer', 'items'])
+                
+                eligible_carts = []
+                for cart in carts_generator:
+                    should_continue, is_eligible = self._precheck_cart(cart)
+                    if is_eligible:
+                        eligible_carts.append(cart)
+                    if not should_continue:
+                        break
+                
+                if not eligible_carts:
+                    logger.info("Nenhum carrinho qualificado para processamento nesta rodada.")
+                    return
+                    
+                if self.config.MAX_WORKERS <= 1: # util no modo debug
+                    logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_carts)} carrinhos um a um...")
+                    for idx, cart in enumerate(eligible_carts, 1):
+                        logger.info(f">>> Processando Carrinho {idx}/{len(eligible_carts)}")
+                        self._process_cart_concurrently(cart)
+                else:
+                    logger.info(f"Iniciando processamento assíncrono para {len(eligible_carts)} carrinhos com até {self.config.MAX_WORKERS} workers...")
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
+                        # O list() força a iteração, garantindo que qualquer exceção que fuja do worker vaze para a main thread
+                        list(executor.map(self._process_cart_concurrently, eligible_carts))
+
+                logger.info("Processamento finalizado.")
+            except Exception as e:
+                logger.error(f"Erro no processamento concorrente de carrinhos: {e}")
             
     def _precheck_cart(self, cart: Dict[str, Any]) -> Tuple[bool, bool]:
         created_at_str = cart.get('created_at', {}).get('date') or cart.get('updated_at', {}).get('date')
