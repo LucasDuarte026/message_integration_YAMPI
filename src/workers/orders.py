@@ -38,36 +38,44 @@ class OrderProcessor:
         logger.info("Iniciando processamento de pedidos (STG)...")
         
         try:
-            orders_generator = self.api_client.get_orders(include=['customer', 'items', 'status'])
-            
-            eligible_orders = []
-            for order in orders_generator:
-                should_continue, is_eligible = self._precheck_order(order)
-                if is_eligible:
-                    eligible_orders.append(order)
-                if not should_continue:
-                    break
-            
-            if not eligible_orders:
-                logger.info("Nenhum pedido qualificado para processamento nesta rodada.")
-                return
+            import sentry_sdk
+            tx_ctx = sentry_sdk.start_transaction(op="worker.process", name="OrderProcessor.process")
+        except Exception:
+            from contextlib import nullcontext
+            tx_ctx = nullcontext()
+
+        with tx_ctx:
+            try:
+                orders_generator = self.api_client.get_orders(include=['customer', 'items', 'status'])
                 
-            if self.config.MAX_WORKERS <= 1: # util no modo debug
-                logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_orders)} pedidos um a um...")
-                for idx, order in enumerate(eligible_orders, 1):
-                    o_id = order.get('id', 'N/A')
-                    o_num = order.get('number', 'N/A')
-                    logger.info(f">>> Processando Pedido {idx}/{len(eligible_orders)} | ID: # {o_id} (Nº {o_num})")
-                    self._process_order_concurrently(order)
-            else:
-                logger.info(f"Iniciando processamento assíncrono para {len(eligible_orders)} pedidos com até {self.config.MAX_WORKERS} workers...")
-                with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
-                    # O list() força a iteração, garantindo que qualquer exceção que fuja do worker vaze para a main thread
-                    list(executor.map(self._process_order_concurrently, eligible_orders))
+                eligible_orders = []
+                for order in orders_generator:
+                    should_continue, is_eligible = self._precheck_order(order)
+                    if is_eligible:
+                        eligible_orders.append(order)
+                    if not should_continue:
+                        break
                 
-            logger.info("Processamento finalizado.")
-        except Exception as e:
-            logger.error(f"Erro no processamento concorrente de pedidos: {e}")
+                if not eligible_orders:
+                    logger.info("Nenhum pedido qualificado para processamento nesta rodada.")
+                    return
+                    
+                if self.config.MAX_WORKERS <= 1: # util no modo debug
+                    logger.info(f"Modo de DEBUG Síncrono (MAX_WORKERS={self.config.MAX_WORKERS}): Processando {len(eligible_orders)} pedidos um a um...")
+                    for idx, order in enumerate(eligible_orders, 1):
+                        o_id = order.get('id', 'N/A')
+                        o_num = order.get('number', 'N/A')
+                        logger.info(f">>> Processando Pedido {idx}/{len(eligible_orders)} | ID: # {o_id} (Nº {o_num})")
+                        self._process_order_concurrently(order)
+                else:
+                    logger.info(f"Iniciando processamento assíncrono para {len(eligible_orders)} pedidos com até {self.config.MAX_WORKERS} workers...")
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.MAX_WORKERS) as executor:
+                        # O list() força a iteração, garantindo que qualquer exceção que fuja do worker vaze para a main thread
+                        list(executor.map(self._process_order_concurrently, eligible_orders))
+                    
+                logger.info("Processamento finalizado.")
+            except Exception as e:
+                logger.error(f"Erro no processamento concorrente de pedidos: {e}")
 
     def _precheck_order(self, order: Dict[str, Any]) -> Tuple[bool, bool]:
         order_id = str(order.get('id', 'N/A'))

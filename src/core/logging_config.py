@@ -21,9 +21,11 @@ def setup_logging(verbose: bool = False, log_file: str = MACRO_DEFAULT_LOG_PATH)
         try:
             import sentry_sdk
             traces_rate = float(os.environ.get("TRACES_SAMPLE_RATE", "1.0"))
+            env_name = os.environ.get("ENVIRONMENT", "production")
             sentry_sdk.init(
                 dsn=sentry_dsn,
                 traces_sample_rate=traces_rate,
+                environment=env_name,
                 send_default_pii=False, # Data Scrubbing habilitado (ignora dados sensíveis e PII locais)
             )
         except (ImportError, Exception) as e:

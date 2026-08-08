@@ -40,7 +40,22 @@ def main():
         try:
             logger.info("--- [DAEMON] Iniciando novo ciclo de processamento ---")
             if sentry_sdk and hasattr(sentry_sdk, "crons"):
-                with sentry_sdk.crons.monitor(monitor_slug=MACRO_SENTRY_CRON_MONITOR_SLUG):
+                monitor_config = {
+                    "schedule": {
+                        "type": "interval",
+                        "value": max(1, MACRO_DAEMON_SLEEP_INTERVAL_SEG // 60),
+                        "unit": "minute",
+                    },
+                    "timezone": "America/Sao_Paulo",
+                    "checkin_margin": 2,
+                    "max_runtime": 5,
+                    "failure_issue_threshold": 1,
+                    "recovery_threshold": 1,
+                }
+                with sentry_sdk.crons.monitor(
+                    monitor_slug=MACRO_SENTRY_CRON_MONITOR_SLUG,
+                    monitor_config=monitor_config,
+                ):
                     run_all()
             else:
                 run_all()

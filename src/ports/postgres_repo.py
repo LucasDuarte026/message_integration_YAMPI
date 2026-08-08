@@ -97,7 +97,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
         """
         lock_query = "SELECT * FROM email_status_table WHERE cart_id = %s FOR UPDATE;"
         try:
-            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres upsert_from_order") if sentry_sdk else nullcontext()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", name="Postgres upsert_from_order") if sentry_sdk else nullcontext()
         except Exception:
             span_ctx = nullcontext()
 
@@ -129,7 +129,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
         """
         lock_query = "SELECT * FROM email_status_table WHERE cart_id = %s FOR UPDATE;"
         try:
-            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres upsert_from_cart") if sentry_sdk else nullcontext()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", name="Postgres upsert_from_cart") if sentry_sdk else nullcontext()
         except Exception:
             span_ctx = nullcontext()
 
@@ -153,7 +153,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
             WHERE cart_id = %s;
         """
         try:
-            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres update_stg") if sentry_sdk else nullcontext()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", name="Postgres update_stg") if sentry_sdk else nullcontext()
         except Exception:
             span_ctx = nullcontext()
 
@@ -174,7 +174,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
             WHERE cart_id = %s;
         """
         try:
-            span_ctx = sentry_sdk.start_span(op="db.sql.query", description="Postgres update_stc") if sentry_sdk else nullcontext()
+            span_ctx = sentry_sdk.start_span(op="db.sql.query", name="Postgres update_stc") if sentry_sdk else nullcontext()
         except Exception:
             span_ctx = nullcontext()
 

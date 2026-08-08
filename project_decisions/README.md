@@ -52,7 +52,13 @@ Nesta pasta estão concentradas as diretrizes de mudanças locais, propostas de 
    * **Data**: 2026-08-01
    * **Status**: Aprovado e em Acompanhamento.
 
-8. [08_sentry_architecture_and_potential.md](./antigos/08_sentry_architecture_and_potential.md)
-   * **Assunto**: Diagnóstico do uso atual do Sentry SDK, interceptadores globais de crash, segurança e guia das potencialidades inexploradas (APM, Sentry Crons, Breadcrumbs e Spans).
+8. [08_sentry_architecture_and_potential.md](./estudos/sentry/08_sentry_architecture_and_potential.md)
+   * **Assunto**: Diagnóstico do uso atual do Sentry SDK, interceptadores globais de crash, segurança e guia das potencialidades de observabilidade (APM, Sentry Crons, Breadcrumbs e Spans).
    * **Data**: 2026-08-07
    * **Status**: Aprovado / Referência Técnica.
+
+9. [sentry_dashboard_guide.md](./estudos/sentry/sentry_dashboard_guide.md)
+   * **Assunto**: Manual prático em 7 aulas passo a passo para configuração e navegação no site do Sentry (Heartbeats, APM da Yampi, queries Postgres, Webhooks, Breadcrumbs e Dashboards).
+   * **Data**: 2026-08-08
+   * **Status**: Aprovado e Disponível.
+
