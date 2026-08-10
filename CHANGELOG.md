@@ -5,6 +5,23 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.5.0] - 2026-08-10 (Orquestração Operacional com Makefile Auto-Documentado - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Interface Centralizada de Operações (`Makefile`)**:
+  - Implementado `Makefile` auto-documentado (`make help`) utilizando `awk` para categorização de comandos em tempo real.
+  - Alvos dedicados para infraestrutura Docker (`build`, `up`, `down`, `logs`, `restart`, `sh`).
+  - Alvos dedicados para execução de workers (`run-all`, `run-orders`, `run-carts`).
+  - Alvos de consulta e manutenção de banco de dados (`db-query`, `db-find`, `db-del`, `db-search-orders`, `db-search-carts`).
+- **Automação de Build com Tags Dinâmicas (`docker-compose.yml`)**:
+  - Injeção da variável `${APP_VERSION}` extraída diretamente do arquivo `VERSION` no tagueamento de imagens.
+- **Documentação de Scripts (`scripts/README.md`)**:
+  - Mapeamento completo dos scripts shell para a nova interface Facade do Makefile.
+
+---
+
 ## [6.4.2] - 2026-08-09 (Arquitetura UTC-First e Proteção Fail-Fast - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
