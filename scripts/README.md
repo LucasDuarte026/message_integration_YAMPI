@@ -1,21 +1,25 @@
 # Scripts de Consulta e Execução de Banco de Dados (`scripts`)
 
+> [!IMPORTANT]
+> **Aviso de Arquitetura**: Esta pasta contém os scripts base, porém o ponto de entrada principal (Facade) para orquestração e execução de todos os comandos do projeto é o **`Makefile`** na raiz do repositório. Sempre prefira utilizar os comandos via `make` (ex: `make run-orders`, `make db-query`).
+
 Este diretório contém os scripts utilitários Shell e Python para execução de workers e consultas de status no banco de dados PostgreSQL (`email_status_table`) por **STG (Status Global / Pedidos)** e **STC (Status Carrinho / Carrinhos Abandonados)**.
 
 ---
 
 ## 📂 Arquivos no Diretório
 
-| Script | Tipo | Descrição |
-| :--- | :--- | :--- |
-| 📦 **`run_stg.sh`** | Bash | Executa o Worker de Pedidos (**STG**). |
-| 🛒 **`run_stc.sh`** | Bash | Executa o Worker de Carrinhos Abandonados (**STC**). |
-| 🚀 **`run_local.sh`** | Bash | Executa o orquestrador principal (`main.py`) aceitando qualquer parâmetro (`all`, `orders`, `abandoned-carts`). |
-| 🔍 **`search_stg.sh`** | Bash | Realiza consultas no banco por estado **STG** (ex: `./search_stg.sh 2`). |
-| 🔍 **`search_stc.sh`** | Bash | Realiza consultas no banco por estado **STC** (ex: `./search_stc.sh 15`). |
-| 🔎 **`find_by_id.sh`** | Bash | Busca rápida por registro no banco via `order_id`, `cart_id` ou `order_number`. |
-| 🐳 **`query_all.sh`** | Bash | Executa consulta SQL direta no container Docker Postgres (`SELECT * from email_status_table`). |
-| 🐍 **`search_status.py`** | Python | Utilitário interno consumido pelos scripts de busca para consultar `email_status_table`. |
+| Script | Tipo | Descrição | Equivalente Make |
+| :--- | :--- | :--- | :--- |
+| 📦 **`run_stg.sh`** | Bash | Executa o Worker de Pedidos (**STG**). | `make run-orders` |
+| 🛒 **`run_stc.sh`** | Bash | Executa o Worker de Carrinhos Abandonados (**STC**). | `make run-carts` |
+| 🚀 **`run_local.sh`** | Bash | Executa o orquestrador principal (`main.py`). | `make run-all` |
+| 🔍 **`search_stg.sh`** | Bash | Busca no banco por estado **STG**. | `make db-search-orders` |
+| 🔍 **`search_stc.sh`** | Bash | Busca no banco por estado **STC**. | `make db-search-carts` |
+| 🔎 **`find_by_id.sh`** | Bash | Busca rápida por registro no banco via ID. | `make db-find` |
+| 🐳 **`query_all.sh`** | Bash | Executa consulta SQL direta no container Docker. | `make db-query` |
+| 🗑️ **`delete_by_id.sh`** | Bash | Exclui um registro do banco via ID. | `make db-del` |
+| 🐍 **`search_status.py`** | Python | Utilitário interno para consultas em `email_status_table`. | - |
 
 ---
 

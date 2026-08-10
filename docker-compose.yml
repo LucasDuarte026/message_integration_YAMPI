@@ -29,6 +29,7 @@ services:
   # Serviço da Aplicação
   app:
     build: .
+    image: message_integration_app:${APP_VERSION:-latest}
     container_name: message_integration_app
     restart: always
     ports:
