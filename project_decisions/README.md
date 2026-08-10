@@ -62,3 +62,12 @@ Nesta pasta estão concentradas as diretrizes de mudanças locais, propostas de 
    * **Data**: 2026-08-08
    * **Status**: Aprovado e Disponível.
 
+10. [10_automationCICD.md](./10_automationCICD.md)
+    * **Assunto**: Guia de implementação de automação no GitHub, fluxo de desenvolvimento profissional, regras de Branch Protection, Pull Requests e CI obrigatório.
+    * **Data**: 2026-08-10
+    * **Status**: Planejado para o futuro.
+
+11. [11_version_control_assistant.md](./11_version_control_assistant.md)
+    * **Assunto**: Especificação para criação de um agente/skill Git Version Control Assistant (Copilot de commits, releases e branches).
+    * **Data**: 2026-08-10
+    * **Status**: Planejado para o futuro.
