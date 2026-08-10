@@ -91,6 +91,35 @@ Servidor Flask independente que escuta na porta 5000 para receber validações d
 
 ---
 
+## 🌍 Arquitetura UTC-First
+
+### Visão Geral
+Toda a aplicação `message_integration` foi projetada utilizando a arquitetura **UTC-First**. 
+Isso significa que todo o fluxo de dados, do momento em que entra na nossa fronteira de rede até a gravação no banco de dados, e até mesmo a exportação de Logs, opera **estritamente em Tempo Universal Coordenado (UTC)**.
+
+### Diretrizes de Implementação
+
+#### 1. Rejeição de Datas "Ingênuas" (Fail-Fast)
+Não aceitamos datas em formato String plano, pois elas são *naive* (ingênuas, sem fuso horário).
+Se a API externa (Yampi) enviar uma data, ela deve fazê-lo num dicionário contendo explicitamente o `timezone`.
+```json
+// PAYLOAD ACEITO:
+"created_at": {
+  "date": "2026-08-09 21:37:38.000000",
+  "timezone": "America/Sao_Paulo"
+}
+```
+Caso contrário, o utilitário estrito `parse_yampi_date_to_utc` levantará um `ValueError` e a entidade (Pedido ou Carrinho) será descartada do processamento atual e alertada no Sentry. Isso evita que assumamos o fuso incorreto se a API mudar.
+
+#### 2. Banco de Dados e Workers
+- Todos os *Timers* de negócio (ex: "Carrinho Abandonado há 1 hora") subtraem `get_now_utc()` da data convertida. A matemática é imune a Horário de Verão (DST).
+- O banco PostgreSQL armazena apenas dados em UTC.
+
+#### 3. Logs de Aplicação
+Os logs também são gravados em UTC. Isso evita a clássica dor de cabeça de cruzar um horário de erro no banco (que está em UTC) com um log em um fuso horário diferente. A padronização universal se aplica de ponta a ponta.
+
+---
+
 ## 💻 Especificação de Hardware e Dimensionamento (Benchmarking)
 
 O sistema passou por baterias empíricas de testes de estresse e longa exposição (1h 35min contínuos), documentadas em [`project_decisions/estudos/hardware_specs/ESTUDO_CAPACIDADE_HARDWARE.md`](../project_decisions/estudos/hardware_specs/ESTUDO_CAPACIDADE_HARDWARE.md).

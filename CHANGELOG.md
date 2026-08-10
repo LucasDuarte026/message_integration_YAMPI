@@ -5,6 +5,27 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.4.2] - 2026-08-09 (Arquitetura UTC-First e Proteção Fail-Fast - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Arquitetura de Tempo UTC-First (`src/core/time_utils.py`)**:
+  - Implementado `parse_yampi_date_to_utc` forçando a extração estrita de dicionários de data e fuso horário Yampi.
+  - Conversão inteligente e padronizada para UTC antes do uso interno na aplicação.
+- **Proteção Fail-Fast em Workers (`src/workers/abandoned_cart.py` e `src/workers/orders.py`)**:
+  - Incorporado bloco `try/except ValueError` isolando falhas de parsing de datas.
+  - Aborto controlado por mensagem e graceful degradation mantendo a resiliência do pool de Threads.
+- **Universalização de Logs (`src/core/logging_config.py`)**:
+  - Padronização global dos timestamps de Log para UTC, garantindo pareamento um-pra-um com registros de Banco de Dados.
+- **Cobertura Pytest e Guias (`docs/` & `tests/`)**:
+  - Adição de regra formal para testes obrigatórios de fluxos `try/except` no `docs/testing_guidelines.md` (item 4.4).
+  - Atualização de Mocks de integração para compliance com timezone restrito.
+  - Criação da suíte `test_time_utils.py` com 100% de cobertura nos caminhos de sucesso e falha via `pytest.raises`.
+  - Documentação da arquitetura inserida e consolidada no `docs/architecture.md`.
+
+---
+
 ## [6.4.1] - 2026-08-08 (Transações APM de Workers, Guia do Dashboard Sentry e Telemetria em Nuvem - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**

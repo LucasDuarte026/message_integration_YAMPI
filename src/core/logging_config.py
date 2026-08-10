@@ -33,10 +33,13 @@ def setup_logging(verbose: bool = False, log_file: str = MACRO_DEFAULT_LOG_PATH)
     
     log_level = logging.DEBUG if verbose else logging.INFO
     
+    from src.core.time_utils import get_now_utc
+
     formatter = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
+    formatter.converter = lambda *args: get_now_utc().timetuple()
 
     # Reconfigura handlers do logger raiz
     root_logger = logging.getLogger()

@@ -17,6 +17,7 @@ from src.core.macros import (
 from src.domain.interfaces import YampiClientProtocol, MessageProviderProtocol, StateRepositoryProtocol
 from src.domain.events import OrderTransitionEvent
 from src.services.notification_service import NotificationService
+from src.core.time_utils import get_now_utc, parse_yampi_date_to_utc
 
 logger = logging.getLogger(__name__)
 
@@ -89,19 +90,16 @@ class OrderProcessor:
             return True, False
             
         try:
-            created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            try:
-                created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
-            except ValueError:
-                logger.debug(f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}): Data '{created_at_str}' inválida. Decisão: continuar busca, desqualificar pedido.")
-                return True, False
+            created_at = parse_yampi_date_to_utc(order.get("created_at"))
+        except ValueError as e:
+            logger.error(f"Erro crítico de fuso horário no created_at do pedido {order_id}: {e}")
+            return True, False
             
-        now_utc3 = datetime.utcnow() - timedelta(hours=3)
-        days_since_creation = (now_utc3 - created_at).total_seconds() / (3600 * 24)
+        now_utc = get_now_utc()
+        days_since_creation = (now_utc - created_at).total_seconds() / (3600 * 24)
         
         logger.debug(
-            f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}) | Data do Pedido: {created_at_str} | Hora Atual (UTC-3): {now_utc3.strftime('%Y-%m-%d %H:%M:%S')} | "
+            f"[PRECHECK] Pedido ID: # {order_id} (Nº {order_number}) | Data do Pedido: {created_at_str} | Hora Atual (UTC): {now_utc.strftime('%Y-%m-%d %H:%M:%S')} | "
             f"Idade: {days_since_creation:.2f} dias"
         )
         
@@ -157,11 +155,18 @@ class OrderProcessor:
             logger.warning(f"[Worker Pedidos] Pedido ID: # {order_id} (Nº {order_number}) ignorado pois não possui cart_id no metadata.")
             return
 
-        created_at_str = order.get('created_at', {}).get('date')
+        data_pedido_payload = None
+        transactions = order.get("transactions", {}).get("data", [])
+        if transactions and transactions[0].get("created_at"):
+            data_pedido_payload = transactions[0].get("created_at")
+        else:
+            data_pedido_payload = order.get("updated_at")
+
         try:
-            data_pedido = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            data_pedido = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
+            data_pedido = parse_yampi_date_to_utc(data_pedido_payload)
+        except ValueError as e:
+            logger.error(f"Erro crítico de fuso horário na data base do pedido {order_id}: {e}")
+            return
 
         customer_data = self._extract_customer_data(order)
         cpf = customer_data.get('cpf')
@@ -206,14 +211,14 @@ class OrderProcessor:
         is_pending = status_id in (1, 2, 3) or alias in ('created', 'authorized', 'waiting_payment')
         is_cancelled = status_id in (8, 12) or alias in ('cancelled', 'refunded')
         
-        now_utc3 = datetime.utcnow() - timedelta(hours=3)
-        diff_hours = (now_utc3 - data_pedido).total_seconds() / 3600
-        diff_seconds = (now_utc3 - data_pedido).total_seconds()
+        now_utc = get_now_utc()
+        diff_hours = (now_utc - data_pedido).total_seconds() / 3600
+        diff_seconds = (now_utc - data_pedido).total_seconds()
 
         logger.debug(
             f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) | Status Yampi: id={status_id}, alias='{alias}' "
             f"(is_paid={is_paid}, is_on_carriage={is_on_carriage}, is_pending={is_pending}, is_cancelled={is_cancelled}) | "
-            f"Hora Pedido: {data_pedido} | Hora Atual (UTC-3): {now_utc3.strftime('%Y-%m-%d %H:%M:%S')} | "
+            f"Hora Pedido: {data_pedido} | Hora Atual (UTC): {now_utc.strftime('%Y-%m-%d %H:%M:%S')} | "
             f"Diff: {diff_seconds:.0f}s ({diff_hours:.2f}h)"
         )
 
