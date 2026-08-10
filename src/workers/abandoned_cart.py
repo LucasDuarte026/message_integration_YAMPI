@@ -7,6 +7,7 @@ from typing import Any, Dict, Tuple
 from src.core.config import Config
 from src.domain.events import CartTransitionEvent
 from src.services.notification_service import NotificationService
+from src.core.time_utils import get_now_utc, parse_yampi_date_to_utc
 from src.core.macros import (
     MACRO_CUPOM_CARRINHO_1_HORAS,
     MACRO_CUPOM_CARRINHO_2_HORAS,
@@ -78,20 +79,15 @@ class AbandonedCartProcessor:
                 logger.error(f"Erro no processamento concorrente de carrinhos: {e}")
             
     def _precheck_cart(self, cart: Dict[str, Any]) -> Tuple[bool, bool]:
-        created_at_str = cart.get('created_at', {}).get('date') or cart.get('updated_at', {}).get('date')
-        if not created_at_str:
+        try:
+            created_at = parse_yampi_date_to_utc(cart.get("created_at"))
+        except ValueError as e:
+            cart_id = cart.get('id', 'N/A')
+            logger.error(f"Erro crítico de fuso horário no created_at do carrinho {cart_id}: {e}")
             return True, False
             
-        try:
-            created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            try:
-                created_at = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
-            except ValueError:
-                 return True, False
-                 
-        now_utc3 = datetime.utcnow() - timedelta(hours=3)
-        days_since_creation = (now_utc3 - created_at).total_seconds() / 86400
+        now_utc = get_now_utc()
+        days_since_creation = (now_utc - created_at).total_seconds() / 86400
         
         # Limite de busca: Não olhar mais longe que 15 dias
         if days_since_creation > MACRO_PRECHECK_MAX_DAYS:
@@ -122,11 +118,18 @@ class AbandonedCartProcessor:
                 logger.warning(f"[Worker Carrinhos] Carrinho {cart_id} sem email. Ignorando.")
                 return
 
-            created_at_str = cart.get('created_at', {}).get('date') or cart.get('updated_at', {}).get('date')
+            data_carrinho_payload = None
+            transactions = cart.get("transactions", {}).get("data", [])
+            if transactions and transactions[0].get("created_at"):
+                data_carrinho_payload = transactions[0].get("created_at")
+            else:
+                data_carrinho_payload = cart.get("updated_at")
+
             try:
-                data_carrinho = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                data_carrinho = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S.%f")
+                data_carrinho = parse_yampi_date_to_utc(data_carrinho_payload)
+            except ValueError as e:
+                logger.error(f"Erro crítico de fuso horário na data base do carrinho {cart_id}: {e}")
+                return
 
             # Determinar SKU mais caro e calcular total
             sku = None
@@ -173,8 +176,8 @@ class AbandonedCartProcessor:
             if stc in (18, 85, 86, 87):
                 return  # ESTADO TERMINAL, pula
             
-            now_utc3 = datetime.utcnow() - timedelta(hours=3)
-            diff_hours = (now_utc3 - data_carrinho).total_seconds() / 3600
+            now_utc = get_now_utc()
+            diff_hours = (now_utc - data_carrinho).total_seconds() / 3600
         
             new_stc = None
             template_name = None

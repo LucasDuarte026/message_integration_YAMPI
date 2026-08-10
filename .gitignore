@@ -8,11 +8,13 @@ mermaid_renders/
 project_decisions/estudos/
 .gemini/
 init-scripts/
-tests/
+tests/carts_mock.json
+tests/orders_mock.json
 analysis/
 local_data/
 emails_from_container/ 
 db_backups/
 containers/
+logs*
 
 

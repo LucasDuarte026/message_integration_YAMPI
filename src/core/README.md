@@ -12,6 +12,7 @@ O diretório `core` abriga os componentes básicos de infraestrutura interna que
   - **Seção 1 (Planos de Horários e Timers de Cupons):** Timers das réguas de relacionamento de e-mails (`STG` para Pedidos e `STC` para Carrinhos), janelas de cupons e pre-check cutoff.
   - **Seção 2 (Configurações Médias de Operação e Workers):** Flags de disparo (`MACRO_ENABLE_REAL_EMAIL_DISPATCH`, etc.), intervalos de workers e do daemon (`MACRO_DAEMON_SLEEP_INTERVAL_SEG`), parâmetros de SMTP/Rate Limit e dimensionamento do pool PostgreSQL (`MACRO_PG_POOL_MIN_CONN` e `MACRO_PG_POOL_MAX_CONN`).
   - **Seção 3 (Constantes Estáticas e Infraestrutura Profunda):** Timezone offset (UTC-3), fallbacks de integridade SQL, timeouts da API Yampi (`MACRO_YAMPI_BASE_URL`, connect/read timeouts) e telemetria.
+- **`time_utils.py`**: Módulo utilitário de tempo. Define funções como `get_now_sp()` e `make_aware_sp()` para manipulação segura e padronizada de datas no fuso horário de São Paulo (UTC-3), prevenindo *double-shifting* no banco de dados e nos arquivos de log.
 ## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
 > [!IMPORTANT]
 > **REGRA ESTRITA DE AUTO-DOCUMENTAÇÃO:**

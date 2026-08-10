@@ -85,3 +85,7 @@ def test_mapeamento_status(status_pedido, status_esperado):
     resultado = mapear_status(status_pedido)
     assert resultado == status_esperado
 ```
+
+### 4.4. Cobertura de Caminhos de Sucesso e Falha (Try/Except)
+**Regra Estrita:** Sempre que houver validações, processamentos ou fluxos envolvidos em blocos `try/except` (como a extração de dados sensíveis ou conversores), você é **obrigado** a testar exaustivamente o caminho feliz (sucesso) E garantir testes para os caminhos de erro que forçam a subida da exceção (`raise` ou captura do erro pelo log).
+Isso garante a confiabilidade da nossa arquitetura *Fail-Fast*, assegurando que o erro correto suba nas condições corretas e o sistema não processe dados corrompidos de forma silenciosa. Use o `with pytest.raises(...)` para validar a ocorrência exata da exceção.

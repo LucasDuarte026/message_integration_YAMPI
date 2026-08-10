@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import logging
 from typing import Optional, Dict, Any
 from src.domain.interfaces import StateRepositoryProtocol
+from src.core.time_utils import get_now_utc
 from contextlib import contextmanager, nullcontext
 from psycopg2.pool import ThreadedConnectionPool
 from src.core.macros import (
@@ -161,8 +162,8 @@ class PostgresStateRepository(StateRepositoryProtocol):
             with span_ctx:
                 with self._get_connection() as conn:
                     with conn.cursor() as cur:
-                        now_utc3 = datetime.utcnow() - timedelta(hours=MACRO_TIMEZONE_OFFSET_HOURS)
-                        cur.execute(query, (new_stg, now_utc3, cart_id))
+                        now_utc = get_now_utc()
+                        cur.execute(query, (new_stg, now_utc, cart_id))
                     conn.commit()
         except Exception as e:
             logger.error(f"Erro ao atualizar STG do cart_id {cart_id} para {new_stg}: {e}")
@@ -182,8 +183,8 @@ class PostgresStateRepository(StateRepositoryProtocol):
             with span_ctx:
                 with self._get_connection() as conn:
                     with conn.cursor() as cur:
-                        now_utc3 = datetime.utcnow() - timedelta(hours=MACRO_TIMEZONE_OFFSET_HOURS)
-                        cur.execute(query, (new_stc, now_utc3, cart_id))
+                        now_utc = get_now_utc()
+                        cur.execute(query, (new_stc, now_utc, cart_id))
                     conn.commit()
         except Exception as e:
             logger.error(f"Erro ao atualizar STC do cart_id {cart_id} para {new_stc}: {e}")
