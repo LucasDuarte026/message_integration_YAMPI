@@ -16,5 +16,4 @@ emails_from_container/
 db_backups/
 containers/
 logs*
-
-
+.agents/local_index/

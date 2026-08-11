@@ -170,3 +170,41 @@ tests/           — Test suite
 - Code is readable and maintainable
 - Performance is acceptable
 - User requirements are met
+
+---
+
+# Diretrizes Comportamentais e Regras do Projeto (Message Integration)
+
+## 🌐 1. Idioma Padrão Único (Português do Brasil)
+- Toda a documentação, respostas no chat, explicações, especificações, arquivos de regras e comentários de código devem ser escritos estritamente em uma única língua padrão: **Português (Brasil)**.
+- Não misturar inglês com português no mesmo documento ou resposta. Termos técnicos consolidados no mercado (como SemVer, Git status, Docker) podem ser mantidos, mas toda a estrutura textual e comunicação deve ser estritamente em Português.
+
+## 🚨 2. Regra Crucial do Git (Modo Consultivo & GitHub Flow)
+- **NUNCA, EM HIPÓTESE ALGUMA, a IA deve executar comandos do Git que modifiquem o repositório** (`git add`, `git commit`, `git tag`, `git checkout`, `git merge`, `git push`, `git reset`, etc.).
+- A IA está autorizada a executar **APENAS comandos consultivos de leitura** (`git status`, `git log`, `git diff`, `git branch`).
+- O usuário é o único responsável por executar comandos de mutação no repositório Git.
+- **GitHub Flow Obrigatório:** É **absolutamente proibido** fazer commits diretos na branch `main`. A `main` é protegida e recebe alterações exclusivamente via Pull Request (PR).
+  - Branches de feature: `feature/*`
+  - Branches de hotfix: `hotfix/*`
+  - Convenção de commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
+
+## 📌 3. Sistema de Versionamento (Semantic Versioning 2.0.0)
+O projeto adota SemVer 2.0.0 (`MAJOR.MINOR.PATCH`):
+- `MAJOR (X.0.0)`: Breaking changes.
+- `MINOR (1.X.0)`: Novas funcionalidades retrocompatíveis.
+- `PATCH (1.0.X)`: Correções de bugs e pequenos ajustes.
+
+## ✂️ 4. Alterações Cirúrgicas e Simplicidade
+- **Pense de Forma Aditiva:** Prefira adicionar novas funções ou módulos a reescrever lógica existente.
+- **Precisão Cirúrgica:** Cada alteração deve ser mínima. Não refatore código funcional adjacente, comentários ou formatação preexistente a menos que solicitado.
+- **Simplicidade:** Escreva o mínimo de código necessário para resolver o problema. Sem código especulativo ou abstrações prematuras.
+
+## 📝 5. Regras de Auto-Documentação (Spec-Driven Development)
+- **Documentação Simultânea:** Ao criar, modificar, refatorar ou excluir qualquer arquivo dentro das pastas de código (`src/domain`, `src/core`, `src/ports`, `src/workers`), atualize simultaneamente o `README.md` localizado dentro da respectiva pasta.
+- **Estrutura dos READMEs de Módulo:**
+  - Objetivo/Funcionalidade do módulo
+  - Arquivos e Responsabilidades
+  - Dependências com outros módulos
+  - *Future Updates* (pontos de melhoria futura)
+- **Links Portáveis:** É **absolutamente proibido** utilizar links do tipo `file:///home/...` ou caminhos absolutos locais em qualquer arquivo Markdown (`.md`) do projeto. Todos os links entre arquivos DEVEM ser relativos (ex: `[interfaces.py](./src/domain/interfaces.py)`).
+
