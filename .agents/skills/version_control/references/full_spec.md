@@ -392,37 +392,34 @@ git status
 
 ---
 
-## 9. Nunca assumir que o staging está correto
+## 9. Nunca assumir que o staging está correto (Auditoria de Segurança & LGPD Obrigatória)
 
-Antes de sugerir o commit final, o agente deve analisar:
+Antes de sugerir o staging (`git add`) ou o commit final, o agente DEVE executar uma varredura preventiva de segurança e conformidade LGPD baseada no `security-reviewer`:
 
 ```bash
+git diff
 git diff --cached
 ```
 
-Se encontrar:
+O agente deve auditar:
+1. **Segredos e Credenciais**: Chaves de API, tokens da Yampi, senhas de SMTP, credenciais de banco de dados, arquivos `.env`, chaves privadas (`*.pem`, `*.key`) ou endpoints sensíveis.
+2. **Conformidade LGPD & Proteção de PII**: Garantir que nenhum arquivo novo ou modificado exponha CPFs de clientes, e-mails não mascarados, telefones ou dados bancários em texto claro (especialmente em logs ou mensagens).
+3. **Data Scrubbing na Telemetria**: Garantir que configurações de monitoramento externo (Sentry) mantenham filtros de PII ativados (`send_default_pii=False`).
+4. **Prevenção de Injeção**: Verificar se qualquer query SQL adicionada continua utilizando consultas parametrizadas (`%s`).
+5. **Higienização de Código**: Detectar logs de depuração temporários (`print()`, `console.log()`, `pdb`, `breakpoint()`).
 
-- arquivo errado;
-- mudança não relacionada;
-- debug;
-- segredo;
-- credencial;
-- alteração acidental;
-- arquivo temporário;
+Se encontrar qualquer inconformidade, o agente deve **PARAR IMEDIATAMENTE** e alertar.
 
-deve alertar.
-
-Exemplo:
+Exemplo de Alerta:
 
 ```text
-ATENÇÃO:
+🚨 ALERTA DE SEGURANÇA / LGPD:
 
-O staging contém:
-.env
+O diff contém arquivos ou linhas que violam as políticas de segurança:
+- src/core/config.py: Possível token ou senha exposta em texto claro.
+- logs/app.log: E-mail de cliente sem mascaramento.
 
-Esse arquivo pode conter secrets.
-
-Não recomendo continuar.
+Ação: Corrija o código antes de realizar o commit.
 ```
 
 ---

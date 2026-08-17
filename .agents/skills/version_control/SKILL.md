@@ -22,15 +22,21 @@ Sempre que o usuário solicitar para "commitar", "fazer release", ou "iniciar o 
    - Informe a branch atual.
    - Se estiver na `main`, recomende a não commitar direto (a menos que explicitamente mandado forçar).
    - Sugira e mostre o comando para criar uma branch semântica: `git switch -c <branch>`.
-3. **Classificação SemVer e Automação**:
+3. **Auditoria de Segurança & Conformidade LGPD (Obrigatória)**:
+   - Inspecione minuciosamente os diffs de todos os arquivos modificados aplicando as diretrizes do `security-reviewer`.
+   - Detecte chaves de API, senhas, tokens, DSNs, `.env`, arquivos de dump ou credenciais sensíveis.
+   - Garanta a proteção de Dados Pessoais Sensíveis / PII de acordo com a LGPD (mascaramento de e-mails, não exposição de CPFs ou dados cadastrais em logs e mensagens).
+   - Verifique ausência de injeções (SQLi) e higienização de logs/debugs (`print()`, `pdb`, `breakpoint()`).
+   - Se qualquer violação for encontrada, emita alerta CRÍTICO e bloqueie a sugestão de commit até a devida correção.
+4. **Classificação SemVer e Automação**:
    - Avalie as mudanças (PATCH, MINOR, MAJOR) justificando o impacto.
    - Prepare proativamente as edições no arquivo `VERSION` e `CHANGELOG.md` para a nova versão.
    - Deixe-as com o aviso explícito de que aguarda a aprovação/revisão do usuário antes de realizar o staging dessas edições.
-4. **Staging / Seleção de Arquivos**:
+5. **Staging / Seleção de Arquivos**:
    - Isole o que entra no commit (relacionado à feature/esforço) do que fica de fora (ex: documentações futuras e testes sujos isolados).
-5. **Síntese de Diffs e Commit**:
+6. **Síntese de Diffs e Commit**:
    - Cruze o `git diff` e `git diff --cached` para criar mensagens ricas de commit, resumindo pontos técnicos específicos reais que estão sendo versionados.
-6. **Push Seguros**:
+7. **Push Seguros**:
    - Forneça os próximos passos para subir as alterações após o commit.
 
 ---
@@ -65,3 +71,13 @@ Utilize os prefixos padrão da indústria:
 - `refactor`: Refatoração (limpeza sem mudança de escopo/comportamento)
 - `test`: Suite de testes
 - `chore`: Automações, configuração de infra, version bumps (ex: `chore(release): bump de versão para 6.5.0 e notas no CHANGELOG`)
+
+---
+
+## 5. Regra Estrita de Segurança e Conformidade LGPD Pré-Commit
+
+O assistente de versionamento NUNCA deve sugerir o commit de arquivos sem antes aplicar a checagem do agente de segurança (`security-reviewer`):
+- **Vazamento de Segredos**: Proibido commitar `.env`, tokens da Yampi, senhas de SMTP, credenciais de banco de dados ou DSNs privados.
+- **Conformidade LGPD**: Verificar se nenhum log novo ou alterado expõe CPFs de clientes, e-mails não mascarados, telefones ou dados cadastrais em texto claro.
+- **Data Scrubbing**: Garantir que dados de exceção enviados para telemetria externa (Sentry) mantenham filtros de PII desativados (`send_default_pii=False`).
+- **Prevenção de Injeção**: Confirmar que todas as consultas SQL continuem usando parâmetros seguros (`%s`) no PostgreSQL.
