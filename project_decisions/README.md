@@ -67,7 +67,7 @@ Nesta pasta estão concentradas as diretrizes de mudanças locais, propostas de 
     * **Data**: 2026-08-10
     * **Status**: Planejado para o futuro.
 
-11. [11_version_control_assistant.md](./11_version_control_assistant.md)
+11. [11_version_control_assistant.md](./antigos/11_version_control_assistant.md)
     * **Assunto**: Especificação para criação de um agente/skill Git Version Control Assistant (Copilot de commits, releases e branches).
     * **Data**: 2026-08-10
-    * **Status**: Planejado para o futuro.
+    * **Status**: Aprovado e Implementado (Skill nativa em `.agents/skills/version_control/`).
