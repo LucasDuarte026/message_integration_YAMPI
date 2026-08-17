@@ -5,6 +5,28 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.5.2] - 2026-08-17 (Governança de Agentes Nativos, Indexação Vetorial Qdrant e Refinamento Arquitetural - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado / Modificado
+- **Migração para Ecossistema Nativo de Agentes (`.agents/`)**:
+  - Consolidação e migração de mais de 100 skills e subagentes especializados para a pasta nativa `.agents/skills/`.
+  - Centralização e padronização das diretrizes comportamentais e regras de desenvolvimento em `.agents/AGENTS.md` e `.agents/rules/`.
+  - Remoção de dependências de referências externas, garantindo isolamento e portabilidade total do repositório.
+- **Indexação Vetorial Semântica via Qdrant (`.agents/local_index/`)**:
+  - Implementação da infraestrutura de indexação vetorial com Qdrant para busca semântica de regras, skills e documentação do projeto.
+- **Orquestração Operacional com Makefile (`Makefile`)**:
+  - Implementação de interface Facade com menu auto-documentado (`make help`).
+  - Alvos centralizados para controle de containers Docker (`make up`, `make down`, `make logs`, `make sh`).
+  - Alvos dedicados para disparo de workers (`make run-all`, `make run-orders`, `make run-carts`) e consultas de banco de dados (`make db-query`, `make db-find`, `make db-del`).
+- **Conclusão da Documentação Modular & Padronização de Links**:
+  - Finalização do mapeamento de arquitetura em `docs/architecture.md` e árvore de dependências.
+  - Correção e padronização rigorosa de links relativos portáveis em toda a pasta `project_decisions/` e `docs/`.
+  - Sincronização definitiva do histórico de releases no `CHANGELOG.md`.
+
+---
+
 ## [6.5.0] - 2026-08-10 (Orquestração Operacional com Makefile Auto-Documentado - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
