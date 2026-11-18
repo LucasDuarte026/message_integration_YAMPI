@@ -57,25 +57,47 @@ def get_dependencies():
         
     return config, api_client, state_repo, message_provider
 
+def _close_resources(state_repo, message_provider) -> None:
+    """Encerra conexões de banco e provedor de mensagens ao término de cada ciclo."""
+    try:
+        if hasattr(state_repo, "close"):
+            state_repo.close()
+    except Exception as e:
+        logger.warning(f"Erro ao fechar repositório de estado: {e}")
+    try:
+        if hasattr(message_provider, "close"):
+            message_provider.close()
+    except Exception as e:
+        logger.warning(f"Erro ao fechar provedor de mensagens: {e}")
+
 def run_abandoned_carts():
     config, api_client, state_repo, message_provider = get_dependencies()
-    processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
-    processor.process()
+    try:
+        processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
+        processor.process()
+    finally:
+        _close_resources(state_repo, message_provider)
 
 def run_orders():
     config, api_client, state_repo, message_provider = get_dependencies()
-    processor = OrderProcessor(config, api_client, message_provider, state_repo)
-    processor.process()
+    try:
+        processor = OrderProcessor(config, api_client, message_provider, state_repo)
+        processor.process()
+    finally:
+        _close_resources(state_repo, message_provider)
 
 def run_all():
     config, api_client, state_repo, message_provider = get_dependencies()
-    logger.info("--- Executando Worker de Pedidos ---")
-    order_processor = OrderProcessor(config, api_client, message_provider, state_repo)
-    order_processor.process()
-    
-    logger.info("--- Executando Worker de Carrinhos Abandonados ---")
-    cart_processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
-    cart_processor.process()
+    try:
+        logger.info("--- Executando Worker de Pedidos ---")
+        order_processor = OrderProcessor(config, api_client, message_provider, state_repo)
+        order_processor.process()
+        
+        logger.info("--- Executando Worker de Carrinhos Abandonados ---")
+        cart_processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
+        cart_processor.process()
+    finally:
+        _close_resources(state_repo, message_provider)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Message Integration - Workers Orquestrator")

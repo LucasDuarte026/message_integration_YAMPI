@@ -1,7 +1,7 @@
 import logging
 import os
 import concurrent.futures
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Tuple, Optional
 
 from src.core.config import Config
@@ -47,7 +47,9 @@ class OrderProcessor:
 
         with tx_ctx:
             try:
-                orders_generator = self.api_client.get_orders(include=['customer', 'items', 'status'])
+                orders_generator = self.api_client.get_orders(
+                    include=['customer', 'items', 'status', 'shipments', 'transactions']
+                )
                 
                 eligible_orders = []
                 for order in orders_generator:
@@ -155,12 +157,9 @@ class OrderProcessor:
             logger.warning(f"[Worker Pedidos] Pedido ID: # {order_id} (Nº {order_number}) ignorado pois não possui cart_id no metadata.")
             return
 
-        data_pedido_payload = None
         transactions = order.get("transactions", {}).get("data", [])
-        if transactions and transactions[0].get("created_at"):
-            data_pedido_payload = transactions[0].get("created_at")
-        else:
-            data_pedido_payload = order.get("updated_at")
+        tx_created_at = transactions[0].get("created_at") if (isinstance(transactions, list) and transactions) else None
+        data_pedido_payload = order.get("created_at") or tx_created_at or order.get("updated_at")
 
         try:
             data_pedido = parse_yampi_date_to_utc(data_pedido_payload)
@@ -193,6 +192,15 @@ class OrderProcessor:
         if not row:
             logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}): Falha ao realizar upsert no repositório de estado.")
             return
+
+        # Garante uso da data persistida no banco (normalizada para UTC se vier naive do Postgres)
+        db_data_pedido = row.get("data_pedido")
+        if isinstance(db_data_pedido, datetime):
+            data_pedido = (
+                db_data_pedido.replace(tzinfo=timezone.utc)
+                if db_data_pedido.tzinfo is None
+                else db_data_pedido.astimezone(timezone.utc)
+            )
             
         stg = row.get('stg')
         logger.debug(f"[DECISÃO STG] Pedido ID: # {order_id} (Nº {order_number}) (cart_id={cart_id}): Estado atual lido no banco STG={stg}")

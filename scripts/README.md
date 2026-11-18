@@ -34,7 +34,7 @@ Este diretório contém os scripts utilitários Shell e Python para execução d
 ./scripts/query_all.sh
 
 # Ou rodar o comando Docker direto no terminal:
-docker compose exec -it db psql -U lucas -d magal_database -c 'SELECT * from email_status_table'
+docker compose exec -it db psql -U "$DB_USER" -d "$DB_NAME" -c 'SELECT * FROM email_status_table;'
 ```
 
 ### 2. Consultar Banco de Dados por Status (Python)
@@ -53,13 +53,15 @@ docker compose exec -it db psql -U lucas -d magal_database -c 'SELECT * from ema
 ```
 
 ### 3. Executar Workers Diretos
+*(Nota: o modo de disparo real SMTP vs Dry-Run é governado por `MACRO_ENABLE_REAL_EMAIL_DISPATCH` em `src/core/macros.py`, atualmente `True`. Não há flag `--production` via CLI.)*
+
 ```bash
-# Processar Pedidos (STG) em modo Dry-Run
+# Processar Pedidos (STG)
 ./scripts/run_stg.sh
 
-# Processar Pedidos (STG) em Produção (envio real via SMTP)
-./scripts/run_stg.sh --production
-
-# Processar Carrinhos (STC) em modo Dry-Run
+# Processar Carrinhos (STC)
 ./scripts/run_stc.sh
+
+# Processar ambos (STG + STC)
+./scripts/run_local.sh all
 ```

@@ -35,7 +35,7 @@ Este guia rápido contém os comandos mais comuns do Docker e Docker Compose par
     ```bash
     docker compose run --rm [servico] [comando]
     # Exemplo: Rodar os testes no container
-    docker compose run --rm app python -m unittest discover -s tests
+    docker compose run --rm app python -m pytest tests/
     ```
 *   **Visualizar logs em tempo real (foco contínuo):**
     ```bash
@@ -126,21 +126,27 @@ Com os containers iniciados via `docker compose up -d`, você pode usar estes at
     ```bash
     docker compose logs -f app
     ```
-*   **Rodar Worker de Carrinhos Abandonados (Dry-Run):**
+*   **Rodar Worker de Carrinhos Abandonados:**
     ```bash
     docker compose exec app python src/main.py abandoned-carts
-    ```
-*   **Rodar Worker de Carrinhos Abandonados (Produção):**
-    ```bash
-    docker compose exec app python src/main.py abandoned-carts --production
     ```
 *   **Rodar Worker de Atualização de Pedidos:**
     ```bash
     docker compose exec app python src/main.py orders
     ```
-*   **Rodar os Testes Unitários:**
+*   **Rodar Ambos os Workers (`all`):**
     ```bash
-    docker compose exec app python -m unittest discover -s tests
+    docker compose exec app python src/main.py all
+    ```
+    *(Nota: o modo de disparo real vs Dry-Run é governado por `MACRO_ENABLE_REAL_EMAIL_DISPATCH` em `src/core/macros.py`.)*
+*   **Rodar os Testes Automatizados (Pytest):**
+    ```bash
+    docker compose exec app python -m pytest --cov=src --cov-report=term-missing
+    ```
+*   **Orquestração recomendada via Makefile ou Compose de Produção:**
+    ```bash
+    make up
+    docker compose -f docker-compose.prod.yml up -d --build
     ```
 *   **Acessar o shell interativo do container da aplicação (onde os scripts rodam):**
     ```bash
@@ -170,17 +176,17 @@ Para acompanhar a execução do código passo a passo e depurar chamadas de fun�
 
 ---
 
-### 📁 Logs do Projeto (Nova Pasta)
-A aplicação agora grava logs de forma automática no arquivo local `logs_from_container/app.log` (mapeado via volume).
+### 📁 Logs do Projeto (Bind Mount Local)
+A aplicação grava logs automaticamente no arquivo local `containers/logs/app.log` (mapeado via volume de `./containers/logs` para `/app/local_data/logs`).
 *   **Visualizar logs no Host em tempo real:**
     ```bash
-    tail -f logs_from_container/app.log
+    tail -f containers/logs/app.log
     ```
 *   **Redirecionar saída para outro arquivo de log se necessário:**
     ```bash
     # Como os logs saem no stdout, você pode redirecionar para um log customizado:
-    docker compose exec app python src/main.py abandoned-carts >> logs_from_container/custom.log
+    docker compose exec app python src/main.py abandoned-carts >> containers/logs/custom.log
     
     # Se quiser capturar também o stderr (erros do python/flask):
-    docker compose exec app python src/main.py abandoned-carts >> logs_from_container/custom.log 2>&1
+    docker compose exec app python src/main.py abandoned-carts >> containers/logs/custom.log 2>&1
     ```

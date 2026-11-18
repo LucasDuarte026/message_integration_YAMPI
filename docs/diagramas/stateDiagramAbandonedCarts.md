@@ -7,10 +7,10 @@
 
 ## Legenda
 
-- **Referência temporal**: `diff = now() - data_carrinho` (sempre absoluto)
-- **Condição de entrada**: o worker de carrinhos **só processa** registros onde `pedido_id IS NULL`
-- **Congelamento**: quando `pedido_id` é preenchido, o STC **congela** no valor que está e nunca mais é alterado pelo worker de carrinhos
-- **Círculos duplos** `[*]`: estados terminais (sistema pula na próxima iteração)
+- **Referência temporal (UTC-First)**: `diff = get_now_utc() - data_carrinho` (derivada de `updated_at` com fallback `created_at`, protegida via `COALESCE(LEAST(...))` e normalizada para UTC a partir do banco)
+- **Condição de entrada**: o worker de carrinhos **só processa** registros com e-mail válido onde `order_id IS NULL`
+- **Congelamento**: quando `order_id` é preenchido, o STC **congela** no valor que está e nunca mais é alterado pelo worker de carrinhos
+- **Círculos duplos** `[*]`: estados terminais (`stc ∈ {18, 85, 86, 87}`)
 
 ---
 
@@ -29,10 +29,10 @@ stateDiagram-v2
     state "Carrinho Abandonado Perdido<br/>(STC = 18 ✗)" as ST18
     state "Email Agradecimento Conversão<br/>(STC = 85/86/87)" as S8X
 
-    state pedido_check <<choice>>
-    NULL_C --> pedido_check : Worker de Carrinhos verifica pedido_id
-    pedido_check --> SKIP : pedido_id preenchido (carrinho virou pedido)
-    pedido_check --> EC4 : pedido_id IS NULL e diff > 4h
+    state order_check <<choice>>
+    NULL_C --> order_check : Worker de Carrinhos verifica order_id
+    order_check --> SKIP : order_id preenchido (carrinho virou pedido)
+    order_check --> EC4 : order_id IS NULL e diff > 4h
 
     state "STC Congelado (Carrinho Virou Pedido)" as SKIP
 
@@ -54,10 +54,10 @@ stateDiagram-v2
 
 | De | Para | Condição Temporal | Condição Extra | Email | Terminal? |
 |---|---|---|---|---|---|
-| `null` | `15` | `diff > 4h` | `pedido_id IS NULL` | Cupom 4 + link `simulate_url` | Não |
-| `15` | `16` | `diff > 24h` | `pedido_id IS NULL` | Cupom 5 + link `simulate_url` | Não |
-| `16` | `17` | `diff > 48h` | `pedido_id IS NULL` | Cupom 6 + link `simulate_url` | Não |
-| `17` | `18` | `diff > 96h` | `pedido_id IS NULL` | — | ✓ Sim |
+| `null` | `15` | `diff > 4h` | `order_id IS NULL` | Cupom 4 + link `simulate_url` | Não |
+| `15` | `16` | `diff > 24h` | `order_id IS NULL` | Cupom 5 + link `simulate_url` | Não |
+| `16` | `17` | `diff > 48h` | `order_id IS NULL` | Cupom 6 + link `simulate_url` | Não |
+| `17` | `18` | `diff > 96h` | `order_id IS NULL` | — | ✓ Sim |
 
 ---
 
@@ -70,10 +70,10 @@ sequenceDiagram
     participant DB as email_status_table
     participant WP as Worker Pedidos
 
-    Note over DB: cart_id=ABC, stc=15, pedido_id=NULL
+    Note over DB: cart_id=ABC, stc=15, order_id=NULL
 
     WC->>DB: BUSCA cart_id=ABC
-    DB-->>WC: stc=15, pedido_id=NULL
+    DB-->>WC: stc=15, order_id=NULL
     WC->>WC: diff > 24h? SIM
     WC->>DB: UPDATE stc=16 ✓
 
@@ -81,11 +81,11 @@ sequenceDiagram
 
     WP->>DB: BUSCA cart_id=ABC (via pedido.metadata.cart_id)
     DB-->>WP: ENCONTROU (stc=16)
-    WP->>DB: UPDATE pedido_id=XYZ, data_pedido=..., cpf=..., sku=...
-    Note over DB: cart_id=ABC, stc=16 (congelado), pedido_id=XYZ, stg=NULL
+    WP->>DB: UPDATE order_id=XYZ, data_pedido=..., cpf=..., sku=...
+    Note over DB: cart_id=ABC, stc=16 (congelado), order_id=XYZ, stg=NULL
 
     WC->>DB: BUSCA cart_id=ABC
-    DB-->>WC: pedido_id=XYZ (não é NULL)
+    DB-->>WC: order_id=XYZ (não é NULL)
     WC->>WC: SKIP ❌ (não processa mais)
 
     WP->>DB: BUSCA cart_id=ABC
@@ -108,18 +108,18 @@ sequenceDiagram
 ## Regra de Entrada do Worker de Carrinhos
 
 ```
-PARA CADA carrinho no JSON:
+PARA CADA carrinho elegível (updated_at || created_at <= 15 dias e com e-mail):
   1. cart_id ← carrinho.id
-  2. BUSCAR cart_id na email_status_table
+  2. data_carrinho ← updated_at || created_at (convertido para UTC)
+  3. UPSERT cart_id na email_status_table (FOR UPDATE + COALESCE(LEAST(data_carrinho)))
      ├── EXISTE:
-     │   ├── pedido_id IS NOT NULL → SKIP
-     │   └── pedido_id IS NULL → prosseguir
+     │   ├── order_id IS NOT NULL → SKIP
+     │   └── order_id IS NULL → prosseguir
      └── NÃO EXISTE → INSERT nova linha
-                        (cart_id, data_carrinho, cpf, sku, stc=NULL)
-                        (pedido_id=NULL, data_pedido=NULL, stg=NULL)
-  3. LER stc
-  4. SE stc ∈ {18, 85, 86, 87} → SKIP
-  5. APLICAR transições conforme tabela acima
-  6. SE email enviado → sobrescrever timestamp_ultimo_email
-  7. COMMIT (dentro de transação FOR UPDATE)
+                        (cart_id, order_number='N/A', data_carrinho, cpf, sku, stc=NULL, order_id=NULL)
+  4. Normalizar row["data_carrinho"] para UTC e LER stc
+  5. SE stc ∈ {18, 85, 86, 87} → SKIP
+  6. APLICAR transições conforme tabela acima
+  7. SE email enviado com sucesso (True) → update_stc + timestamp_ultimo_email (UTC) + breadcrumb
+     SE envio retornar False → abortar update_stc (retentativa no próximo ciclo)
 ```

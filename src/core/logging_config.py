@@ -8,16 +8,49 @@ from src.core.macros import (
 )
 from logging.handlers import RotatingFileHandler
 
-def setup_logging(verbose: bool = False, log_file: str = MACRO_DEFAULT_LOG_PATH) -> None:
+_SENTRY_INITIALIZED = False
+
+class SafeRotatingFileHandler(RotatingFileHandler):
+    """
+    Handler de log rotativo que garante a existência da pasta de destino
+    antes de abrir ou gravar cada registro de log.
+    """
+
+    def __init__(self, filename: str, *args, **kwargs) -> None:
+        log_dir = os.path.dirname(os.path.abspath(filename))
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+        super().__init__(filename, *args, **kwargs)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        log_dir = os.path.dirname(self.baseFilename)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+        if self.stream is not None and not os.path.exists(self.baseFilename):
+            try:
+                self.stream.close()
+            finally:
+                self.stream = None
+        super().emit(record)
+
+
+def setup_logging(
+    verbose: bool = False,
+    log_file: str = MACRO_DEFAULT_LOG_PATH,
+    emails_dir: str = "local_data/emails",
+) -> None:
     """
     Configura o sistema de logging da aplicação.
     Se verbose=True, define o nível de log para DEBUG.
     Caso contrário, mantém o nível padrão em INFO.
     """
+    global _SENTRY_INITIALIZED
     os.makedirs(os.path.dirname(log_file) if os.path.dirname(log_file) else "local_data/logs", exist_ok=True)
+    if emails_dir:
+        os.makedirs(emails_dir, exist_ok=True)
     
     sentry_dsn = os.environ.get("SENTRY_DSN")
-    if sentry_dsn:
+    if sentry_dsn and not _SENTRY_INITIALIZED:
         try:
             import sentry_sdk
             traces_rate = float(os.environ.get("TRACES_SAMPLE_RATE", "1.0"))
@@ -28,6 +61,7 @@ def setup_logging(verbose: bool = False, log_file: str = MACRO_DEFAULT_LOG_PATH)
                 environment=env_name,
                 send_default_pii=False, # Data Scrubbing habilitado (ignora dados sensíveis e PII locais)
             )
+            _SENTRY_INITIALIZED = True
         except (ImportError, Exception) as e:
             logging.warning(f"Não foi possível inicializar o Sentry SDK: {e}")
     
@@ -54,7 +88,7 @@ def setup_logging(verbose: bool = False, log_file: str = MACRO_DEFAULT_LOG_PATH)
     stream_handler.setLevel(log_level)
     root_logger.addHandler(stream_handler)
     
-    file_handler = RotatingFileHandler(
+    file_handler = SafeRotatingFileHandler(
         log_file,
         maxBytes=MACRO_LOG_MAX_BYTES,
         backupCount=MACRO_LOG_BACKUP_COUNT,

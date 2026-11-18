@@ -9,18 +9,22 @@ graph TD
     %% Centro do Sistema (Sem Dependências)
     subgraph DOMAIN ["1. Especificações (Core Absoluto)"]
         D_INT["src/domain/interfaces.py"]
+        D_EVT["src/domain/events.py"]
     end
 
-    subgraph INFRA ["2. Infraestrutura e Adaptadores Externos"]
+    subgraph INFRA ["2. Infraestrutura, Serviços e Adaptadores Externos"]
         C_CONF["src/core/config.py"]
         C_MACR["src/core/macros.py"]
+        C_TIME["src/core/time_utils.py"]
         C_LOGS["src/core/logging_config.py"]
         C_CLIE["src/core/client.py <br> YampiClientProtocol"]
         P_PG["src/ports/postgres_repo.py <br> StateRepositoryProtocol"]
         P_SMTP["src/ports/smtp_email_provider.py <br> MessageProviderProtocol"]
+        P_DRY["src/ports/message_provider.py <br> DryRunMessageProvider"]
+        S_NOTIF["src/services/notification_service.py <br> & email_builders/"]
     end
 
-    %% Regras de Negócio (Dependem do Domain e Macros)
+    %% Regras de Negócio (Dependem do Domain, Time e Macros)
     subgraph WORKERS ["3. Casos de Uso / Regras de Negócio"]
         W_CART["src/workers/abandoned_cart.py <br> AbandonedCartProcessor"]
         W_ORD["src/workers/orders.py <br> OrderProcessor"]
@@ -28,7 +32,8 @@ graph TD
 
     %% Ponto de Entrada (Conhece Tudo)
     subgraph ENTRY ["4. Orquestrador / Entrypoint"]
-        M_MAIN["src/main.py"]
+        M_DAEMON["src/daemon.py <br> Sentry Crons 5m"]
+        M_MAIN["src/main.py <br> _close_resources() in finally"]
         M_WEB["src/webhook_server.py"]
     end
 
@@ -36,13 +41,22 @@ graph TD
     C_CLIE -. Implementa .-> D_INT
     P_PG -. Implementa .-> D_INT
     P_SMTP -. Implementa .-> D_INT
+    P_DRY -. Implementa .-> D_INT
     
     W_CART --> D_INT
     W_ORD --> D_INT
+    W_CART --> D_EVT
+    W_ORD --> D_EVT
     W_CART --> C_MACR
     W_ORD --> C_MACR
+    W_CART --> C_TIME
+    W_ORD --> C_TIME
+    W_CART --> S_NOTIF
+    W_ORD --> S_NOTIF
+    S_NOTIF --> D_EVT
 
     %% Injeção de Dependências feita pelo Main
+    M_DAEMON ==>|Loop 300s| M_MAIN
     M_MAIN ==>|1. Lê Credenciais| C_CONF
     M_MAIN ==>|2. Instancia| C_CLIE
     M_MAIN ==>|3. Instancia| P_PG
@@ -59,21 +73,21 @@ graph TD
 A hierarquia de dependências flui de fora (Entrypoint) para dentro (Domain), garantindo desacoplamento total.
 
 ### Nível 1: O Domínio (`src/domain/`)
-- **Quem é:** O coração da aplicação (ex: `interfaces.py`).
+- **Quem é:** O coração da aplicação (`interfaces.py` e `events.py`).
 - **Do que depende:** De ninguém.
-- **O que faz:** Dita as regras do jogo. Define os `Protocols` que qualquer banco de dados, provedor de email ou cliente Yampi deve obedecer se quiser existir no sistema.
+- **O que faz:** Dita as regras do jogo. Define os `Protocols` (`YampiClientProtocol`, `MessageProviderProtocol`, `StateRepositoryProtocol`) e os DTOs (`OrderTransitionEvent`, `CartTransitionEvent`).
 
-### Nível 2: Infraestrutura (`src/core/` e `src/ports/`)
-- **Quem são:** `client.py` (Yampi), `postgres_repo.py` (PostgreSQL), `smtp_email_provider.py` (SMTP), `logging_config.py` (Logs).
-- **Do que dependem:** Do `domain/` (para herdar/implementar os contratos) e de bibliotecas externas (`psycopg2`, `requests`, `smtplib`, `logging`).
-- **O que fazem:** Lidam com o mundo real (Internet, Banco de Dados, APIs, Saída de Sistema).
+### Nível 2: Infraestrutura e Serviços (`src/core/`, `src/ports/` e `src/services/`)
+- **Quem são:** `client.py` (Yampi), `time_utils.py` (UTC-First), `postgres_repo.py` (PostgreSQL com pool e `COALESCE(LEAST(...))`), `smtp_email_provider.py` (SMTP stateful com `close()`), `message_provider.py` (Dry-Run), `logging_config.py` (`SafeRotatingFileHandler` + Sentry idempotente) e `notification_service.py` + `email_builders/` (renderização MJML/Jinja2).
+- **Do que dependem:** Do `domain/` e de bibliotecas externas (`psycopg2`, `requests`, `smtplib`, `jinja2`, `PyYAML`, `sentry-sdk`, `logging`).
+- **O que fazem:** Lidam com o mundo real (Internet, Banco de Dados, E-mail, Renderização, Logs).
 
 ### Nível 3: Casos de Uso (`src/workers/`)
 - **Quem são:** `abandoned_cart.py` e `orders.py`.
-- **Do que dependem:** Estritamente do `domain/` (recebem instâncias no construtor com os *type hints* das interfaces) e de `core/macros.py` (para usar as variáveis de tempo estipuladas na lógica de negócio).
-- **O que fazem:** Executam a **Máquina de Estados de E-mails (STG/STC)**, lendo dados, tomando decisões lógicas e pedindo para enviar e-mails. Não sabem se estão escrevendo no SQLite ou no Postgres, nem se estão mandando e-mail ou WhatsApp.
+- **Do que dependem:** Estritamente do `domain/` (interfaces e eventos), `core/macros.py`, `core/time_utils.py` e `services/notification_service.py`.
+- **O que fazem:** Executam a **Máquina de Estados de E-mails (STG/STC)**, normalizando timestamps em UTC retornados pelo banco, tomando decisões lógicas e acionando notificações com rollback fail-safe em caso de falha de envio.
 
-### Nível 4: Entrypoints (`src/main.py`)
-- **Quem é:** O roteador principal, geralmente engatilhado por um Cron ou manualmente.
-- **Do que depende:** De **todos** os módulos.
-- **O que faz:** Ele é a "fábrica". Lê o `.env` do `config.py`, cria o banco `PostgresRepo()`, cria o `YampiClient()`, cria o `SMTPProvider()`, junta tudo isso no construtor do `OrderProcessor(client, repo, provider)` e finalmente aperta o botão `processor.execute()`.
+### Nível 4: Entrypoints (`src/main.py`, `src/daemon.py` e `src/webhook_server.py`)
+- **Quem são:** Os roteadores e orquestradores principais.
+- **Do que dependem:** De **todos** os módulos necessários para montar o grafo de dependências.
+- **O que fazem:** `src/main.py` lê `config.py`, instancia `PostgresStateRepository`, `YampiClient` e `SMTPEmailProvider`/`DryRunMessageProvider`, injeta-os nos workers e garante o encerramento das conexões (`_close_resources()`) em bloco `finally`. `src/daemon.py` executa `run_all()` a cada 300s com Sentry Crons.
