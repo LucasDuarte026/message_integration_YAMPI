@@ -9,30 +9,35 @@ Todo novo código ou correção de bug deve ser acompanhado de testes. Siga o fl
 3. **Refactor:** Limpe o código, garanta a performance e aplique as regras arquiteturais, mantendo os testes verdes.
 
 ## 2. Estrutura do Diretório de Testes
-Todos os testes devem residir na pasta `tests/` e obedecer à seguinte hierarquia:
+Todos os testes residem na pasta `tests/` com suítes focadas por módulo e mocks/fixtures compartilhados:
 
 ```text
 tests/
-├── conftest.py             # Fixtures globais compartilhadas. NUNCA importe este arquivo diretamente.
-├── unit/                   # Testes unitários puros (rápidos, isolados, mocks de I/O).
-│   ├── test_client.py
-│   └── ...
-└── integration/            # Testes de integração (batem no DB real, APIs via VCR.py, fluxos ponta-a-ponta).
-    ├── test_abandoned_cart.py
-    └── ...
+├── conftest.py                  # Fixtures globais compartilhadas e env vars de teste.
+├── carts_mock.json              # Payloads simulados de carrinhos Yampi.
+├── orders_mock.json             # Payloads simulados de pedidos Yampi.
+├── test_abandoned_cart.py       # Fluxo STC, âncora updated_at/DB UTC e rollback fail-safe.
+├── test_orders.py               # Fluxo STG, rastreio obrigatório, âncora created_at/DB UTC.
+├── test_postgres_repo_pool.py   # Pool, COALESCE(LEAST(...)), update_stg/stc e falhas SQL.
+├── test_smtp_email_provider.py  # Mascaramento LGPD, CID inline, retries e close().
+├── test_logging_config.py       # Criação de pastas e SafeRotatingFileHandler.
+├── test_main_and_daemon.py      # Orquestração, _close_resources, Sentry idempotente, builders e webhook.
+├── test_client.py               # Cliente HTTP Yampi.
+├── test_customer_extraction.py  # Extração defensiva de dados do cliente.
+└── test_time_utils.py           # Arquitetura UTC-First e rejeição Fail-Fast de datas naive.
 ```
 
 ## 3. O Ecossistema Pytest
 
-O projeto utiliza as seguintes bibliotecas:
+O projeto utiliza as seguintes bibliotecas (registradas em `requirements.txt`):
 - `pytest`: Motor de testes.
-- `pytest-mock`: Para manipulação elegante de injeção de dependências (substitui o `unittest.mock.patch`).
+- `pytest-mock`: Para manipulação de mocks sem vazamento de estado.
 - `pytest-cov`: Para análise de cobertura de código.
 
 ### Comando Padrão de Execução
-Para executar a suite completa, partindo da raiz do projeto:
+Para executar a suíte completa com cobertura de `src/`, partindo da raiz do projeto:
 ```bash
-PYTHONPATH=. pytest tests/
+.venv/bin/python -m pytest --cov=src --cov-report=term-missing
 ```
 
 ## 4. Melhores Práticas

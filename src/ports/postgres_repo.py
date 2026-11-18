@@ -91,7 +91,7 @@ class PostgresStateRepository(StateRepositoryProtocol):
             ON CONFLICT (cart_id) DO UPDATE 
             SET order_id = EXCLUDED.order_id,
                 order_number = EXCLUDED.order_number,
-                data_pedido = EXCLUDED.data_pedido,
+                data_pedido = COALESCE(LEAST(email_status_table.data_pedido, EXCLUDED.data_pedido), EXCLUDED.data_pedido),
                 cpf = EXCLUDED.cpf,
                 sku = EXCLUDED.sku
             RETURNING *;

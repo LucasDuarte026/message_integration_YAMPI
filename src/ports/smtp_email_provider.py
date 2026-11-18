@@ -39,6 +39,20 @@ class SMTPEmailProvider(MessageProviderProtocol):
         self._lock = threading.Lock()
         self._server = None
 
+    def close(self) -> None:
+        """Encerra de forma segura a conexão SMTP persistente ao final do ciclo."""
+        with self._lock:
+            if self._server is not None:
+                try:
+                    self._server.quit()
+                except Exception:
+                    try:
+                        self._server.close()
+                    except Exception:
+                        pass
+                finally:
+                    self._server = None
+
     def _connect(self) -> None:
         """
         Garante que o cliente SMTP está conectado e logado.

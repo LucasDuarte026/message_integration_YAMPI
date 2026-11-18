@@ -16,10 +16,12 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 
 ### Mapeamento Geral da Árvore de Arquivos
 ```bash
-├── .gemini/                          # Diretrizes comportamentais de IA e regras de auto-documentação
-│   ├── GEMINI.md                     # Código de conduta do assistente, Git em modo leitura, SemVer
-│   └── auto_documentation_rules.md   # Regras de manutenção síncrona dos README.md locais
-├── docs/                             # Documentação geral do sistema
+├── .agents/                          # Diretrizes comportamentais de IA, skills e versionamento
+│   ├── AGENTS.md                     # Código de conduta, Git em modo leitura, SemVer e SDD
+│   └── skills/                       # Skills especializadas (ex.: version_control, code-reviewer)
+├── docs/                             # Documentação viva e especificações (SDD)
+│   ├── README.md                     # Índice técnico de referência
+│   ├── sdd_specs.md                  # Catálogo EARS, cenários GIVEN/WHEN/THEN e ADRs
 │   ├── architecture.md               # Detalhes da arquitetura de especificação e camadas
 │   ├── diagramas/                    # Diagramas Mermaid da máquina de estados (STG/STC)
 │   │   ├── README.md                 # Índice e guia visual dos diagramas
@@ -28,63 +30,72 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   ├── project_dependency_tree.md    # Árvore visual e conceitual de dependências
 │   ├── project_overview.md           # Guia funcional completo e decisões de design
 │   ├── email_state_machine.md        # Especificação técnica da Máquina de Estados (STG/STC)
+│   ├── sentry_dashboard_guide.md     # Especificação de telemetria e observabilidade Sentry
+│   ├── testing_guidelines.md         # Diretrizes oficiais de testes (Pytest + TDD)
 │   └── docker_cheatsheet.md          # Guia de rotinas e comandos Docker
-├── emails/                           # Diretório de auditoria contendo HTMLs de envios passados
-├── estudos/                          # Documentações e relatórios de estudos de mercado/CPaaS
 ├── src/                              # Código-fonte principal
 │   ├── core/                         # Infraestrutura interna básica do sistema
 │   │   ├── client.py                 # Cliente de integração com a API da Yampi
 │   │   ├── config.py                 # Dataclasses de configuração e ambiente
-│   │   ├── db.py                     # Controle de estado SQLite local
-│   │   ├── logging_config.py         # Configuração de Logs e Interceptação Global de Erros
-│   │   └── macros.py                 # Constantes e paramêtros temporais do sistema
+│   │   ├── logging_config.py         # SafeRotatingFileHandler, Sentry idempotente e Exception Hooks
+│   │   ├── macros.py                 # Constantes e parâmetros temporais/operacionais
+│   │   └── time_utils.py             # Utilitários UTC-First e conversão Fail-Fast
 │   ├── domain/                       # Camada de contratos estritos e specs
+│   │   ├── events.py                 # DTOs de eventos (OrderTransitionEvent, CartTransitionEvent)
 │   │   └── interfaces.py             # Protocols e Classes Abstratas do sistema
-│   ├── ports/                        # Adaptadores de APIs de terceiros (Meta, SMTP, Mock)
+│   ├── ports/                        # Adaptadores de I/O e serviços externos
 │   │   ├── message_provider.py       # Mock Provider de Dry-run
-│   │   ├── smtp_email_provider.py    # Adaptador de envio de E-mail via SMTP
-│   │   └── whatsapp_meta_provider.py # Adaptador de envio de WhatsApp via Meta Cloud API
-│   ├── services/                     # Lógica de serviços injetáveis (ex: email_builders)
-│   ├── templates/                    # MVC de E-mails (config, mjml, assets, html_compiled e builder)
+│   │   ├── postgres_repo.py          # Repositório PostgreSQL com Pool e COALESCE(LEAST(...))
+│   │   └── smtp_email_provider.py    # Adaptador SMTP Stateful, Throttle, CID inline e close()
+│   ├── services/                     # Lógica de serviços injetáveis
+│   │   ├── notification_service.py   # Orquestração de builders, duplicata e modo homologação
+│   │   └── email_builders/           # Builders MJML/Jinja2 e tabela de itens/frete
+│   ├── templates/                    # Templates MJML, assets, brand_data.yml e HTMLs compilados
 │   ├── workers/                      # Casos de uso e regras de negócio orquestradas
-│   │   └── abandoned_cart.py         # Threaded-worker de recuperação de carrinhos
-│   ├── main.py                       # CLI principal do projeto (Orquestrador)
-│   └── webhook_server.py             # Servidor HTTP para Webhooks da Meta API
-├── tests/                            # Testes unitários do sistema
-│   └── test_abandoned_cart.py        # Casos de teste do fluxo de carrinhos
-├── scripts/                          # Pasta de scripts utilitários de execução e consulta ao BD
-├── studies/                          # Amostras de dados de API, payloads e referências
-├── .env                              # Credenciais e parâmetros de ambiente (NUNCA versionar)
+│   │   ├── abandoned_cart.py         # Worker de recuperação de carrinhos (STC)
+│   │   └── orders.py                 # Worker de pedidos, PIX, cupons e rastreio (STG)
+│   ├── main.py                       # Orquestrador CLI com fechamento de recursos em finally
+│   ├── daemon.py                     # Daemon contínuo (5 min) com Sentry Crons
+│   ├── debug_main.py                 # Runner de depuração local
+│   └── webhook_server.py             # Servidor Flask para Webhooks da Meta API
+├── tests/                            # Suíte Pytest (56 testes, ~82% de cobertura em src/)
+├── scripts/                          # Scripts shell e Python de operação e consulta SQL
+├── project_decisions/                # ADRs históricos e estudos técnicos
+├── local_data/                       # Dados locais em runtime (logs/ e emails/)
+├── containers/                       # Bind mounts do Docker (logs/ e emails/)
 ├── .env.example                      # Modelo de exemplo para o .env
 ├── Dockerfile                        # Receita da imagem do container da aplicação
-├── docker-compose.yml                # Orquestrador local da aplicação e do Postgres DB
+├── docker-compose.yml                # Orquestrador local (App + Postgres)
+├── docker-compose.prod.yml           # Orquestrador de produção (hardening e limites de recursos)
+├── Makefile                          # Facade operacional (build, up, down, workers, db-*)
+├── VERSION                           # Versão SemVer atual
+├── CHANGELOG.md                      # Histórico de releases
 ├── README.md                         # Visão geral e guia rápido do repositório
-├── run_local.sh                      # Wrapper de atalho raiz para scripts/run_local.sh
-├── requirements.txt                  # Dependências do Python
-└── state.db                          # Banco de dados SQLite persistente (gerado na execução)
+└── requirements.txt                  # Dependências Python
 ```
 
 ### 1. [`src/domain/`](../src/domain/README.md) (As Especificações)
-O coração da aplicação. Não possui implementações, apenas contratos (`Protocols`, `Interfaces`, `ABC`). Tudo no sistema depende do domínio, mas o domínio não depende de nada. Se você vai criar uma funcionalidade nova, **comece especificando-a aqui**.
+O coração da aplicação. Não possui implementações, apenas contratos (`Protocols`, `ABC`) e DTOs de eventos (`OrderTransitionEvent`, `CartTransitionEvent`). Tudo no sistema depende do domínio, mas o domínio não depende de nada. Se você vai criar uma funcionalidade nova, **comece especificando-a aqui** e em [docs/sdd_specs.md](./sdd_specs.md).
 
 ### 2. [`src/core/`](../src/core/README.md) (Infraestrutura Base e Clientes Internos)
 Fornece os blocos de construção internos da nossa infraestrutura:
-- Conexão e tratamento bruto com a API Yampi (`client.py`)
-- Gerenciamento de credenciais via variáveis de ambiente (`config.py`)
-- Repositório de estado / persistência local e relacional e parâmetros temporais (`db.py` e `macros.py`)
-- Configuração do Logger central e Interceptação Global de Exceções (`logging_config.py`)
+- Conexão, paginação, backoff e spans APM com a API Yampi (`client.py`)
+- Gerenciamento de credenciais via variáveis de ambiente e leitura de `VERSION` (`config.py`)
+- Parâmetros centralizados de negócio, SMTP, pool e telemetria (`macros.py`)
+- Utilitários **UTC-First** com rejeição *Fail-Fast* de datas *naive* (`time_utils.py`)
+- Configuração do Logger central em UTC com `SafeRotatingFileHandler` (recriação automática de diretório/arquivo), inicialização **idempotente** do Sentry (`_SENTRY_INITIALIZED`) e interceptação global de exceções (`logging_config.py`)
 
 ### 3. [`src/ports/`](../src/ports/README.md) (Adaptadores Externos)
-Onde as implementações de terceiros (que não são o nosso sistema core) vivem. Eles implementam os contratos do `domain`.
-- Exemplo: Provedores de envio de mensagens via WhatsApp/Email (SMTP, Mocks).
-- Exemplo: Implementação do banco de dados relacional (PostgreSQL via `postgres_repo.py`).
+Onde as implementações de terceiros vivem, implementando os contratos do `domain`:
+- Provedores de envio de e-mail: `DryRunMessageProvider` (`message_provider.py`) e `SMTPEmailProvider` (`smtp_email_provider.py`, stateful com `threading.Lock`, backoff, CID inline, mascaramento LGPD e encerramento seguro via `close()`).
+- Persistência relacional: `PostgresStateRepository` (`postgres_repo.py`) com `ThreadedConnectionPool`, `FOR UPDATE`, proteção anti-regressão temporal `COALESCE(LEAST(...))` e `close()`.
 
 ### 4. [`src/workers/`](../src/workers/README.md) (Regras de Negócio e Use Cases)
-Os sub-programas que executam as atividades (ex: Recuperação de Carrinho Abandonado e Atualização de Pedidos). Os workers são isolados, não instanciam conexões e devem receber todas as dependências (Core e Ports) injetadas no construtor pelo Orquestrador.
-> **NOTA:** A lógica de estado (STG e STC) processada pelos workers é estritamente regida pela **[Lógica e Máquina de Estados de E-mails](./email_state_machine.md)**. Qualquer mudança na regra de negócio deve primeiro ser modelada naquele documento.
+Os sub-programas que executam as atividades (Recuperação de Carrinho Abandonado e Atualização de Pedidos). Os workers são isolados, não instanciam conexões e recebem todas as dependências injetadas no construtor pelo Orquestrador.
+> **NOTA:** A lógica de estado (STG e STC) processada pelos workers é estritamente regida pela **[Lógica e Máquina de Estados de E-mails](./email_state_machine.md)** e pelos contratos EARS em **[docs/sdd_specs.md](./sdd_specs.md)**.
 
-### 5. `src/main.py` (Orquestrador / Ponto de Entrada)
-É quem junta tudo. Ele importa as configurações, cria a instância do banco de dados, a instância da API, e as passa como dependência para o Worker desejado. É desenhado para ser executado via CLI (ex: `crontab`).
+### 5. `src/main.py` e `src/daemon.py` (Orquestradores / Pontos de Entrada)
+`src/main.py` monta as dependências via `get_dependencies()`, injeta-as nos workers e garante a liberação do pool PostgreSQL e da conexão SMTP em bloco `finally` via `_close_resources()`. `src/daemon.py` executa `run_all()` continuamente a cada `MACRO_DAEMON_SLEEP_INTERVAL_SEG` (`300s`) monitorado pelo Sentry Crons (`yampi-daemon-cycle`).
 
 ### 6. `src/webhook_server.py` (Servidor de Webhooks)
 Servidor Flask independente que escuta na porta 5000 para receber validações de token (GET) e payloads de mensagens/status em tempo real (POST) vindos da Meta API.
@@ -139,7 +150,9 @@ O sistema passou por baterias empíricas de testes de estresse e longa exposiç�
 ### Justificativa de Escolha de Infraestrutura (Sizing)
 * **Por que X vCPUs (2.30 vCPUs total estipulado no Docker Compose)?** Garante que o pico de 1.72 vCPUs da aplicação e banco de dados seja processado sem nenhum estrangulamento de CPU (*throttling*).
 * **Por que Y MB RAM (512 MB por contêiner / 1 GB total)?** Oferece uma margem de segurança de **3x sobre o consumo de pico real (~177 MB)**, prevenindo completamente qualquer risco de *Out of Memory Kill (OOMKill)*.
+* **Armazenamento em Disco para Logs:** O consumo de disco para telemetria é rigorosamente limitado pelo mecanismo de rotação de arquivos (ex: estrutura de 5 logs de 200 MB = 1 GB total). A métrica de retenção é de **3,29 dias/GB** em modo DEBUG e **1.458,21 dias/GB** em modo INFO. Consulte a tabela detalhada em [Logs e Depuração no Project Overview](./project_overview.md#dimensionamento-retenção-e-capacidade-de-armazenamento-de-logs).
 * **Provedor de Nuvem Recomendado:**
   * **Hostinger KVM 2** (2 vCPUs / 8 GB RAM) — R$ 42,99/mês (ou KVM 1 para MVP de custo reduzido por R$ 29,99/mês).
   * **AWS EC2 `t3.medium`** (2 vCPUs / 4 GB RAM) ou **AWS ECS Fargate (2 vCPU / 4 GB RAM)**.
+
 

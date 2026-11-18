@@ -1,7 +1,7 @@
 import logging
 import os
 import concurrent.futures
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Tuple
 
 from src.core.config import Config
@@ -80,10 +80,10 @@ class AbandonedCartProcessor:
             
     def _precheck_cart(self, cart: Dict[str, Any]) -> Tuple[bool, bool]:
         try:
-            created_at = parse_yampi_date_to_utc(cart.get("created_at"))
+            created_at = parse_yampi_date_to_utc(cart.get("updated_at") or cart.get("created_at"))
         except ValueError as e:
             cart_id = cart.get('id', 'N/A')
-            logger.error(f"Erro crítico de fuso horário no created_at do carrinho {cart_id}: {e}")
+            logger.error(f"Erro crítico de fuso horário na data do carrinho {cart_id}: {e}")
             return True, False
             
         now_utc = get_now_utc()
@@ -118,12 +118,7 @@ class AbandonedCartProcessor:
                 logger.warning(f"[Worker Carrinhos] Carrinho {cart_id} sem email. Ignorando.")
                 return
 
-            data_carrinho_payload = None
-            transactions = cart.get("transactions", {}).get("data", [])
-            if transactions and transactions[0].get("created_at"):
-                data_carrinho_payload = transactions[0].get("created_at")
-            else:
-                data_carrinho_payload = cart.get("updated_at")
+            data_carrinho_payload = cart.get("updated_at") or cart.get("created_at")
 
             try:
                 data_carrinho = parse_yampi_date_to_utc(data_carrinho_payload)
@@ -163,6 +158,15 @@ class AbandonedCartProcessor:
             row = self.state_repo.upsert_from_cart(cart_id, data_carrinho, cpf, sku)
             if not row:
                 return
+
+            # Garante uso da data persistida no banco (normalizada para UTC se vier naive do Postgres)
+            db_data_carrinho = row.get("data_carrinho")
+            if isinstance(db_data_carrinho, datetime):
+                data_carrinho = (
+                    db_data_carrinho.replace(tzinfo=timezone.utc)
+                    if db_data_carrinho.tzinfo is None
+                    else db_data_carrinho.astimezone(timezone.utc)
+                )
             
             order_id = row.get('order_id')
             if order_id is not None:

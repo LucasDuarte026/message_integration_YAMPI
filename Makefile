@@ -19,6 +19,7 @@ build: ## Build the application Docker image using VERSION file
 
 up: ## Start containers in the background
 	@echo "Starting containers version $${APP_VERSION}..."
+	@mkdir -p containers/logs containers/emails
 	docker compose up -d
 
 down: ## Stop and remove containers and networks

@@ -3,7 +3,7 @@
 **Status:** Ativo / Produção  
 **Padrão:** Spec-Driven Architecture  
 **Módulos Responsáveis:** `src/core/logging_config.py`, `src/daemon.py`, `src/webhook_server.py`, `src/ports/postgres_repo.py`, `src/core/client.py`, `src/workers/`  
-**Referência Histórica e Aulas:** [`project_decisions/antigos/08_sentry_aulas_praticas.md`](file:///home/luska/Documents/projects/message_integration/project_decisions/antigos/08_sentry_aulas_praticas.md) e [`project_decisions/antigos/08_sentry_architecture_and_potential.md`](file:///home/luska/Documents/projects/message_integration/project_decisions/antigos/08_sentry_architecture_and_potential.md).
+**Referência Histórica e Aulas:** [`project_decisions/antigos/08_sentry_aulas_praticas.md`](../project_decisions/antigos/08_sentry_aulas_praticas.md) e [`project_decisions/antigos/08_sentry_architecture_and_potential.md`](../project_decisions/antigos/08_sentry_architecture_and_potential.md).
 
 ---
 
@@ -31,10 +31,11 @@ A inicialização da telemetria é governada por três variáveis de ambiente ob
 
 ## 3. Arquitetura de Interceptação e Segurança (LGPD)
 
-### 3.1. Zero-Crash & Data Scrubbing
-A inicialização em [`src/core/logging_config.py`](file:///home/luska/Documents/projects/message_integration/src/core/logging_config.py) cumpre os seguintes requisitos contratuais:
+### 3.1. Zero-Crash, Idempotência & Data Scrubbing
+A inicialização em [`src/core/logging_config.py`](../src/core/logging_config.py) cumpre os seguintes requisitos contratuais:
+- **Inicialização Idempotente (`_SENTRY_INITIALIZED`)**: Garante que múltiplas chamadas a `setup_logging()` (inclusive entre importações de `main.py` e `daemon.py`) inicializem `sentry_sdk.init()` apenas uma vez.
 - **`send_default_pii=False`**: É estritamente proibido enviar dados pessoais identificáveis (CPF, nomes, dados de cartão ou credenciais) nos payloads de telemetria.
-- **Supressão de Stack Trace em Disco**: Em caso de erros fatais globais, a stack trace completa é encaminhada de forma criptografada para o Sentry, evitando o despejo de credenciais em texto claro no `app.log`.
+- **Supressão de Stack Trace em Disco**: Em caso de erros fatais globais, a stack trace completa é encaminhada para o Sentry e os logs em disco registram tipo e valor sem despejar credenciais em texto claro no `app.log`.
 
 ### 3.2. Hooks Globais de Exceção Não Tratada
 ```mermaid
@@ -73,15 +74,15 @@ gantt
 
 | Operação (`op`) | Localização no Código | Descrição / Payload |
 | :--- | :--- | :--- |
-| `http.client` | [`src/core/client.py`](file:///home/luska/Documents/projects/message_integration/src/core/client.py) | Medição de latência e status code de cada requisição HTTP para a API REST da Yampi. |
-| `db.sql.query` | [`src/ports/postgres_repo.py`](file:///home/luska/Documents/projects/message_integration/src/ports/postgres_repo.py) | Medição de tempo de execução de queries, inserts e updates no PostgreSQL. |
-| `/webhook` | [`src/webhook_server.py`](file:///home/luska/Documents/projects/message_integration/src/webhook_server.py) | Transação Flask capturada via `FlaskIntegration` para requisições recebidas da Meta WhatsApp API. |
+| `http.client` | [`src/core/client.py`](../src/core/client.py) | Medição de latência e status code de cada requisição HTTP para a API REST da Yampi. |
+| `db.sql.query` | [`src/ports/postgres_repo.py`](../src/ports/postgres_repo.py) | Medição de tempo de execução de queries, inserts e updates no PostgreSQL. |
+| `/webhook` | [`src/webhook_server.py`](../src/webhook_server.py) | Transação Flask capturada via `FlaskIntegration` para requisições recebidas da Meta WhatsApp API. |
 
 ---
 
 ## 5. Especificação do Monitor de Vida do Daemon (Sentry Crons)
 
-O orquestrador [`src/daemon.py`](file:///home/luska/Documents/projects/message_integration/src/daemon.py) executa em regime de *Heartbeat Monitoring*:
+O orquestrador [`src/daemon.py`](../src/daemon.py) executa em regime de *Heartbeat Monitoring*:
 
 * **Slug Obrigatório:** `yampi-daemon-cycle`
 * **Periodicidade:** 5 Minutos (`MACRO_DAEMON_SLEEP_INTERVAL_SEG = 300`)
@@ -94,12 +95,12 @@ O orquestrador [`src/daemon.py`](file:///home/luska/Documents/projects/message_i
 
 ## 6. Especificação de Breadcrumbs (Rastreabilidade de Estados)
 
-Os workers de processamento registram breadcrumbs estruturados antes de operações de I/O de alto risco:
+Os workers de processamento registram breadcrumbs estruturados após gravação de transição bem-sucedida:
 
 | Categoria | Origem | Estrutura de Dados (`data`) | Finalidade |
 | :--- | :--- | :--- | :--- |
-| `order_state_machine` | [`src/workers/orders.py`](file:///home/luska/Documents/projects/message_integration/src/workers/orders.py) | `{"order_id": str, "from": int, "to": int}` | Contextualiza exatamente qual pedido e transição de STG estavam ativos no momento de uma exceção. |
-| `cart_state_machine` | [`src/workers/abandoned_cart.py`](file:///home/luska/Documents/projects/message_integration/src/workers/abandoned_cart.py) | `{"cart_id": str, "from": int, "to": int}` | Registra transições de STC (15m, 24h, 72h) para auditoria de réguas de desconto. |
+| `order_state_machine` | [`src/workers/orders.py`](../src/workers/orders.py) | `{"order_id": str, "cart_id": str, "new_stg": int, "previous_stg": int \| None}` | Contextualiza exatamente qual pedido, carrinho e transição de STG ocorreram no ciclo. |
+| `cart_state_machine` | [`src/workers/abandoned_cart.py`](../src/workers/abandoned_cart.py) | `{"cart_id": str, "new_stc": int, "previous_stc": int \| None}` | Registra transições de STC (4h, 24h, 48h, 96h) para auditoria de réguas de desconto. |
 | `src.workers.*` | Sistema de Logs (`logging`) | Mensagens de nível `INFO` ou `WARNING` | Histórico sequencial do pipeline de lote antes de qualquer falha. |
 
 ---

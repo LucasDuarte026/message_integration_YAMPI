@@ -1,0 +1,90 @@
+# Compose Specification Standard - Message Integration (Produção)
+name: message_integration_prod
+
+services:
+  # ============================================================================
+  # 1. Serviço de Banco de Dados Relacional (PostgreSQL)
+  # ============================================================================
+  db:
+    image: postgres:15-alpine
+    container_name: message_integration_db
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_USER: ${DB_USER:?A variável DB_USER é obrigatória no .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?A variável DB_PASSWORD é obrigatória no .env}
+      POSTGRES_DB: ${DB_NAME:?A variável DB_NAME é obrigatória no .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Persistência isolada no Docker Engine (Zero dependência de pastas do Windows)
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.80'
+          memory: 512M
+        reservations:
+          cpus: '0.20'
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ============================================================================
+  # 2. Daemon Orquestrador de Mensagens & Recuperação de Vendas (Python)
+  # ============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: message_integration_app:${APP_VERSION:-latest}
+    container_name: message_integration_app
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      # Loopback seguro: se o servidor de webhook for ativado, fica restrito ao host local
+      - "127.0.0.1:5000:5000"
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      PYTHONUNBUFFERED: "1"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    # Bind mounts diretos no filesystem Linux ext4 do WSL2 (idêntico ao ambiente de dev)
+    volumes:
+      - ./containers/logs:/app/local_data/logs
+      - ./containers/emails:/app/local_data/emails
+    deploy:
+      resources:
+        limits:
+          cpus: '1.50'
+          memory: 512M
+        reservations:
+          cpus: '0.50'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+# ==============================================================================
+# Volumes Persistentes (Isolados no ambiente Docker / WSL2)
+# ==============================================================================
+volumes:
+  pgdata:
+    name: message_integration_pgdata
+

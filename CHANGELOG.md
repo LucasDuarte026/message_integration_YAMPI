@@ -5,9 +5,49 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.6.0] - 2026-11-18 (Hardening Pré-Deploy, Infraestrutura Ubuntu 26.04.1 LTS, Cobertura Pytest 82% e Conformidade SDD - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Corrigido / Hardening Pré-Deploy
+- **Proteção Anti-Regressão Temporal no Banco (`src/ports/postgres_repo.py`)**:
+  - Aplicado `COALESCE(LEAST(email_status_table.data_pedido, EXCLUDED.data_pedido), EXCLUDED.data_pedido)` em `upsert_from_order` e `COALESCE(LEAST(email_status_table.data_carrinho, EXCLUDED.data_carrinho), EXCLUDED.data_carrinho)` em `upsert_from_cart`, impedindo que atualizações posteriores da Yampi avancem indevidamente a âncora temporal dos cupons.
+- **Consistência Temporal UTC-First nos Workers (`src/workers/orders.py` e `src/workers/abandoned_cart.py`)**:
+  - `OrderProcessor` passou a incluir `['customer', 'items', 'status', 'shipments', 'transactions']`, utilizar `created_at` como fonte primária de `data_pedido` (com fallback para `transactions[0].created_at` e `updated_at`) e normalizar `row['data_pedido']` retornado do PostgreSQL para UTC timezone-aware.
+  - `AbandonedCartProcessor` passou a utilizar `updated_at` com fallback para `created_at` (sem `transactions`), normalizando `row['data_carrinho']` retornado pelo PostgreSQL para UTC timezone-aware.
+- **Ciclo de Vida e Fechamento Determinístico de Recursos (`src/ports/smtp_email_provider.py` e `src/main.py`)**:
+  - Adicionado método thread-safe `SMTPEmailProvider.close()` (`quit()` com fallback para `close()` e reset de `self._server`).
+  - Introduzida função `_close_resources(state_repo, message_provider)` executada em blocos `finally:` nos runners `run_abandoned_carts()`, `run_orders()` e `run_all()`, eliminando vazamento de pools PostgreSQL e conexões SMTP entre ciclos do daemon.
+- **Logging Resiliente e Sentry Idempotente (`src/core/logging_config.py`)**:
+  - Adicionada flag `_SENTRY_INITIALIZED` garantindo inicialização única e idempotente de `sentry_sdk.init()`.
+  - Implementado `SafeRotatingFileHandler`, que cria e valida os diretórios `local_data/logs` e `local_data/emails` e recria pasta/stream automaticamente caso removidos em tempo de execução.
+
+### Adicionado / Modificado (Infraestrutura & Deploy)
+- **Infraestrutura de Deploy em Produção (`docker-compose.prod.yml` e `Makefile`)**:
+  - Especificação Compose para produção com `postgres:15-alpine` e `message_integration_app`, limites rígidos de recursos (App: 1.50 vCPU / 512 MB; DB: 0.80 vCPU / 512 MB), volume nomeado `message_integration_pgdata`, `no-new-privileges:true` e binding em loopback `127.0.0.1`.
+  - Adicionado `mkdir -p containers/logs containers/emails` no alvo `make up` do `Makefile` e atualização do `.gitignore`.
+- **Guia de Instalação Ubuntu 26.04.1 LTS & ADR de Deploy (`00_2_GUIA_DE_INSTALACAO_UBUNTU26.md` e `00_DECISOES_DE_PROJETO_DEPLOY.md`)**:
+  - Manual completo de implantação local 24/7 no Ubuntu 26.04.1 LTS (`resolute`) com Docker Engine CE (DEB822), systemd sem suspensão, firewall UFW e validação via Sentry Crons (`yampi-daemon-cycle`).
+- **Estudos de Entregabilidade & CI/CD**:
+  - Adicionados `01_EMAIL_DELIVERABILITY_KEY_POINTS.md`, `02_EMAIL_CERTIFICATION_GUIDE.md`, `project_decisions/10_automationCICD.md` e `project_decisions/antigos/11_version_control_assistant.md`.
+
+### Testes e Qualidade
+- **Expansão da Suíte Pytest (`56 passed`, cobertura de `82%` em `src/`)**:
+  - Adicionadas novas suítes `tests/test_logging_config.py`, `tests/test_smtp_email_provider.py` e `tests/test_main_and_daemon.py`.
+  - Ampliados os testes de regressão temporal, fallback de datas, normalização UTC, `COALESCE(LEAST(...))` e rollback fail-safe em `tests/test_orders.py`, `tests/test_abandoned_cart.py` e `tests/test_postgres_repo_pool.py`.
+
+### Documentação e Conformidade SDD (Zero Doc-Drift)
+- Criada especificação canônica [`docs/sdd_specs.md`](./docs/sdd_specs.md) no padrão EARS + cenários `GIVEN / WHEN / THEN` + ADRs leves cobrindo todos os módulos de `src/`.
+- Sincronizados [`docs/email_state_machine.md`](./docs/email_state_machine.md), diagramas Mermaid (`docs/diagramas/`), [`docs/architecture.md`](./docs/architecture.md), [`docs/project_overview.md`](./docs/project_overview.md), [`docs/sentry_dashboard_guide.md`](./docs/sentry_dashboard_guide.md), [`docs/project_dependency_tree.md`](./docs/project_dependency_tree.md), [`docs/testing_guidelines.md`](./docs/testing_guidelines.md), [`docs/docker_cheatsheet.md`](./docs/docker_cheatsheet.md), [`docs/README.md`](./docs/README.md), [`scripts/README.md`](./scripts/README.md) e READMEs internos (`src/domain/`, `src/core/`, `src/ports/`, `src/workers/`).
+- Sanitizados todos os links Markdown para caminhos relativos portáveis (remoção integral de URIs `file://` e caminhos absolutos `/home/...`) e mascaramento de PII de exemplos conforme LGPD.
+- Removido arquivo redundante `RELEASE_NOTES.md`.
+
+---
+
 ## [6.5.2] - 2026-08-17 (Governança de Agentes Nativos, Indexação Vetorial Qdrant e Refinamento Arquitetural - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
 
 ### Adicionado / Modificado
 - **Migração para Ecossistema Nativo de Agentes (`.agents/`)**:

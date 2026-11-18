@@ -5,7 +5,7 @@ __pycache__/
 *$py.class
 *.db
 mermaid_renders/
-project_decisions/estudos/
+project_decisions/
 .gemini/
 init-scripts/
 tests/carts_mock.json
@@ -17,3 +17,6 @@ db_backups/
 containers/
 logs*
 .agents/local_index/
+*.tar.gz
+.agents_export/
+graphify-out/
