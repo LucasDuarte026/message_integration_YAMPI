@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Optional
 from src.domain.interfaces import MessageProviderProtocol
 
 logger = logging.getLogger(__name__)
@@ -11,7 +12,14 @@ class DryRunMessageProvider(MessageProviderProtocol):
     Cumpre estritamente o contrato da interface.
     """
         
-    def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
+    def send_email_message(
+        self,
+        email: str,
+        subject: str,
+        html_body: str,
+        plain_text: Optional[str] = None,
+        is_promotional: bool = False,
+    ) -> bool:
         logger.info("="*40)
         logger.info(f"[DRY-RUN] Enviando Email para: {email}")
         logger.info(f"[DRY-RUN] Assunto: {subject}")

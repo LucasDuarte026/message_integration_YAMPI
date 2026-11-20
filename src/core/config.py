@@ -1,6 +1,14 @@
 import os
 from dataclasses import dataclass
 from typing import Optional
+from src.core.macros import (
+    MACRO_EMAIL_FROM_NAME,
+    MACRO_EMAIL_REPLY_TO,
+    MACRO_EMAIL_MESSAGE_ID_DOMAIN,
+    MACRO_EMAIL_UNSUBSCRIBE_URL,
+    MACRO_EMAIL_UNSUBSCRIBE_MAILTO,
+    MACRO_DEFAULT_EMAIL_ASSETS_DIR,
+)
 
 @dataclass
 class Config:
@@ -25,6 +33,15 @@ class Config:
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_FROM: Optional[str] = None
+    PROMO_SMTP_USER: Optional[str] = None
+    PROMO_SMTP_PASSWORD: Optional[str] = None
+    PROMO_SMTP_FROM: Optional[str] = None
+    EMAIL_FROM_NAME: str = MACRO_EMAIL_FROM_NAME
+    EMAIL_REPLY_TO: str = MACRO_EMAIL_REPLY_TO
+    EMAIL_MESSAGE_ID_DOMAIN: str = MACRO_EMAIL_MESSAGE_ID_DOMAIN
+    EMAIL_UNSUBSCRIBE_URL: str = MACRO_EMAIL_UNSUBSCRIBE_URL
+    EMAIL_UNSUBSCRIBE_MAILTO: str = MACRO_EMAIL_UNSUBSCRIBE_MAILTO
+    EMAIL_ASSETS_DIR: str = MACRO_DEFAULT_EMAIL_ASSETS_DIR
     MAX_WORKERS: int = 10
     INTERACTIVE_DEBUG: bool = False
     APP_VERSION: str = "unknown"
@@ -57,6 +74,15 @@ def load_config() -> Config:
         SMTP_USER=os.environ.get("SMTP_USER"),
         SMTP_PASSWORD=os.environ.get("SMTP_PASSWORD"),
         SMTP_FROM=os.environ.get("SMTP_FROM"),
+        PROMO_SMTP_USER=os.environ.get("PROMO_SMTP_USER"),
+        PROMO_SMTP_PASSWORD=os.environ.get("PROMO_SMTP_PASSWORD"),
+        PROMO_SMTP_FROM=os.environ.get("PROMO_SMTP_FROM"),
+        EMAIL_FROM_NAME=os.environ.get("EMAIL_FROM_NAME", MACRO_EMAIL_FROM_NAME),
+        EMAIL_REPLY_TO=os.environ.get("EMAIL_REPLY_TO", MACRO_EMAIL_REPLY_TO),
+        EMAIL_MESSAGE_ID_DOMAIN=os.environ.get("EMAIL_MESSAGE_ID_DOMAIN", MACRO_EMAIL_MESSAGE_ID_DOMAIN),
+        EMAIL_UNSUBSCRIBE_URL=os.environ.get("EMAIL_UNSUBSCRIBE_URL", MACRO_EMAIL_UNSUBSCRIBE_URL),
+        EMAIL_UNSUBSCRIBE_MAILTO=os.environ.get("EMAIL_UNSUBSCRIBE_MAILTO", MACRO_EMAIL_UNSUBSCRIBE_MAILTO),
+        EMAIL_ASSETS_DIR=os.environ.get("EMAIL_ASSETS_DIR", MACRO_DEFAULT_EMAIL_ASSETS_DIR),
         MAX_WORKERS=int(os.environ.get("MAX_WORKERS", 10)),
         APP_VERSION=app_version
     )

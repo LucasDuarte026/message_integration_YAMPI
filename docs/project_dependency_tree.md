@@ -17,6 +17,7 @@ graph TD
         C_MACR["src/core/macros.py"]
         C_TIME["src/core/time_utils.py"]
         C_LOGS["src/core/logging_config.py"]
+        C_TELE["src/core/telemetry.py <br> Sentry Metrics & Scrubbing"]
         C_CLIE["src/core/client.py <br> YampiClientProtocol"]
         P_PG["src/ports/postgres_repo.py <br> StateRepositoryProtocol"]
         P_SMTP["src/ports/smtp_email_provider.py <br> MessageProviderProtocol"]
@@ -54,6 +55,9 @@ graph TD
     W_CART --> S_NOTIF
     W_ORD --> S_NOTIF
     S_NOTIF --> D_EVT
+    S_NOTIF --> C_TELE
+    P_SMTP --> C_TELE
+    M_MAIN --> C_TELE
 
     %% Injeção de Dependências feita pelo Main
     M_DAEMON ==>|Loop 300s| M_MAIN
@@ -78,9 +82,9 @@ A hierarquia de dependências flui de fora (Entrypoint) para dentro (Domain), ga
 - **O que faz:** Dita as regras do jogo. Define os `Protocols` (`YampiClientProtocol`, `MessageProviderProtocol`, `StateRepositoryProtocol`) e os DTOs (`OrderTransitionEvent`, `CartTransitionEvent`).
 
 ### Nível 2: Infraestrutura e Serviços (`src/core/`, `src/ports/` e `src/services/`)
-- **Quem são:** `client.py` (Yampi), `time_utils.py` (UTC-First), `postgres_repo.py` (PostgreSQL com pool e `COALESCE(LEAST(...))`), `smtp_email_provider.py` (SMTP stateful com `close()`), `message_provider.py` (Dry-Run), `logging_config.py` (`SafeRotatingFileHandler` + Sentry idempotente) e `notification_service.py` + `email_builders/` (renderização MJML/Jinja2).
+- **Quem são:** `client.py` (Yampi), `time_utils.py` (UTC-First), `postgres_repo.py` (PostgreSQL com pool e `COALESCE(LEAST(...))`), `smtp_email_provider.py` (SMTP stateful com roteamento dual `oficial@`/`comercial@`, `close()` e telemetria), `message_provider.py` (Dry-Run), `logging_config.py` (`SafeRotatingFileHandler` + Sentry idempotente), `telemetry.py` (contadores Sentry Zero-Crash, spans SMTP, escopos thread-safe e sanitização LGPD) e `notification_service.py` + `email_builders/` (renderização MJML/Jinja2).
 - **Do que dependem:** Do `domain/` e de bibliotecas externas (`psycopg2`, `requests`, `smtplib`, `jinja2`, `PyYAML`, `sentry-sdk`, `logging`).
-- **O que fazem:** Lidam com o mundo real (Internet, Banco de Dados, E-mail, Renderização, Logs).
+- **O que fazem:** Lidam com o mundo real (Internet, Banco de Dados, E-mail, Renderização, Telemetria e Logs).
 
 ### Nível 3: Casos de Uso (`src/workers/`)
 - **Quem são:** `abandoned_cart.py` e `orders.py`.
@@ -90,4 +94,4 @@ A hierarquia de dependências flui de fora (Entrypoint) para dentro (Domain), ga
 ### Nível 4: Entrypoints (`src/main.py`, `src/daemon.py` e `src/webhook_server.py`)
 - **Quem são:** Os roteadores e orquestradores principais.
 - **Do que dependem:** De **todos** os módulos necessários para montar o grafo de dependências.
-- **O que fazem:** `src/main.py` lê `config.py`, instancia `PostgresStateRepository`, `YampiClient` e `SMTPEmailProvider`/`DryRunMessageProvider`, injeta-os nos workers e garante o encerramento das conexões (`_close_resources()`) em bloco `finally`. `src/daemon.py` executa `run_all()` a cada 300s com Sentry Crons.
+- **O que fazem:** `src/main.py` lê `config.py`, instancia `PostgresStateRepository`, `YampiClient` e `SMTPEmailProvider`/`DryRunMessageProvider`, injeta-os nos workers e garante o encerramento das conexões e o envio dos buffers de telemetria (`_close_resources()` + `flush_telemetry()`) em bloco `finally`. `src/daemon.py` executa `run_all()` a cada 300s com Sentry Crons.

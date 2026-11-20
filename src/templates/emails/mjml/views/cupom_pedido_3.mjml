@@ -15,7 +15,7 @@
         <mj-column width="100%">
           
           <mj-text font-size="24px" font-weight="bold" color="#DC2626" align="center" padding-bottom="10px">
-            Última Chance: {{ value_cupom }}% OFF! ⚠️
+            Lembrete: condição de {{ value_cupom }}% de desconto
           </mj-text>
           
           <mj-text font-size="16px" color="#334155" line-height="150%" align="center" padding-bottom="15px">
@@ -34,7 +34,7 @@
           
           <!-- Conteúdo Interno do Card Cinza -->
           <mj-text align="center" font-size="20px" font-weight="bold" color="#DC2626" padding="25px 20px 10px 20px">
-            Maior Desconto do Ano: {{ value_cupom }}% OFF 🚨
+            Maior Desconto do Ano: {{ value_cupom }}% OFF
           </mj-text>
 
           <!-- CAIXA PONTILHADA ESTILO ANTIGO COM SOMBRA -->
@@ -57,7 +57,7 @@
       <mj-section background-color="#FFFFFF" padding="0px 20px 25px 20px">
         <mj-column width="100%">
           <mj-text font-size="13px" color="#64748B" line-height="150%" align="center">
-            ⚠️ <em>Após o vencimento deste e-mail, a reserva do seu pedido e o desconto de {{ value_cupom }}% serão permanentemente cancelados.</em>
+            <em>Após o vencimento deste e-mail, a reserva do seu pedido e o desconto de {{ value_cupom }}% serão permanentemente cancelados.</em>
           </mj-text>
           
           <mj-text font-size="14px" color="#64748B" line-height="150%" align="center" padding-top="20px">

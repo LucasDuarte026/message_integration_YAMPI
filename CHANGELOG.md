@@ -5,6 +5,33 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.7.0] - 2026-11-20 (Entregabilidade RFC 2046/5322/8058, Roteamento Dual SMTP, Otimização WebP 75% e Telemetria Sentry Application Metrics - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado
+- **Telemetria de Disparos de E-mail no Sentry (`src/core/telemetry.py`, `smtp_email_provider.py`, `notification_service.py`, `main.py`, `debug_main.py`)**:
+  - Implementado o módulo central Zero-Crash `src/core/telemetry.py` com três contadores oficiais via `sentry_sdk.metrics.count`: `email.dispatch.started` (1x ao iniciar), `email.dispatch.sent` (imediatamente após `sendmail()` confirmar aceitação sem `refused` e antes do *throttling*) e `email.dispatch.failed` (em falhas de `template_build`, `smtp_retries_exhausted` ou `smtp_fatal`).
+  - Adicionados spans `email.smtp.send` por tentativa SMTP (`start_smtp_span`), *breadcrumbs* `smtp.retry` (`add_smtp_retry_breadcrumb`), isolamento thread-safe por disparo via `email_dispatch_scope` (`primary` vs `duplicate`, com `order_id`, `order_number`, `cart_id`, `template_name`, `stage` e `recipient_domain`), captura única de exceções preservando *traceback* completo + `retry_history` sanitizado e deduplicação automática (`DedupeIntegration` + `logger.warning` no `NotificationService`).
+  - Aplicada defesa em profundidade LGPD (`_build_pii_sanitizer_processor` + `_sanitize_frame_vars`) redigindo incondicionalmente variáveis locais sensíveis em `frame["vars"]` (HTML, `customer_data`, `event`, tokens) e múltiplos e-mails, além de `flush_telemetry()` em `_close_resources()` (`src/main.py`) e ao término de `src/debug_main.py`.
+- **Roteamento Dual de Remetentes SMTP (`oficial@` vs. `comercial@`)**:
+  - Configurados dois pools SMTP independentes no `SMTPEmailProvider` (`_server` para avisos transacionais e `_promo_server` via `PROMO_SMTP_USER`/`PROMO_SMTP_PASSWORD`/`PROMO_SMTP_FROM` para cupons e recuperação de carrinhos), protegidos por `threading.Lock`, com fallback transparente para `_server`, isolamento de falhas entre canais e encerramento de ambos em `close()`.
+  - Suporte via `.env` / `Config` (`src/core/config.py`, `.env.example`) para `PROMO_SMTP_*`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`, `EMAIL_MESSAGE_ID_DOMAIN`, `EMAIL_UNSUBSCRIBE_URL`, `EMAIL_UNSUBSCRIBE_MAILTO` e `EMAIL_ASSETS_DIR`.
+- **Modernização MIME & Entregabilidade (RFC 2046 / 5322 / 8058 e WebP 75% Modular)**:
+  - Migrado `SMTPEmailProvider` para `email.message.EmailMessage` com alternativa `text/plain` gerada por `_HTMLToPlainTextParser` / `build_with_plain_text()` (`src/services/email_builders/base_builder.py`) precedendo `text/html`, cabeçalhos `Message-ID`, `Date`, `From`, `Reply-To` e `List-Unsubscribe: One-Click` em fluxos promocionais, além de validação explícita de `refused` retornado por `sendmail()`.
+  - Higienização lexical dos assuntos e templates (`brand_data.yml`, `src/templates/emails/mjml/`, `html_compiled/`), desativação do envio duplicado por padrão (`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = False`) contra *Graymail*, externalização dos ativos WebP 75% (`EMAIL_ASSETS_DIR` + volume `/app/email_assets:ro` em `docker-compose.yml` / `docker-compose.prod.yml` + `.gitignore`) e remoção dos PNGs legados e mocks HTML do repositório.
+
+### Testes e Qualidade
+- **Expansão da Suíte Pytest (`107 passed`, `7 subtests`, `85%` de cobertura global em `src/`)**:
+  - Adicionadas as suítes `tests/test_email_plain_text.py`, `tests/test_dual_sender_routing.py` e `tests/test_email_telemetry.py` (usando `DummyTransport` real do `sentry-sdk`, cobrindo `88%` em `telemetry.py`, `96%` em `smtp_email_provider.py` e `95%` em `notification_service.py`).
+  - Atualizados `tests/test_abandoned_cart.py`, `tests/test_orders.py` e `tests/test_smtp_email_provider.py` para o novo contrato MIME, `plain_text` e `is_promotional`.
+
+### Documentação e Conformidade SDD (Zero Doc-Drift)
+- Adicionado [`docs/email_deliverability_policies.md`](./docs/email_deliverability_policies.md), os requisitos normativos `REQ-12`, `REQ-13` e `REQ-14` e as decisões `ADR-05` e `ADR-06` em [`docs/sdd_specs.md`](./docs/sdd_specs.md).
+- Atualizados [`docs/sentry_dashboard_guide.md`](./docs/sentry_dashboard_guide.md) (catálogo de métricas, queries prontas, diagrama Mermaid e guia de reprodução), [`docs/architecture.md`](./docs/architecture.md), [`docs/project_overview.md`](./docs/project_overview.md), [`docs/project_dependency_tree.md`](./docs/project_dependency_tree.md), [`docs/testing_guidelines.md`](./docs/testing_guidelines.md), [`docs/README.md`](./docs/README.md), [`README.md`](./README.md) e READMEs internos (`src/core/README.md`, `src/ports/README.md`, `src/domain/README.md`), corrigindo todos os links relativos quebrados.
+
+---
+
 ## [6.6.0] - 2026-11-18 (Hardening Pré-Deploy, Infraestrutura Ubuntu 26.04.1 LTS, Cobertura Pytest 82% e Conformidade SDD - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**

@@ -1,9 +1,9 @@
 # Especificações Formais (SDD — Spec-Driven Development)
 
 **Status:** Ativo / Fonte Canônica de Contratos Comportamentais  
-**Versão Alvo:** `6.6.0`  
+**Versão Alvo:** `6.7.0`  
 **Padrão:** EARS (*Easy Approach to Requirements Syntax*) + Cenários Verificáveis (`GIVEN / WHEN / THEN`)  
-**Documentos Complementares:** [Arquitetura](./architecture.md) · [Máquina de Estados STG/STC](./email_state_machine.md) · [Telemetria Sentry](./sentry_dashboard_guide.md) · [Diretrizes de Testes](./testing_guidelines.md)
+**Documentos Complementares:** [Arquitetura](./architecture.md) · [Políticas de Entregabilidade (SDD)](./email_deliverability_policies.md) · [Máquina de Estados STG/STC](./email_state_machine.md) · [Telemetria Sentry](./sentry_dashboard_guide.md) · [Diretrizes de Testes](./testing_guidelines.md)
 
 ---
 
@@ -57,9 +57,9 @@ Este documento consolida todos os requisitos normativos implementados em `src/`,
 - **Testes:** [`tests/test_main_and_daemon.py`](../tests/test_main_and_daemon.py)
 - **Requisito (EARS):**
   1. `load_config()` **DEVE** exigir `YAMPI_USER_TOKEN` e `YAMPI_USER_SECRET_KEY` no ambiente e levantar `ValueError` se qualquer um estiver ausente.
-  2. `load_config()` **DEVE** ler `YAMPI_ALIAS`, `DATABASE_URL`, `TEST_EMAIL_RECIPIENT`, `SMTP_HOST` (padrão `"smtp.gmail.com"`), `SMTP_PORT` (inteiro, padrão `587`), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `MAX_WORKERS` (inteiro, padrão `10`) e ler a versão da aplicação a partir do arquivo `VERSION` na raiz do projeto (com fallback para `"unknown"`).
-  3. Todas as constantes temporais, flags de envio, parâmetros de pool PostgreSQL, SMTP, HTTP e telemetria **DEVEM** ser centralizados em `src/core/macros.py`.
-  4. Na configuração padrão atual de `macros.py`, o modo de produção SMTP está ativo (`MACRO_ENABLE_REAL_EMAIL_DISPATCH = True`, `MACRO_FORCE_TEST_EMAIL_RECIPIENT = False`, `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = True`, `MACRO_ENABLE_LOCAL_HTML_SAVING = False`).
+  2. `load_config()` **DEVE** ler `YAMPI_ALIAS`, `DATABASE_URL`, `TEST_EMAIL_RECIPIENT`, `SMTP_HOST` (padrão `"smtp.gmail.com"`), `SMTP_PORT` (inteiro, padrão `587`), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `PROMO_SMTP_USER`, `PROMO_SMTP_PASSWORD`, `PROMO_SMTP_FROM`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`, `EMAIL_MESSAGE_ID_DOMAIN`, `EMAIL_UNSUBSCRIBE_URL`, `EMAIL_UNSUBSCRIBE_MAILTO`, `EMAIL_ASSETS_DIR` (padrão `MACRO_DEFAULT_EMAIL_ASSETS_DIR`), `MAX_WORKERS` (inteiro, padrão `10`) e ler a versão da aplicação a partir do arquivo `VERSION` na raiz do projeto (com fallback para `"unknown"`).
+  3. Todas as constantes temporais, flags de envio, parâmetros de pool PostgreSQL, SMTP, identidade de cabeçalhos de e-mail, HTTP e telemetria **DEVEM** ser centralizados em `src/core/macros.py`.
+  4. Na configuração padrão atual de `macros.py`, o modo de produção SMTP está ativo com prevenção de *Graymail* (`MACRO_ENABLE_REAL_EMAIL_DISPATCH = True`, `MACRO_FORCE_TEST_EMAIL_RECIPIENT = False`, `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = False`, `MACRO_ENABLE_LOCAL_HTML_SAVING = False`).
 - **Cenário Verificável:**
   - **DADO** variáveis `YAMPI_USER_TOKEN` ausentes no ambiente
   - **QUANDO** `load_config()` é chamada
@@ -104,15 +104,16 @@ Este documento consolida todos os requisitos normativos implementados em `src/`,
 
 ---
 
-### `REQ-06` — Provedor SMTP Stateful, Throttling, CID Inline, Mascaramento LGPD e `close()`
+### `REQ-06` — Provedor SMTP Stateful (`EmailMessage`, RFC 2046/5322/8058), Throttling, Mascaramento LGPD e `close()`
 - **Módulos:** [`src/ports/smtp_email_provider.py`](../src/ports/smtp_email_provider.py), [`src/ports/message_provider.py`](../src/ports/message_provider.py)
-- **Testes:** [`tests/test_smtp_email_provider.py`](../tests/test_smtp_email_provider.py)
+- **Testes:** [`tests/test_smtp_email_provider.py`](../tests/test_smtp_email_provider.py), [`tests/test_dual_sender_routing.py`](../tests/test_dual_sender_routing.py)
 - **Requisito (EARS):**
   1. `SMTPEmailProvider` **DEVE** reutilizar uma conexão SMTP persistente protegida por `threading.Lock` (validando a conexão ativa via `noop()[0] == 250` antes de reutilizá-la), utilizando `SMTP_SSL` na porta `465` e `SMTP` + `STARTTLS` nas demais portas, autenticando com `login()` quando `user` e `password` estiverem definidos, e resolvendo `from_addr` via `from_addr or user or MACRO_DEFAULT_FALLBACK_FROM_EMAIL`.
-  2. O provedor **DEVE** converter referências locais `src`/`background` no HTML (incluindo `file://` ou caminhos relativos) em anexos MIME inline com `Content-ID` (`cid:<id>`) e `Content-Disposition: inline`.
-  3. O provedor **DEVE** mascarar endereços de e-mail em todos os logs via `_mask_email()` (preservando `MACRO_EMAIL_MASK_VISIBLE_PREFIX_CHARS` = `5` caracteres iniciais e o último antes do `@` para prefixos > 6 chars).
-  4. Após cada envio bem-sucedido, **DEVE** aguardar `MACRO_SMTP_THROTTLE_DELAY_SEG` (`2.0s`); em falhas transitórias (`SMTPServerDisconnected`, `SMTPException`, `OSError`, `TimeoutError`), **DEVE** retentar até `MACRO_SMTP_MAX_RETRIES` (`3`) vezes com backoff linear progressivo (`5.0s * tentativa`) e retornar `False` ao esgotar tentativas.
-  5. O método `close()` **DEVE** encerrar a conexão SMTP ativa sob `self._lock` invocando `quit()` com fallback para `close()` se `quit()` falhar, resetando `self._server = None`.
+  2. O provedor **DEVE** construir a mensagem via `email.message.EmailMessage`, injetando `Message-ID` único (`make_msgid(domain=self.message_id_domain)`), `Date` (`formatdate(localtime=True)`), `From` formatado com nome amigável (`formataddr`) e `Reply-To`, além de `List-Unsubscribe` e `List-Unsubscribe-Post: List-Unsubscribe=One-Click` exclusivamente quando `is_promotional=True`.
+  3. O provedor **DEVE** estruturar a árvore MIME com `text/plain` (`set_content`, com fallback automático caso `plain_text` não seja fornecido) antes de `text/html` (`add_alternative`), ignorar anexos para referências `http://` ou `https://`, resolver caminhos locais de forma modular contra `assets_dir` (`EMAIL_ASSETS_DIR`, degradando graciosamente com aviso em log caso a pasta não exista em clones *open source*) e anexar referências locais existentes (incluindo `*_q75.webp` como `image/webp`) via `add_related` com `Content-ID` e `Content-Disposition: inline`.
+  4. O provedor **DEVE** mascarar endereços de e-mail em todos os logs via `_mask_email()` (preservando `MACRO_EMAIL_MASK_VISIBLE_PREFIX_CHARS` = `5` caracteres iniciais e o último antes do `@` para prefixos > 6 chars).
+  5. Após cada envio bem-sucedido, **DEVE** aguardar `MACRO_SMTP_THROTTLE_DELAY_SEG` (`2.0s`); em falhas transitórias (`SMTPServerDisconnected`, `SMTPException`, `OSError`, `TimeoutError`), **DEVE** retentar até `MACRO_SMTP_MAX_RETRIES` (`3`) vezes com backoff linear progressivo (`5.0s * tentativa`) e retornar `False` ao esgotar tentativas.
+  6. O método `close()` **DEVE** encerrar a conexão SMTP ativa sob `self._lock` invocando `quit()` com fallback para `close()` se `quit()` falhar, resetando `self._server = None`.
 - **Cenário Verificável:**
   - **DADO** uma conexão SMTP ativa e uma falha em `server.quit()`
   - **QUANDO** `provider.close()` é chamado
@@ -150,16 +151,18 @@ Este documento consolida todos os requisitos normativos implementados em `src/`,
 
 ---
 
-### `REQ-09` — Serviço de Notificação e Builders de E-mail
+### `REQ-09` — Serviço de Notificação, Builders de E-mail e Paridade `text/plain`
 - **Módulos:** [`src/services/notification_service.py`](../src/services/notification_service.py), [`src/services/email_builders/base_builder.py`](../src/services/email_builders/base_builder.py), [`src/services/email_builders/concrete_builders.py`](../src/services/email_builders/concrete_builders.py), [`src/templates/emails/config/brand_data.yml`](../src/templates/emails/config/brand_data.yml)
-- **Testes:** [`tests/test_main_and_daemon.py`](../tests/test_main_and_daemon.py), [`tests/test_orders.py`](../tests/test_orders.py), [`tests/test_abandoned_cart.py`](../tests/test_abandoned_cart.py)
+- **Testes:** [`tests/test_main_and_daemon.py`](../tests/test_main_and_daemon.py), [`tests/test_orders.py`](../tests/test_orders.py), [`tests/test_abandoned_cart.py`](../tests/test_abandoned_cart.py), [`tests/test_email_plain_text.py`](../tests/test_email_plain_text.py)
 - **Requisito (EARS):**
   1. `BaseEmailBuilder._build_items_html` **DEVE** calcular o preço unitário na ordem `sku.data.price_discount` → `sku.data.price_sale` → `item.price` → `item.product_price` → `0.0`, calcular `soma_sem_frete = calculated_subtotal - discount` e aplicar a regra de **frete grátis** quando `soma_sem_frete >= 200.0` (desconsiderando o custo de frete do `final_total`).
-  2. Os builders **DEVEM** renderizar templates Jinja2 (`autoescape=True`) combinados com `brand_data.yml`, extrair `pix_code` (`pix.data[0]`, `pix.data` ou `pix[0]`), definir `tracking_code` fallback como `'Disponível em breve'` quando `new_stg == 3` (ou `'Aguardando envio'` nos demais estados), resolver `tracking_url` (`order.track_url` → `order.tracking_url` → `shipment.track_url` → `shipment.tracking_url` → `customer.login_url` → `brand_data.store_url`) e `recovery_url` (pedidos: `checkout_url` → `public_url` → `reorder_url` → `""`; carrinhos: `simulate_url` → `recovery_url` → `checkout_url` → `"https://yampi.com.br"`).
-  3. Quando `MACRO_ENABLE_LOCAL_HTML_SAVING` estiver ativo, `NotificationService` **DEVE** persistir o HTML renderizado em `local_data/emails/order_<id>/` ou `local_data/emails/cart_<id>/`.
-  4. Quando `MACRO_FORCE_TEST_EMAIL_RECIPIENT` for `True`, todos os disparos **DEVEM** ser redirecionados para `config.TEST_EMAIL_RECIPIENT`.
-  5. Quando `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH` for `True` e o destinatário for diferente de `TEST_EMAIL_RECIPIENT`, o serviço **DEVE** disparar uma cópia idêntica de supervisão após o envio principal bem-sucedido.
-  6. `NotificationService` **DEVE** suportar exatamente 6 builders de pedido (`pedido_aprovado`, `pedido_pendente`, `pedido_a_caminho`, `cupom_pedido_1`, `cupom_pedido_2`, `cupom_pedido_3`) e 3 de carrinho (`carrinho_abandonado_cupom4`, `carrinho_abandonado_cupom5`, `carrinho_abandonado_cupom6`); caso o template não possua builder registrado ou não haja destinatário válido, **DEVE** retornar `False`.
+  2. Os builders **DEVEM** renderizar templates Jinja2 (`autoescape=True`) combinados com `brand_data.yml` (usando assuntos neutros sem emojis/urgência e ativos `*_q75.webp`), extrair `pix_code` (`pix.data[0]`, `pix.data` ou `pix[0]`), definir `tracking_code` fallback como `'Disponível em breve'` quando `new_stg == 3` (ou `'Aguardando envio'` nos demais estados), resolver `tracking_url` (`order.track_url` → `order.tracking_url` → `shipment.track_url` → `shipment.tracking_url` → `customer.login_url` → `brand_data.store_url`) e `recovery_url` (pedidos: `checkout_url` → `public_url` → `reorder_url` → `""`; carrinhos: `simulate_url` → `recovery_url` → `checkout_url` → `"https://yampi.com.br"`).
+  3. `BaseEmailBuilder.build_with_plain_text(event)` **DEVE** gerar `(subject, html_body, plain_text)` utilizando `html_to_plain_text()`, removendo blocos `<style>`, `<script>`, `<head>`, `<title>` e condicionais MSO e preservando links `https://`, itens, valores, PIX/rastreio e rodapé com CNPJ.
+  4. `NotificationService` **DEVE** acionar `build_with_plain_text(event)` e repassar `plain_text` e `is_promotional` (`True` para `cupom_pedido_1..3` e carrinhos abandonados; `False` para `pedido_aprovado`, `pedido_pendente` e `pedido_a_caminho`) para `provider.send_email_message(...)`.
+  5. Quando `MACRO_ENABLE_LOCAL_HTML_SAVING` estiver ativo, `NotificationService` **DEVE** persistir o HTML renderizado em `local_data/emails/order_<id>/` ou `local_data/emails/cart_<id>/`.
+  6. Quando `MACRO_FORCE_TEST_EMAIL_RECIPIENT` for `True`, todos os disparos **DEVEM** ser redirecionados para `config.TEST_EMAIL_RECIPIENT`.
+  7. Quando `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH` for `True` e o destinatário for diferente de `TEST_EMAIL_RECIPIENT`, o serviço **DEVE** disparar uma cópia idêntica de supervisão após o envio principal bem-sucedido (mantido `False` por padrão em produção para prevenir *Graymail*).
+  8. `NotificationService` **DEVE** suportar exatamente 6 builders de pedido (`pedido_aprovado`, `pedido_pendente`, `pedido_a_caminho`, `cupom_pedido_1`, `cupom_pedido_2`, `cupom_pedido_3`) e 3 de carrinho (`carrinho_abandonado_cupom4`, `carrinho_abandonado_cupom5`, `carrinho_abandonado_cupom6`); caso o template não possua builder registrado ou não haja destinatário válido, **DEVE** retornar `False`.
 
 ---
 
@@ -183,6 +186,50 @@ Este documento consolida todos os requisitos normativos implementados em `src/`,
 
 ---
 
+### `REQ-12` — Políticas de Entregabilidade, Compressão WebP 75% e Governança DNS/Antispam
+- **Módulos:** Pipeline offline de otimização WebP 75%, [`src/templates/emails/config/brand_data.yml`](../src/templates/emails/config/brand_data.yml), [`src/ports/smtp_email_provider.py`](../src/ports/smtp_email_provider.py)
+- **Especificação Dedicada:** [`docs/email_deliverability_policies.md`](./email_deliverability_policies.md)
+- **Requisito (EARS):**
+  1. As 22 imagens de templates **DEVEM** utilizar formato WebP otimizado (`*_q75.webp` com fundo branco `#FFFFFF` em transparências, total de 524,3 KB / redução de 96,3% sobre os originais em backup externo) e preferencialmente estar hospedadas em endpoint HTTPS público/CDN; enquanto permanecerem em armazenamento local, trafegam inline (`image/webp`) com impacto de payload reduzido.
+  2. O domínio emissor (`elevemeloja.com.br`) **DEVE** manter `SPF` com `-all`, `DKIM` RSA 2048 bits ativo, `DMARC` coercivo (`p=quarantine`/`p=reject`, `pct=100`, `adkim=r; aspf=r;`, `rua=` ativo, sem `ruf=`) e monitoramento contínuo no Google Postmaster Tools (`< 0,10%` de taxa de spam).
+
+---
+
+### `REQ-13` — Roteamento Dual de Remetentes SMTP (`oficial@` vs. `comercial@`)
+- **Módulos:** [`src/ports/smtp_email_provider.py`](../src/ports/smtp_email_provider.py), [`src/services/notification_service.py`](../src/services/notification_service.py), [`src/core/config.py`](../src/core/config.py), [`src/core/macros.py`](../src/core/macros.py)
+- **Testes:** [`tests/test_dual_sender_routing.py`](../tests/test_dual_sender_routing.py)
+- **Requisito (EARS):**
+  1. Quando `is_promotional=False` (`pedido_aprovado`, `pedido_pendente`, `pedido_a_caminho`), o `SMTPEmailProvider` **DEVE** autenticar e despachar pelo pool transacional principal (`_server`, `SMTP_USER`/`SMTP_FROM` = `oficial@elevemeloja.com.br`) sem cabeçalhos `List-Unsubscribe`.
+  2. Quando `is_promotional=True` (`cupom_pedido_1..3` e `carrinho_abandonado_cupom4..6`) e `PROMO_SMTP_USER`/`PROMO_SMTP_PASSWORD` estiverem configurados, o provedor **DEVE** autenticar e despachar pelo pool promocional isolado (`_promo_server`, `PROMO_SMTP_FROM` = `comercial@elevemeloja.com.br`, com fallback automático para `PROMO_SMTP_USER`), injetando `List-Unsubscribe` e `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
+  3. Quando `PROMO_SMTP_USER` ou `PROMO_SMTP_PASSWORD` estiver ausente, o provedor **DEVE** realizar fallback transparente para `_server`, preservando os cabeçalhos RFC 8058.
+  4. Em todos os fluxos, `Reply-To` **DEVE** apontar para `EMAIL_REPLY_TO` (`"Atendimento Eleveme" <comercial@elevemeloja.com.br>`), falhas em um pool SMTP **NÃO DEVEM** corromper o pool do outro canal sob `self._lock`, e `close()` **DEVE** encerrar ambos os pools com tolerância a exceções em `quit()`/`close()`.
+- **Cenário Verificável:**
+  - **DADO** um `SMTPEmailProvider` configurado com `oficial@elevemeloja.com.br` (principal) e `comercial@elevemeloja.com.br` (promocional)
+  - **QUANDO** `NotificationService` dispara `pedido_aprovado` e `cupom_pedido_1` (inclusive sob concorrência em `ThreadPoolExecutor`)
+  - **ENTÃO** `pedido_aprovado` sai por `_server` (`oficial@`, sem `List-Unsubscribe`) e `cupom_pedido_1` sai por `_promo_server` (`comercial@`, com `List-Unsubscribe: One-Click`).
+
+---
+
+### `REQ-14` — Telemetria, Métricas e Rastreamento de Falhas de Disparo de E-mail (Sentry + LGPD)
+- **Módulos:** [`src/core/telemetry.py`](../src/core/telemetry.py), [`src/ports/smtp_email_provider.py`](../src/ports/smtp_email_provider.py), [`src/services/notification_service.py`](../src/services/notification_service.py), [`src/main.py`](../src/main.py), [`src/debug_main.py`](../src/debug_main.py)
+- **Testes:** [`tests/test_email_telemetry.py`](../tests/test_email_telemetry.py)
+- **Requisito (EARS):**
+  1. `src/core/telemetry.py` **DEVE** expor as constantes canônicas `METRIC_EMAIL_DISPATCH_STARTED` (`"email.dispatch.started"`), `METRIC_EMAIL_DISPATCH_SENT` (`"email.dispatch.sent"`) e `METRIC_EMAIL_DISPATCH_FAILED` (`"email.dispatch.failed"`), emitindo contadores via `sentry_sdk.metrics.count(..., 1, attributes=...)` com remoção de atributos `None` e política **Zero-Crash** (nenhuma falha do SDK ou ausência de DSN pode interromper o envio).
+  2. Os *context managers* `email_dispatch_scope(...)` e `start_smtp_span(...)` (`op="email.smtp.send"`) **DEVEM** isolar contexto/tags/atributos por disparo e propagar integralmente todas as exceções lançadas pelo bloco interno (`yield`), realizando *fallback* limpo apenas quando a abertura/configuração no `sentry_sdk` falhar.
+  3. Em estrita conformidade LGPD (`send_default_pii=False`), `extract_recipient_domain()`, `sanitize_error_message()`, `extract_smtp_error_details()` e o `event_processor` de `capture_email_dispatch_error()` **DEVEM** garantir que nenhum endereço de e-mail completo (cru), nome do cliente, CPF, senha SMTP ou corpo HTML apareça em métricas, tags, spans, breadcrumbs (`smtp.retry`), contextos (`email_dispatch`, `smtp_dispatch`) ou payloads de *issues* (incluindo mensagens de exceção e variáveis de *stacktrace*).
+  4. `SMTPEmailProvider.send_email_message()` **DEVE** emitir `email.dispatch.started` uma única vez antes do `try` principal, envolver cada tentativa SMTP em `start_smtp_span()`, validar retornos `refused` não vazios de `sendmail()` convertendo-os em `SMTPRecipientsRefused` com endereço mascarado, emitir `email.dispatch.sent` imediatamente após confirmação de aceitação pelo servidor (e **antes** do `time.sleep` de *throttling*), registrar breadcrumbs `smtp.retry` por tentativa falha e, ao esgotar retentativas (`smtp_retries_exhausted`) ou ocorrer erro fatal (`smtp_fatal`), emitir `email.dispatch.failed`, capturar exatamente **1** *issue* via `capture_email_dispatch_error()` preservando o *traceback* completo e registrar `logger.error(..., exc_info=...)` com a mesma instância de exceção para deduplicação automática via `DedupeIntegration`.
+  5. `NotificationService` **DEVE** abrir `email_dispatch_scope` com `dispatch_kind="primary"` para pedidos (`flow="order"`, `STG_*`, `order_id`, `order_number`, `cart_id` extraído de `metadata.data`) e carrinhos (`flow="abandoned_cart"`, `STC_*`, `cart_id`), abrir escopo separado com `dispatch_kind="duplicate"` no envio de supervisão, capturar falhas de montagem do template (`failure_stage="template_build"`) emitindo `started` + `failed` + *traceback*, e registrar falha retornada pelo provedor via `logger.warning()` (evitando segunda *issue* sem *traceback* pela `LoggingIntegration`). `DryRunMessageProvider` **NÃO DEVE** emitir métricas `email.dispatch.*`.
+  6. `main._close_resources()` (em bloco tolerante a falhas) e `debug_main.py` **DEVEM** invocar `flush_telemetry()` ao término da execução.
+- **Cenário Verificável:**
+  - **DADO** um disparo em `NotificationService` via `SMTPEmailProvider` com `sendmail()` retornando `{"vitima@gmail.com": (550, b"5.1.1 User unknown")}` ou levantando `SMTPAuthenticationError`
+  - **QUANDO** as retentativas SMTP se esgotam e `flush_telemetry()` é executado
+  - **ENTÃO** são emitidos `email.dispatch.started` (1), `email.dispatch.sent` (0), `email.dispatch.failed` (1), breadcrumbs `smtp.retry`, e exatamente **1** *issue* no Sentry com *traceback* completo, contextos `email_dispatch` + `smtp_dispatch` (`retry_history`) e zero ocorrência de `"vitima@gmail.com"` nos payloads enviados.
+  - **DADO** um disparo bem-sucedido no `SMTPEmailProvider` ou falha interna no `sentry_sdk`
+  - **QUANDO** `sendmail()` confirma envio (retornando `{}`) antes do `time.sleep` ou `sentry_sdk.metrics.count` lança erro em runtime
+  - **ENTÃO** `email.dispatch.sent` é emitido antes do *throttling* no sucesso, `send_email_message` retorna `True` sem lançar erro de telemetria, e exceções de negócio dentro de `email_dispatch_scope`/`start_smtp_span` continuam propagando normalmente.
+
+---
+
 ## 3. Decisões Arquiteturais Leves (ADRs de Manutenção Pré-Deploy)
 
 ### ADR-01: Proteção Anti-Regressão Temporal (`COALESCE(LEAST(...))` + Normalização UTC)
@@ -200,3 +247,20 @@ Este documento consolida todos os requisitos normativos implementados em `src/`,
 - **Contexto:** Chamadas repetidas a `setup_logging()` (como importação encadeada `daemon.py` → `main.py` ou cenários de teste) reinicializavam `sentry_sdk.init()`. Adicionalmente, se a pasta de logs montada via bind mount fosse limpa durante a execução, o `RotatingFileHandler` padrão falhava ao emitir novos registros.
 - **Decisão:** Proteger `sentry_sdk.init()` com flag `_SENTRY_INITIALIZED` e introduzir `SafeRotatingFileHandler`, que valida/recria o diretório e reseta `self.stream` caso o arquivo seja removido em runtime.
 - **Consequências:** Observabilidade resiliente a limpezas operacionais de disco e sem re-inicialização redundante do SDK.
+
+### ADR-04: Modernização MIME (`EmailMessage`), Compressão Visual WebP 75% e Conformidade RFC 5322/8058
+- **Contexto:** O envio original via `MIMEMultipart` sem `Message-ID`, `Date` ou parte `text/plain`, somado a PNGs inline de até 1,8 MB, assuntos com emojis/caixa alta e envio em duplicata (`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = True`), acumulava penalidades severas no SpamAssassin e violava os requisitos de remetentes de Google/Yahoo/Microsoft (2024+).
+- **Decisão:** Migrar `SMTPEmailProvider` para `email.message.EmailMessage` com `text/plain` precedendo `text/html`, injeção de `Message-ID`/`Date`/`From`/`Reply-To` e `List-Unsubscribe: One-Click` para fluxos promocionais, comprimir as imagens para WebP 75% (`*_q75.webp` com composição em fundo branco sólido `#FFFFFF` para transparências, mantendo transição preparada para endpoint HTTPS externo), higienizar templates/assuntos e desativar o envio em duplicata, complementados pelo endurecimento DNS (`SPF -all` e `DMARC p=quarantine`).
+- **Consequências:** Eliminação dos pontos de penalidade estrutural e redução de 97,0% do peso dos ativos visuais, mantendo retrocompatibilidade total com `SMTPEmailProvider` e prontidão automática para hospedagem em CDN/HTTPS.
+
+### ADR-05: Roteamento Dual de Remetentes SMTP (`oficial@` vs. `comercial@`)
+- **Contexto:** Disparos promocionais e de recuperação de carrinho possuem padrão de engajamento distinto dos avisos transacionais essenciais (`pedido_aprovado`, `pedido_pendente`, `pedido_a_caminho`). Compartilhar a mesma caixa remetente e pool SMTP arrisca degradar a reputação dos avisos operacionais caso campanhas promocionais recebam menor taxa de abertura.
+- **Alternativas Consideradas:** Manter conta SMTP única para todos os 9 templates vs. instanciar múltiplos providers separados nos workers vs. gerenciar dois pools independentes (`_server` e `_promo_server`) no `SMTPEmailProvider` via sinalizador `is_promotional`.
+- **Decisão:** Adotar pools independentes (`_server` para `SMTP_*` / `oficial@` e `_promo_server` para `PROMO_SMTP_*` / `comercial@`) dentro do `SMTPEmailProvider` sob o mesmo `threading.Lock`, com fallback transparente para `_server` quando credenciais promocionais estiverem ausentes e `Reply-To` unificado em `EMAIL_REPLY_TO`.
+- **Consequências:** Isola a reputação do canal transacional sem alterar a assinatura dos workers ou quebrar compatibilidade com instalações que configuram apenas o SMTP principal, mantendo o isolamento de falhas entre canais e encerramento determinístico de ambos os pools em `close()`.
+
+### ADR-06: Telemetria de Disparos no Sentry via Application Metrics (`count`), `new_scope()` e Sanitização LGPD em Stacktraces
+- **Contexto:** Era necessário contabilizar com precisão o volume diário de e-mails enviados com sucesso, detectar envios iniciados sem desfecho (travamentos/quedas abruptas) e capturar *tracebacks* completos com contexto de negócio para reprodução de falhas, mantendo `send_default_pii=False` (LGPD) e sem quebrar o contrato `MessageProviderProtocol` (nem mocks existentes). Adicionalmente, descobriu-se que falhas após retentativas no `SMTPEmailProvider` eram registradas apenas via `logger.error` sem `exc_info`, enquanto `NotificationService` gerava uma segunda *issue* duplicada sem *traceback*, e o `sentry-sdk` incluía HTML e `customer_data` em `frame["vars"]`.
+- **Alternativas Consideradas:** Alterar `send_email_message(...)` para receber `**kwargs` de negócio (quebraria mocks/contratos), contar via `logger.info` apenas (sem agregação confiável nem *trace_id*), ou criar módulo central Zero-Crash com `sentry_sdk.metrics.count` + escopo isolado por thread (`new_scope()`).
+- **Decisão:** Centralizar a observabilidade em `src/core/telemetry.py` com três contadores (`email.dispatch.started`, `email.dispatch.sent` após validação de `refused` e antes do *throttling*, e `email.dispatch.failed`), span `email.smtp.send`, isolamento por disparo via `email_dispatch_scope(...)` no `NotificationService`, sanitização incondicional de `frame["vars"]` e múltiplos e-mails via *event processor*, `logger.warning` no `NotificationService` e `exc_info` preservado para deduplicação via `DedupeIntegration`, além de `flush_telemetry()` no `_close_resources()` de `main.py` e no fim de `debug_main.py`.
+- **Consequências:** Visibilidade diária e por template/canal no Sentry Metrics Explorer correlacionada por `trace_id` com *issues* únicas e acionáveis, sem vazamento de PII e sem quebra de interfaces ou risco à entrega de e-mails.

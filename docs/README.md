@@ -6,13 +6,13 @@ Bem-vindo à documentação de engenharia do projeto Message Integration Yampi. 
 
 O projeto segue estritamente a **Clean Architecture (Arquitetura Hexagonal)**. As regras de negócio estão completamente isoladas da infraestrutura (bancos de dados, APIs, E-mail).
 
-- `src/core/`: Infraestrutura interna, cliente HTTP (`client.py`), configurações globais (`config.py`), utilitários UTC-First (`time_utils.py`), logging seguro com Sentry (`logging_config.py`) e macros (`macros.py`).
+- `src/core/`: Infraestrutura interna, cliente HTTP (`client.py`), configurações globais (`config.py`), utilitários UTC-First (`time_utils.py`), logging seguro com Sentry (`logging_config.py`), telemetria Zero-Crash de disparos de e-mail (`telemetry.py`) e macros (`macros.py`).
 - `src/domain/`: Contratos estritos (`interfaces.py`) e eventos de transição (`events.py`).
-- `src/ports/`: Adaptadores para operações de I/O (persistência PostgreSQL com pool e `COALESCE(LEAST(...))` em `postgres_repo.py`, provedor SMTP stateful em `smtp_email_provider.py` e mock dry-run em `message_provider.py`).
-- `src/services/`: Orquestração de notificações (`notification_service.py`) e builders HTML/MJML (`email_builders/`).
+- `src/ports/`: Adaptadores para operações de I/O (persistência PostgreSQL com pool e `COALESCE(LEAST(...))` em `postgres_repo.py`, provedor SMTP stateful com roteamento dual `oficial@`/`comercial@` em `smtp_email_provider.py` e mock dry-run em `message_provider.py`).
+- `src/services/`: Orquestração de notificações com escopos de telemetria (`notification_service.py`) e builders HTML/MJML (`email_builders/`).
 - `src/templates/`: Templates MJML, assets visuais, `brand_data.yml` e HTMLs compilados.
 - `src/workers/`: Rotinas concorrentes que executam os Casos de Uso (`orders.py` e `abandoned_cart.py`) usando `ThreadPoolExecutor`.
-- `src/main.py` e `src/daemon.py`: Orquestradores que gerenciam dependências, liberação determinística de recursos (`_close_resources` em `finally`) e ciclo contínuo com Sentry Crons.
+- `src/main.py` e `src/daemon.py`: Orquestradores que gerenciam dependências, liberação determinística de recursos com `flush_telemetry()` (`_close_resources` em `finally`) e ciclo contínuo com Sentry Crons.
 - `src/webhook_server.py`: Servidor Flask para webhooks da Meta WhatsApp API.
 
 ## Explicação: A Máquina de Estados (STG / STC)
@@ -39,8 +39,9 @@ Quando uma entidade atinge um estado terminal (`STG ∈ {3, 8, 95, 96, 97}` ou `
 A injeção de dependências e as feature flags são governadas pelo seu arquivo `.env` e pelo `src/core/macros.py`.
 
 ### Telemetria e Rastreamento de Erros
-O daemon suporta relatórios de falhas resilientes de forma nativa:
-- `SENTRY_DSN`: Endpoint para erros do Sentry, inicialização idempotente (`_SENTRY_INITIALIZED`), rastreamento distribuído APM (`TRACES_SAMPLE_RATE`) e `send_default_pii=False` (LGPD). Todas as exceções não tratadas e travamentos de thread são despachados automaticamente para o Sentry.
+O daemon suporta relatórios de falhas resilientes e métricas de disparo de forma nativa:
+- `SENTRY_DSN`: Endpoint para erros e métricas do Sentry, inicialização idempotente (`_SENTRY_INITIALIZED`), rastreamento distribuído APM (`TRACES_SAMPLE_RATE`) e `send_default_pii=False` (LGPD). Todas as exceções não tratadas e travamentos de thread são despachados automaticamente para o Sentry.
+- **Application Metrics e Rastreamento SMTP ([`src/core/telemetry.py`](../src/core/telemetry.py))**: Emite contadores (`email.dispatch.started`, `email.dispatch.sent` após aceitação sem `refused` e `email.dispatch.failed`), span `email.smtp.send` por tentativa, breadcrumbs `smtp.retry` e captura de falhas preservando *traceback* completo com sanitização LGPD inclusive em `frame["vars"]`, drenando buffers ao final do ciclo via `flush_telemetry()`.
 
 ### Resiliência HTTP e Auto-Retries
 O `YampiClient` inclui mecanismos automáticos de nova tentativa (retry) em rede transiente:
@@ -48,8 +49,8 @@ O `YampiClient` inclui mecanismos automáticos de nova tentativa (retry) em rede
 - **Fail-Fast**: Erros de cliente não passíveis de nova tentativa (HTTP `4xx` não-429, como `401`/`404`) levantam exceção imediatamente sem novas tentativas.
 
 ### Disparo de E-mail Duplicado para Supervisão
-Permite monitoramento em produção através de e-mails duplicados em tempo real:
-- **`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH`**: Quando definido como `True` em `src/core/macros.py`, cada e-mail despachado para um cliente real em produção aciona simultaneamente uma cópia enviada para `TEST_EMAIL_RECIPIENT` (configurado no `.env`) para auditoria em tempo real.
+Permite monitoramento em homologação ou produção através de e-mails duplicados em tempo real:
+- **`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH`**: Quando definido como `True` em `src/core/macros.py`, cada e-mail despachado para um cliente real aciona simultaneamente uma cópia enviada para `TEST_EMAIL_RECIPIENT` (configurado no `.env`). **Por padrão permanece `False` em produção** para evitar o acúmulo de cópias não lidas e prevenir sinais de *Graymail* na reputação do domínio.
 
 ## Tutorial: Como Rodar a Suíte de Testes
 
@@ -65,6 +66,7 @@ Antes de fazer o commit de qualquer modificação, garanta que a lógica princip
 Para uma referência completa de especificações SDD e fluxos visuais, consulte os documentos abaixo:
 
 * 📜 **[Especificações Formais SDD (EARS + Cenários + ADRs)](./sdd_specs.md)**
+* 🛡️ **[Políticas de Entregabilidade, Domínios e Governança Antispam (SDD)](./email_deliverability_policies.md)**
 * 🏛️ [Arquitetura do Sistema & Clean Layers](./architecture.md)
 * 🌳 [Árvore de Dependências do Projeto](./project_dependency_tree.md)
 * 💻 [Especificações de Hardware e Limites de Recursos (Benchmarking)](./architecture.md#-especificação-de-hardware-e-dimensionamento-benchmarking)

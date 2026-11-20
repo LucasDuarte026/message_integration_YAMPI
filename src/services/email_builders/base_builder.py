@@ -1,13 +1,87 @@
 import os
+import re
 import yaml
 import logging
 from abc import ABC, abstractmethod
-from typing import Tuple, Dict, Any
+from html.parser import HTMLParser
+from typing import Tuple, Dict, Any, List, Optional
 from jinja2 import Environment, FileSystemLoader
 
 from src.domain.events import OrderTransitionEvent, CartTransitionEvent
 
 logger = logging.getLogger(__name__)
+
+
+class _HTMLToPlainTextParser(HTMLParser):
+    """Converte HTML de e-mail em texto puro legível, preservando links de ação."""
+
+    _SKIP_TAGS = {"style", "script", "head", "title", "noscript"}
+    _BLOCK_TAGS = {"p", "div", "tr", "br", "h1", "h2", "h3", "h4", "h5", "h6", "li", "section"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._skip_depth = 0
+        self._parts: List[str] = []
+        self._current_href: Optional[str] = None
+        self._current_link_text: List[str] = []
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        tag_l = tag.lower()
+        if tag_l in self._SKIP_TAGS:
+            self._skip_depth += 1
+            return
+        if self._skip_depth > 0:
+            return
+        if tag_l == "a":
+            attr_dict = dict(attrs)
+            href = (attr_dict.get("href") or "").strip()
+            if href.startswith(("http://", "https://")):
+                self._current_href = href
+                self._current_link_text = []
+        elif tag_l in self._BLOCK_TAGS:
+            self._parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        tag_l = tag.lower()
+        if tag_l in self._SKIP_TAGS:
+            if self._skip_depth > 0:
+                self._skip_depth -= 1
+            return
+        if self._skip_depth > 0:
+            return
+        if tag_l == "a" and self._current_href:
+            link_text = " ".join("".join(self._current_link_text).split())
+            if link_text and self._current_href not in link_text:
+                self._parts.append(f" ({self._current_href})")
+            elif not link_text:
+                self._parts.append(self._current_href)
+            self._current_href = None
+            self._current_link_text = []
+        elif tag_l in ("td", "th"):
+            self._parts.append(" | ")
+        elif tag_l in self._BLOCK_TAGS:
+            self._parts.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth > 0:
+            return
+        if self._current_href is not None:
+            self._current_link_text.append(data)
+        self._parts.append(data)
+
+    def get_text(self) -> str:
+        raw = "".join(self._parts)
+        cleaned_lines: List[str] = []
+        for line in raw.splitlines():
+            # Normaliza espaços e remove separadores de célula vazios nas extremidades
+            normalized = re.sub(r"[ \t]+", " ", line).strip()
+            normalized = re.sub(r"(?:\s*\|\s*){2,}", " | ", normalized)
+            normalized = normalized.strip(" |")
+            if normalized:
+                cleaned_lines.append(normalized)
+            elif cleaned_lines and cleaned_lines[-1] != "":
+                cleaned_lines.append("")
+        return "\n".join(cleaned_lines).strip()
 
 class BaseEmailBuilder(ABC):
     def __init__(self):
@@ -262,6 +336,20 @@ class BaseEmailBuilder(ABC):
             "instagram_icon_url": self.brand_data.get("instagram_icon_url"),
             "facebook_icon_url": self.brand_data.get("facebook_icon_url")
         }
+
+    def html_to_plain_text(self, html_body: str) -> str:
+        """Gera uma versão limpa em texto puro (text/plain) a partir do HTML renderizado."""
+        if not html_body:
+            return ""
+        parser = _HTMLToPlainTextParser()
+        parser.feed(html_body)
+        parser.close()
+        return parser.get_text()
+
+    def build_with_plain_text(self, event) -> Tuple[str, str, str]:
+        """Retorna (subject, html_body, plain_text_body) garantindo paridade RFC 2046."""
+        subject, html_body = self.build(event)
+        return subject, html_body, self.html_to_plain_text(html_body)
 
     @abstractmethod
     def build(self, event) -> Tuple[str, str]:

@@ -4,6 +4,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.db
+.pytest_cache/
+.coverage
+htmlcov/
 mermaid_renders/
 project_decisions/
 .gemini/
@@ -20,3 +23,7 @@ logs*
 *.tar.gz
 .agents_export/
 graphify-out/
+src/templates/emails/assets/images/
+src/templates/emails/mocks/
+src/templates/emails/html_compiled/mock_*.html
+email_assets/

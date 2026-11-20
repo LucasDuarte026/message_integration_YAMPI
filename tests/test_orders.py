@@ -34,8 +34,15 @@ class MockOrderMessageProvider(MessageProviderProtocol):
         self.sent_messages.append({"type": "whatsapp", "phone": phone_number, "message": message})
         return True
 
-    def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
-        self.sent_messages.append({"type": "email", "email": email, "subject": subject, "body": html_body})
+    def send_email_message(self, email: str, subject: str, html_body: str, plain_text: str = None, is_promotional: bool = False) -> bool:
+        self.sent_messages.append({
+            "type": "email",
+            "email": email,
+            "subject": subject,
+            "body": html_body,
+            "plain_text": plain_text,
+            "is_promotional": is_promotional,
+        })
         return True
 
 class MockOrderStateRepository(StateRepositoryProtocol):

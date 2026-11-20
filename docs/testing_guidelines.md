@@ -19,13 +19,18 @@ tests/
 ├── test_abandoned_cart.py       # Fluxo STC, âncora updated_at/DB UTC e rollback fail-safe.
 ├── test_orders.py               # Fluxo STG, rastreio obrigatório, âncora created_at/DB UTC.
 ├── test_postgres_repo_pool.py   # Pool, COALESCE(LEAST(...)), update_stg/stc e falhas SQL.
-├── test_smtp_email_provider.py  # Mascaramento LGPD, CID inline, retries e close().
+├── test_smtp_email_provider.py  # Mascaramento LGPD, CID inline, WebP/assets_dir, retries e close().
+├── test_email_plain_text.py     # Geração da alternativa text/plain (RFC 2046) no BaseEmailBuilder.
+├── test_dual_sender_routing.py  # Roteamento dual (oficial@ vs comercial@), fallback e concorrência.
+├── test_email_telemetry.py      # Contadores Sentry, isolamento ThreadPoolExecutor, traceback e LGPD.
 ├── test_logging_config.py       # Criação de pastas e SafeRotatingFileHandler.
 ├── test_main_and_daemon.py      # Orquestração, _close_resources, Sentry idempotente, builders e webhook.
 ├── test_client.py               # Cliente HTTP Yampi.
 ├── test_customer_extraction.py  # Extração defensiva de dados do cliente.
 └── test_time_utils.py           # Arquitetura UTC-First e rejeição Fail-Fast de datas naive.
 ```
+
+> **Estado Atual da Suíte:** **107 testes e 7 subtestes passando** com **85% de cobertura global em `src/`** (sendo 88% em `src/core/telemetry.py`, 96% em `src/ports/smtp_email_provider.py` e 95% em `src/services/notification_service.py`).
 
 ## 3. O Ecossistema Pytest
 

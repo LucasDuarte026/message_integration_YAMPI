@@ -15,7 +15,7 @@
         <mj-column width="100%">
           
           <mj-text font-size="24px" font-weight="bold" color="#1E3A8A" align="center" padding-bottom="10px">
-            Um presente especial para você! 🎁
+            Um presente especial para você!
           </mj-text>
           
           <mj-text font-size="16px" color="#334155" line-height="150%" align="center" padding-bottom="15px">
@@ -34,7 +34,7 @@
           
           <!-- Conteúdo Interno do Card Cinza -->
           <mj-text align="center" font-size="20px" font-weight="bold" color="#1E3A8A" padding="25px 20px 10px 20px">
-            Seu Cupom de {{ value_cupom }}% Desconto ✨
+            Seu Cupom de {{ value_cupom }}% Desconto
           </mj-text>
 
           <!-- CAIXA PONTILHADA ESTILO ANTIGO COM SOMBRA -->
@@ -57,7 +57,7 @@
       <mj-section background-color="#FFFFFF" padding="0px 20px 25px 20px">
         <mj-column width="100%">
           <mj-text font-size="13px" color="#64748B" line-height="150%" align="center">
-            ⚠️ <em>Cupom de uso único por tempo limitado. Aproveite antes que a reserva dos seus produtos seja cancelada!</em>
+            <em>Cupom de uso único por tempo limitado. Aproveite antes que a reserva dos seus produtos seja cancelada!</em>
           </mj-text>
           
           <mj-text font-size="14px" color="#64748B" line-height="150%" align="center" padding-top="20px">

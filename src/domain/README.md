@@ -5,7 +5,7 @@ O coração do nosso Spec-Driven Development. Este diretório contém apenas **I
 Ele não deve conter implementações concretas (acesso a rede, banco de dados ou APIs de terceiros).
 
 ## Arquivos e Responsabilidades
-- **`interfaces.py`**: Define os contratos estritos que o resto do sistema **DEVE** seguir. Contém as assinaturas do `YampiClientProtocol`, `MessageProviderProtocol` e `StateRepositoryProtocol`. O sistema se comunica através dessas interfaces.
+- **`interfaces.py`**: Define os contratos estritos que o resto do sistema **DEVE** seguir. Contém as assinaturas do `YampiClientProtocol`, `MessageProviderProtocol` (incluindo suporte a `plain_text` opcional para paridade RFC 2046 e sinalizador `is_promotional` para cabeçalhos RFC 8058) e `StateRepositoryProtocol`. O sistema se comunica através dessas interfaces.
 - **`events.py`**: Define os DTOs de domínio (`OrderTransitionEvent` e `CartTransitionEvent`) utilizados para transportar contexto de pedidos/carrinhos, dados do cliente e o novo estado alvo até a camada de serviços de notificação.
 
 ## 🚨 Diretiva de Manutenção (Para IA e Desenvolvedores)
