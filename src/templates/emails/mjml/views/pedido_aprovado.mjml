@@ -19,7 +19,7 @@
           </mj-text>
           
           <mj-text font-size="16px" color="#334155" line-height="150%" align="center" padding-bottom="15px">
-            Olá, <strong>{{ customer_name | default('Cliente') }}</strong>! Temos uma ótima notícia: o pagamento do seu pedido <strong>{{ order_number | default('#0000') }}</strong> foi aprovado com sucesso! 🎉
+            Olá, <strong>{{ customer_name | default('Cliente') }}</strong>! Temos uma ótima notícia: o pagamento do seu pedido <strong>{{ order_number | default('#0000') }}</strong> foi aprovado com sucesso!
           </mj-text>
 
         </mj-column>
@@ -34,7 +34,7 @@
           
           <!-- Conteúdo Interno do Card Cinza Conectado à Imagem -->
           <mj-text align="center" font-size="20px" font-weight="bold" color="#1E3A8A" padding="25px 20px 8px 20px">
-            Preparando seu Pacote 📦
+            Preparando seu Pacote
           </mj-text>
           
           <mj-text align="center" font-size="15px" color="#475569" line-height="150%" padding="0px 25px 15px 25px">

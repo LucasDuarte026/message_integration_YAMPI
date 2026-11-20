@@ -68,8 +68,8 @@ MACRO_ENABLE_REAL_EMAIL_DISPATCH = True
 MACRO_FORCE_TEST_EMAIL_RECIPIENT = False
 
 # True  ---> Dispara simultaneamente uma cópia idêntica para TEST_EMAIL_RECIPIENT (supervisão).
-# False ---> Desativa envio em duplicata.
-MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = True
+# False ---> Desativa envio em duplicata (evita sinais de Graymail por acúmulo de cópias não abertas).
+MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = False
 
 # True  ---> Salva arquivos .html gerados em local_data/emails/ para conferência visual.
 # False ---> Não salva arquivos locais em disco.
@@ -97,6 +97,12 @@ MACRO_SMTP_RETRY_BACKOFF_SEG = 5.0        # Fator multiplicador do backoff expon
 MACRO_SMTP_TIMEOUT_SEG = 15               # Timeout de conexão e socket SMTP (segundos)
 MACRO_DEFAULT_FALLBACK_FROM_EMAIL = "recuperacao@sualoja.com" # Remetente padrão caso omitido no .env
 MACRO_EMAIL_MASK_VISIBLE_PREFIX_CHARS = 5 # Caracteres visíveis no início do e-mail ao logar
+MACRO_EMAIL_FROM_NAME = "Eleveme"         # Nome amigável exibido no cabeçalho From
+MACRO_EMAIL_REPLY_TO = '"Atendimento Eleveme" <comercial@elevemeloja.com.br>' # Endereço de resposta do cliente
+MACRO_EMAIL_MESSAGE_ID_DOMAIN = "elevemeloja.com.br" # Domínio usado na geração do cabeçalho Message-ID (RFC 5322)
+MACRO_EMAIL_UNSUBSCRIBE_URL = "https://elevemeloja.com.br/unsubscribe" # URL base para List-Unsubscribe (RFC 8058)
+MACRO_EMAIL_UNSUBSCRIBE_MAILTO = "mailto:comercial@elevemeloja.com.br?subject=Descadastrar" # Fallback mailto para List-Unsubscribe
+MACRO_DEFAULT_EMAIL_ASSETS_DIR = "src/templates/emails/assets/images" # Pasta padrão modular de ativos de e-mail (pode ser externa via .env)
 
 # ------------------------------------------------------------------------------
 # 2.4. Dimensionamento do Pool de Conexões PostgreSQL

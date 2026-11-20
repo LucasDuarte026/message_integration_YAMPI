@@ -67,6 +67,7 @@ services:
     volumes:
       - ./containers/logs:/app/local_data/logs
       - ./containers/emails:/app/local_data/emails
+      - ./src/templates/emails/assets/images:/app/email_assets:ro
     deploy:
       resources:
         limits:

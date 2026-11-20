@@ -20,9 +20,17 @@ class MessageProviderProtocol(ABC):
     """
         
     @abstractmethod
-    def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
+    def send_email_message(
+        self,
+        email: str,
+        subject: str,
+        html_body: str,
+        plain_text: Optional[str] = None,
+        is_promotional: bool = False,
+    ) -> bool:
         """
-        Envia um e-mail.
+        Envia um e-mail com corpo HTML, alternativa em texto puro (RFC 2046)
+        e sinalização de conteúdo promocional para cabeçalhos RFC 8058.
         """
         pass
 

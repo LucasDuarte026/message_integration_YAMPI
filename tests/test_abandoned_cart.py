@@ -36,12 +36,14 @@ class MockMessageProvider(MessageProviderProtocol):
         })
         return True
 
-    def send_email_message(self, email: str, subject: str, html_body: str) -> bool:
+    def send_email_message(self, email: str, subject: str, html_body: str, plain_text: str = None, is_promotional: bool = False) -> bool:
         self.sent_messages.append({
             "type": "email",
             "email": email,
             "subject": subject,
-            "body": html_body
+            "body": html_body,
+            "plain_text": plain_text,
+            "is_promotional": is_promotional,
         })
         return True
 
@@ -147,7 +149,7 @@ class TestAbandonedCartProcessor(unittest.TestCase):
         self.assertEqual(len(provider.sent_messages), expected_count)
         expected_email = "teste_destino@exemplo.com" if macros.MACRO_FORCE_TEST_EMAIL_RECIPIENT else "luska@cliente.com"
         self.assertEqual(provider.sent_messages[0]["email"], expected_email)
-        self.assertEqual(provider.sent_messages[0]["subject"], "🛒 Seu carrinho está te esperando — Ganhe 10% OFF para finalizar!")
+        self.assertEqual(provider.sent_messages[0]["subject"], "Olá Luska, seus itens continuam salvos na Eleveme")
         
         # Verifica se o HTML gerado contém o link de recuperação
         html_content = provider.sent_messages[0]["body"]

@@ -22,6 +22,7 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 ├── docs/                             # Documentação viva e especificações (SDD)
 │   ├── README.md                     # Índice técnico de referência
 │   ├── sdd_specs.md                  # Catálogo EARS, cenários GIVEN/WHEN/THEN e ADRs
+│   ├── email_deliverability_policies.md # Políticas SDD de entregabilidade, domínios, WebP e DNS/Antispam
 │   ├── architecture.md               # Detalhes da arquitetura de especificação e camadas
 │   ├── diagramas/                    # Diagramas Mermaid da máquina de estados (STG/STC)
 │   │   ├── README.md                 # Índice e guia visual dos diagramas
@@ -39,6 +40,7 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   │   ├── config.py                 # Dataclasses de configuração e ambiente
 │   │   ├── logging_config.py         # SafeRotatingFileHandler, Sentry idempotente e Exception Hooks
 │   │   ├── macros.py                 # Constantes e parâmetros temporais/operacionais
+│   │   ├── telemetry.py              # Contadores Sentry, spans SMTP, escopos e sanitização LGPD
 │   │   └── time_utils.py             # Utilitários UTC-First e conversão Fail-Fast
 │   ├── domain/                       # Camada de contratos estritos e specs
 │   │   ├── events.py                 # DTOs de eventos (OrderTransitionEvent, CartTransitionEvent)
@@ -46,19 +48,19 @@ O projeto adota uma variação de Clean Architecture / Hexagonal Architecture, d
 │   ├── ports/                        # Adaptadores de I/O e serviços externos
 │   │   ├── message_provider.py       # Mock Provider de Dry-run
 │   │   ├── postgres_repo.py          # Repositório PostgreSQL com Pool e COALESCE(LEAST(...))
-│   │   └── smtp_email_provider.py    # Adaptador SMTP Stateful, Throttle, CID inline e close()
+│   │   └── smtp_email_provider.py    # Adaptador SMTP Stateful (roteamento dual, RFC 2046/5322/8058, WebP/HTTPS, telemetria e close())
 │   ├── services/                     # Lógica de serviços injetáveis
-│   │   ├── notification_service.py   # Orquestração de builders, duplicata e modo homologação
+│   │   ├── notification_service.py   # Orquestração de builders, escopos Sentry, duplicata e modo homologação
 │   │   └── email_builders/           # Builders MJML/Jinja2 e tabela de itens/frete
 │   ├── templates/                    # Templates MJML, assets, brand_data.yml e HTMLs compilados
 │   ├── workers/                      # Casos de uso e regras de negócio orquestradas
 │   │   ├── abandoned_cart.py         # Worker de recuperação de carrinhos (STC)
 │   │   └── orders.py                 # Worker de pedidos, PIX, cupons e rastreio (STG)
-│   ├── main.py                       # Orquestrador CLI com fechamento de recursos em finally
+│   ├── main.py                       # Orquestrador CLI com fechamento de recursos e flush_telemetry() em finally
 │   ├── daemon.py                     # Daemon contínuo (5 min) com Sentry Crons
-│   ├── debug_main.py                 # Runner de depuração local
+│   ├── debug_main.py                 # Runner de depuração local com flush_telemetry()
 │   └── webhook_server.py             # Servidor Flask para Webhooks da Meta API
-├── tests/                            # Suíte Pytest (56 testes, ~82% de cobertura em src/)
+├── tests/                            # Suíte Pytest (107 testes, 85% de cobertura em src/)
 ├── scripts/                          # Scripts shell e Python de operação e consulta SQL
 ├── project_decisions/                # ADRs históricos e estudos técnicos
 ├── local_data/                       # Dados locais em runtime (logs/ e emails/)
@@ -84,10 +86,11 @@ Fornece os blocos de construção internos da nossa infraestrutura:
 - Parâmetros centralizados de negócio, SMTP, pool e telemetria (`macros.py`)
 - Utilitários **UTC-First** com rejeição *Fail-Fast* de datas *naive* (`time_utils.py`)
 - Configuração do Logger central em UTC com `SafeRotatingFileHandler` (recriação automática de diretório/arquivo), inicialização **idempotente** do Sentry (`_SENTRY_INITIALIZED`) e interceptação global de exceções (`logging_config.py`)
+- Telemetria e observabilidade de disparos no Sentry (`telemetry.py`): Application Metrics (`email.dispatch.started`, `sent`, `failed`), spans `email.smtp.send`, escopo thread-safe `email_dispatch_scope()`, captura de exceção com *traceback* completo, sanitização LGPD de `frame["vars"]` e `flush_telemetry()`
 
 ### 3. [`src/ports/`](../src/ports/README.md) (Adaptadores Externos)
 Onde as implementações de terceiros vivem, implementando os contratos do `domain`:
-- Provedores de envio de e-mail: `DryRunMessageProvider` (`message_provider.py`) e `SMTPEmailProvider` (`smtp_email_provider.py`, stateful com `threading.Lock`, backoff, CID inline, mascaramento LGPD e encerramento seguro via `close()`).
+- Provedores de envio de e-mail: `DryRunMessageProvider` (`message_provider.py`) e `SMTPEmailProvider` (`smtp_email_provider.py`, stateful com roteamento dual `oficial@` vs `comercial@`, `threading.Lock`, backoff, `EmailMessage` com `text/plain` + `text/html`, cabeçalhos RFC 5322/8058, suporte a `*_q75.webp` inline ou HTTPS externo, contadores Sentry + validação de `refused`, mascaramento LGPD e encerramento seguro via `close()`).
 - Persistência relacional: `PostgresStateRepository` (`postgres_repo.py`) com `ThreadedConnectionPool`, `FOR UPDATE`, proteção anti-regressão temporal `COALESCE(LEAST(...))` e `close()`.
 
 ### 4. [`src/workers/`](../src/workers/README.md) (Regras de Negócio e Use Cases)
@@ -95,7 +98,7 @@ Os sub-programas que executam as atividades (Recuperação de Carrinho Abandonad
 > **NOTA:** A lógica de estado (STG e STC) processada pelos workers é estritamente regida pela **[Lógica e Máquina de Estados de E-mails](./email_state_machine.md)** e pelos contratos EARS em **[docs/sdd_specs.md](./sdd_specs.md)**.
 
 ### 5. `src/main.py` e `src/daemon.py` (Orquestradores / Pontos de Entrada)
-`src/main.py` monta as dependências via `get_dependencies()`, injeta-as nos workers e garante a liberação do pool PostgreSQL e da conexão SMTP em bloco `finally` via `_close_resources()`. `src/daemon.py` executa `run_all()` continuamente a cada `MACRO_DAEMON_SLEEP_INTERVAL_SEG` (`300s`) monitorado pelo Sentry Crons (`yampi-daemon-cycle`).
+`src/main.py` monta as dependências via `get_dependencies()`, injeta-as nos workers e garante a liberação do pool PostgreSQL, o fechamento da conexão SMTP e o envio dos buffers de telemetria (`flush_telemetry()`) em bloco `finally` via `_close_resources()`. `src/daemon.py` executa `run_all()` continuamente a cada `MACRO_DAEMON_SLEEP_INTERVAL_SEG` (`300s`) monitorado pelo Sentry Crons (`yampi-daemon-cycle`).
 
 ### 6. `src/webhook_server.py` (Servidor de Webhooks)
 Servidor Flask independente que escuta na porta 5000 para receber validações de token (GET) e payloads de mensagens/status em tempo real (POST) vindos da Meta API.

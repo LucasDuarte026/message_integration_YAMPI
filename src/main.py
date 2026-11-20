@@ -18,6 +18,7 @@ from src.core import macros
 
 from src.core.logging_config import setup_logging
 from src.core.macros import MACRO_DEFAULT_LOG_PATH
+from src.core.telemetry import flush_telemetry
 
 # Configura o sistema de logs e inicializa o Sentry Tracing
 is_verbose = os.environ.get("VERBOSE", "0").lower() in ("1", "true", "yes")
@@ -52,7 +53,16 @@ def get_dependencies():
             port=config.SMTP_PORT,
             user=config.SMTP_USER,
             password=config.SMTP_PASSWORD,
-            from_addr=config.SMTP_FROM
+            from_addr=config.SMTP_FROM,
+            from_name=config.EMAIL_FROM_NAME,
+            reply_to=config.EMAIL_REPLY_TO,
+            message_id_domain=config.EMAIL_MESSAGE_ID_DOMAIN,
+            unsubscribe_url=config.EMAIL_UNSUBSCRIBE_URL,
+            unsubscribe_mailto=config.EMAIL_UNSUBSCRIBE_MAILTO,
+            assets_dir=config.EMAIL_ASSETS_DIR,
+            promo_user=config.PROMO_SMTP_USER,
+            promo_password=config.PROMO_SMTP_PASSWORD,
+            promo_from_addr=config.PROMO_SMTP_FROM,
         )
         
     return config, api_client, state_repo, message_provider
@@ -69,6 +79,10 @@ def _close_resources(state_repo, message_provider) -> None:
             message_provider.close()
     except Exception as e:
         logger.warning(f"Erro ao fechar provedor de mensagens: {e}")
+    try:
+        flush_telemetry()
+    except Exception as e:
+        logger.warning(f"Erro ao realizar flush da telemetria: {e}")
 
 def run_abandoned_carts():
     config, api_client, state_repo, message_provider = get_dependencies()

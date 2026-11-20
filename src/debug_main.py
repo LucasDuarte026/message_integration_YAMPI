@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.core.config import load_config
 from src.core.logging_config import setup_logging
 from src.core.macros import MACRO_DEBUG_LIMIT, MACRO_ENABLE_REAL_EMAIL_DISPATCH
+from src.core.telemetry import flush_telemetry
 from src.core.client import YampiClient
 from src.ports.postgres_repo import PostgresStateRepository
 from src.ports.message_provider import DryRunMessageProvider
@@ -133,7 +134,16 @@ if __name__ == "__main__":
             port=config.SMTP_PORT,
             user=config.SMTP_USER,
             password=config.SMTP_PASSWORD,
-            from_addr=config.SMTP_FROM
+            from_addr=config.SMTP_FROM,
+            from_name=config.EMAIL_FROM_NAME,
+            reply_to=config.EMAIL_REPLY_TO,
+            message_id_domain=config.EMAIL_MESSAGE_ID_DOMAIN,
+            unsubscribe_url=config.EMAIL_UNSUBSCRIBE_URL,
+            unsubscribe_mailto=config.EMAIL_UNSUBSCRIBE_MAILTO,
+            assets_dir=config.EMAIL_ASSETS_DIR,
+            promo_user=config.PROMO_SMTP_USER,
+            promo_password=config.PROMO_SMTP_PASSWORD,
+            promo_from_addr=config.PROMO_SMTP_FROM,
         )
     
     # Banco real de testes (Certifique-se de usar o BD correto de testes localmente)
@@ -146,5 +156,7 @@ if __name__ == "__main__":
     logger.info("Iniciando processamento síncrono de CARTS...")
     cart_processor = AbandonedCartProcessor(config, api_client, message_provider, state_repo)
     cart_processor.process()
-    
+
+    flush_telemetry()
+
     print("\nProcessamento completo!")

@@ -44,16 +44,16 @@ flowchart TD
     end
     
     subgraph DeliveryEngine["🎨 High-Deliverability Multi-Channel Engine"]
-        WorkerCart --> MJML[Responsive MJML / Jinja2]
+        WorkerCart --> MJML[Responsive MJML / Jinja2 + text/plain]
         WorkerOrder --> MJML
-        MJML --> CID[Inline CID Attachment Injector]
-        CID --> SMTP[📧 High-Reputation SMTP Provider]
+        MJML --> CID[Modular WebP 75% / Inline CID]
+        CID --> SMTP[📧 Dual SMTP Routing: oficial@ & comercial@]
         CID --> WhatsApp[💬 Meta WhatsApp Cloud API]
     end
     
     subgraph Observability["📡 Observability & Cloud APM"]
         Daemon -.-> SentryCrons[Sentry Heartbeat Crons]
-        DeliveryEngine -.-> SentryTracing[APM Distributed Tracing Spans]
+        DeliveryEngine -.-> SentryTracing[Sentry Metrics, Spans & LGPD Tracebacks]
     end
 ```
 
@@ -77,35 +77,40 @@ flowchart TD
 - **SMTP Throttling & Mutex Locks**: Smooths multi-threaded dispatches into a regulated funnel, preventing rate-limit blacklisting.
 - **Fail-Safe State Rollback**: Prevents database state transitions if email dispatch fails, guaranteeing organic retries in subsequent cycles.
 
-### 4. 🎨 Visual Excellence & Inline CID Embedding
-- **MJML + Jinja2 Templates**: Mobile-first, responsive email layouts tested across Gmail, Outlook, iOS Mail, and Android.
-- **Inline Content-ID (CID) Embed**: Images are rendered natively inside the email payload, bypassing client image-blocking security filters.
+### 4. 🎨 Visual Excellence, RFC Compliance & Dual SMTP Routing
+- **MJML + Jinja2 + `text/plain` (RFC 2046/5322/8058)**: Mobile-first layouts with automatic `text/plain` alternative, `Message-ID`, `Date`, `Reply-To`, and `List-Unsubscribe: One-Click` headers on promotional flows.
+- **Modular WebP 75% Assets (`EMAIL_ASSETS_DIR`)**: Inline Content-ID (CID) image embedding or external HTTPS CDN links with 96.3% payload compression.
+- **Dual SMTP Sender Isolation**: Separates transactional notifications (`oficial@`) from promotional coupon flows (`comercial@` via `PROMO_SMTP_*`) with transparent fallback.
 
-### 5. 📡 Cloud APM & Distributed Telemetry (Sentry & Security)
-- **Microsecond Spans**: Distributed tracing across all Yampi HTTP requests and PostgreSQL queries.
+### 5. 📡 Cloud APM, Application Metrics & Distributed Telemetry (Sentry & Security)
+- **Email Dispatch Counters & Tracebacks (`src/core/telemetry.py`)**: Tracks `email.dispatch.started`, `email.dispatch.sent` (post-SMTP confirmation), and `email.dispatch.failed`, correlating each dispatch via `trace_id` with full stacktraces and `smtp.retry` breadcrumbs.
+- **Microsecond Spans**: Distributed tracing across all Yampi HTTP requests (`http.client`), PostgreSQL queries (`db.sql.query`), and SMTP attempts (`email.smtp.send`).
 - **Daemon Healthcheck**: Sentry Crons monitor (`yampi-daemon-cycle`) detects silent process stops.
-- **LGPD Audit & Security**: Full prevention against SQLi (parameterized queries), PII obfuscation (email anonymization in logs via `_mask_email()`), and environment secrets isolation.
+- **LGPD Audit & Security**: Prevention against SQLi (parameterized queries), email masking via `_mask_email()`, `send_default_pii=False`, unconditional scrubbing of sensitive stacktrace `frame["vars"]`, and **107 tests / 85% coverage**.
 
 ## ⚡ Quick Start & Deployment
 
 > [!IMPORTANT]
 > 📘 **Implantando em Produção (Ubuntu 26.04.1 LTS)?**  
-> Acesse a Página Zero com a aula completa passo a passo: **[`00_2_GUIA_DE_INSTALACAO_UBUNTU26.md`](./00_2_GUIA_DE_INSTALACAO_UBUNTU26.md)**  
-> Para entender os fundamentos e o histórico de decisões: **[`00_DECISOES_DE_PROJETO_DEPLOY.md`](./00_DECISOES_DE_PROJETO_DEPLOY.md)**
+> Acesse a Página Zero com a aula completa passo a passo: **[`project_decisions/00_2_GUIA_DE_INSTALACAO_UBUNTU26.md`](./project_decisions/00_2_GUIA_DE_INSTALACAO_UBUNTU26.md)**  
+> Para entender os fundamentos e o histórico de decisões: **[`project_decisions/00_DECISOES_DE_PROJETO_DEPLOY.md`](./project_decisions/00_DECISOES_DE_PROJETO_DEPLOY.md)**
 
 **Prerequisites**: Docker & Docker Compose.
 
 > [!IMPORTANT]
-> By default, [`src/core/macros.py`](./src/core/macros.py) is configured for **production SMTP dispatch** (`MACRO_ENABLE_REAL_EMAIL_DISPATCH = True`, `MACRO_FORCE_TEST_EMAIL_RECIPIENT = False`, `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = True`, `MACRO_ENABLE_LOCAL_HTML_SAVING = False`). For local dry-run or staging tests, set `MACRO_ENABLE_REAL_EMAIL_DISPATCH = False` or `MACRO_FORCE_TEST_EMAIL_RECIPIENT = True` in `src/core/macros.py` before starting.
+> By default, [`src/core/macros.py`](./src/core/macros.py) is configured for **production SMTP dispatch** (`MACRO_ENABLE_REAL_EMAIL_DISPATCH = True`, `MACRO_FORCE_TEST_EMAIL_RECIPIENT = False`, `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = False`, `MACRO_ENABLE_LOCAL_HTML_SAVING = False`). For local dry-run or staging tests, set `MACRO_ENABLE_REAL_EMAIL_DISPATCH = False` or `MACRO_FORCE_TEST_EMAIL_RECIPIENT = True` in `src/core/macros.py` before starting.
+>
+> **Modular Brand Images (`.env` + `assets/images/`):** Private brand images are **not** stored in the open-source repository. For production, copy your `images/` folder into `src/templates/emails/assets/images/` (or mount an external folder and set `EMAIL_ASSETS_DIR=/app/email_assets` in `.env`).
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/LucasDuarte026/message_integration_YAMPI.git
 cd message_integration_YAMPI
 
-# 2. Configure environment variables
+# 2. Configure environment variables and attach modular brand images
 cp .env.example .env
-# Edit the .env file with your Yampi, Database, and SMTP credentials
+# Edit the .env file with your Yampi, Database, SMTP credentials, and EMAIL_ASSETS_DIR
+# Copy your private brand images (*_q75.webp) into: src/templates/emails/assets/images/
 
 # 3. Launch the complete production stack via Makefile (App + DB)
 make up
@@ -136,8 +141,8 @@ To modify workers, view state machine rules, or extend the autonomous ecosystem 
 
 👉 **[Read the Full Technical Documentation →](./docs/README.md)**  
 👉 **[SDD Formal Specifications (EARS + Scenarios + ADRs) →](./docs/sdd_specs.md)**  
-👉 **[Guia de Instalação no Ubuntu 26.04.1 LTS (Página Zero) →](./00_2_GUIA_DE_INSTALACAO_UBUNTU26.md)**  
-👉 **[Registro de Decisões de Deploy (ADR) →](./00_DECISOES_DE_PROJETO_DEPLOY.md)**
+👉 **[Guia de Instalação no Ubuntu 26.04.1 LTS (Página Zero) →](./project_decisions/00_2_GUIA_DE_INSTALACAO_UBUNTU26.md)**  
+👉 **[Registro de Decisões de Deploy (ADR) →](./project_decisions/00_DECISOES_DE_PROJETO_DEPLOY.md)**
 
 The architecture incorporates over 100 AI Agent skills under the `.agents/` directory, utilizing **Qdrant Vector Indexing** for advanced cognitive integration into the development lifecycle.
 

@@ -15,7 +15,7 @@
         <mj-column width="100%">
           
           <mj-text font-size="24px" font-weight="bold" color="#1E3A8A" align="center" padding-bottom="10px">
-            Seu pedido foi reservado! ⏳
+            Seu pedido foi reservado!
           </mj-text>
           
           <mj-text font-size="16px" color="#334155" line-height="150%" align="center" padding-bottom="15px">
@@ -91,7 +91,7 @@
       <mj-section background-color="#FFFFFF" padding="0px 20px 25px 20px">
         <mj-column width="100%">
           <mj-text font-size="13px" color="#64748B" line-height="150%" align="center" padding="0px 10px">
-            ⚠️ <em>Os produtos ficam reservados temporariamente. Pagamentos via PIX possuem aprovação e confirmação imediata!</em>
+            <em>Os produtos ficam reservados temporariamente. Pagamentos via PIX possuem aprovação e confirmação imediata!</em>
           </mj-text>
           
           <mj-text font-size="14px" color="#64748B" line-height="150%" align="center" padding-top="20px">
