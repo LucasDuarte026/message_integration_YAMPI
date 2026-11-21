@@ -1,0 +1,18 @@
+# Auto-detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Compiled HTML and MJML templates (exclude from GitHub language bar & collapse in PR diffs)
+src/templates/emails/html_compiled/*.html linguist-generated=true
+src/templates/emails/mjml/*.mjml linguist-generated=true
+
+# Knowledge graph exports and visual artifacts
+graphify-out/** linguist-generated=true
+images/** linguist-generated=true
+
+# Documentation and architectural decision records
+docs/** linguist-documentation=true
+project_decisions/** linguist-documentation=true
+*.md linguist-documentation=true
+
+# Bundled AI agent skills and configurations
+.agents/** linguist-vendored=true

@@ -1,0 +1,41 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - duplicate
+      - invalid
+    authors:
+      - dependabot[bot]
+      - github-actions[bot]
+  categories:
+    - title: "🔒 Security & DevSecOps"
+      labels:
+        - security
+        - devsecops
+        - vulnerability
+    - title: "📡 Telemetry & Observability"
+      labels:
+        - telemetry
+        - observability
+        - sentry
+    - title: "🚀 Features & State Machine"
+      labels:
+        - feature
+        - enhancement
+    - title: "🐛 Bug Fixes & Hardening"
+      labels:
+        - bug
+        - fix
+        - hotfix
+    - title: "📚 Documentation & SDD"
+      labels:
+        - documentation
+        - docs
+    - title: "🧰 Maintenance & Dependencies"
+      labels:
+        - chore
+        - refactor
+        - dependencies
+    - title: "Other Changes"
+      labels:
+        - "*"

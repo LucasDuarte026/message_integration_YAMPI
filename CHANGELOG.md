@@ -5,6 +5,29 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [7.0.0] - 2026-11-21 (Lançamento Oficial Major v7.0.0: Vitrine Visual de Observabilidade Sentry APM & Crons, Governança Enterprise GitHub, Suíte DevSecOps 4 Camadas e Telemetria Semântica `email.type` - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado (Vitrine Visual & Observabilidade Sentry APM / Crons)
+- **Documentação Visual de Observabilidade em Produção ([`README.md`](./README.md) e `images/`)**:
+  - Incorporados os painéis reais de produção ([`images/sentry_dashboard.png`](./images/sentry_dashboard.png) e [`images/crontab.png`](./images/crontab.png)) ilustrando os contadores em tempo real (`email.dispatch.started`, `email.dispatch.sent`, `email.dispatch.failed`), percentis de latência `P50` / `P95`, decomposição categórica pela dimensão semântica `email.type` (9 tipos canônicos) e monitoramento contínuo de heartbeat do daemon (`yampi-daemon-cycle` via `sentry_sdk.crons.monitor`).
+  - Documentadas em detalhe as camadas de conformidade LGPD Zero-PII (`send_default_pii=False`, `_mask_email()`, extração exclusiva de `email.recipient_domain` e `_build_pii_sanitizer_processor()`).
+
+### Adicionado (Governança Enterprise do Repositório GitHub)
+- **Controle de Estatísticas Linguist & Diffs ([`.gitattributes`](./.gitattributes))**:
+  - Configurada normalização automática de fim de linha (`* text=auto eol=lf`), exclusão de templates compilados (`src/templates/emails/html_compiled/*.html`, `mjml/*.mjml`), exports do grafo (`graphify-out/**`) e imagens (`images/**`) da barra de linguagens via `linguist-generated=true`, marcação de documentações com `linguist-documentation=true` e skills com `linguist-vendored=true`.
+- **Política de Segurança & Templates GitHub ([`SECURITY.md`](./SECURITY.md) e [`.github/`](./.github/))**:
+  - Criada a política oficial de reporte privado de vulnerabilidades e garantias LGPD em [`SECURITY.md`](./SECURITY.md).
+  - Adicionados formulários estruturados de Issues ([`bug_report.yml`](./.github/ISSUE_TEMPLATE/bug_report.yml), [`feature_request.yml`](./.github/ISSUE_TEMPLATE/feature_request.yml), [`config.yml`](./.github/ISSUE_TEMPLATE/config.yml)), checklist de governança para Pull Requests ([`pull_request_template.md`](./.github/pull_request_template.md)) e categorização automática de Release Notes ([`release.yml`](./.github/release.yml)).
+
+### Modificado (Padronização Internacional & Consolidação v7.0.0)
+- **Vitrine Principal 100% em Inglês ([`README.md`](./README.md))**:
+  - Unificado todo o `README.md` sob o posicionamento *Engineering & Conversion Authority* (removendo blocos remanescentes em PT-BR e sinalizando documentos externos com badge `[PT-BR]`), com sumário navegável (*Table of Contents*), tabela completa dos 21 alvos do [`Makefile`](./Makefile) e documentação da Suíte DevSecOps em 4 camadas (`TruffleHog`, `Semgrep`, `Trivy`, `SkillSpector`).
+  - Atualizados os metadados de versão para a linha oficial **`7.0.0`** (`VERSION`, badges de release no `README.md` e versões suportadas em `SECURITY.md`).
+
+---
+
 ## [6.8.0] - 2026-11-21 (Suíte DevSecOps Automatizada Pré-Push e Tag Semântica `email.type` na Telemetria Sentry - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**

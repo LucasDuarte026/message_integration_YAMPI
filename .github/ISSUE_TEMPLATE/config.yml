@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Technical Documentation Hub
+    url: https://github.com/LucasDuarte026/message_integration_YAMPI/blob/main/docs/README.md
+    about: Browse architecture guides, state machine specs, and Sentry telemetry references.
+  - name: Security Policy & Private Vulnerability Reporting
+    url: https://github.com/LucasDuarte026/message_integration_YAMPI/blob/main/SECURITY.md
+    about: Review supported versions, DevSecOps checks, and how to report vulnerabilities privately.

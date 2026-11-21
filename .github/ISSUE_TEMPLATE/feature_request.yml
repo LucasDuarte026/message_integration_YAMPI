@@ -1,0 +1,38 @@
+name: Feature / Architectural Proposal
+description: Propose a new capability, state machine rule, or SDD specification update.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose an architectural or behavioral enhancement aligned with Spec-Driven Development (`docs/sdd_specs.md`).
+  - type: dropdown
+    id: area
+    attributes:
+      label: Target Layer (Hexagonal Architecture)
+      options:
+        - Domain (`src/domain/`)
+        - Core / Telemetry (`src/core/`)
+        - Ports / Adapters (`src/ports/`)
+        - Services / Email Builders (`src/services/`)
+        - Workers (`src/workers/`)
+        - DevSecOps / Infrastructure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement & Business Outcome
+      description: What bottleneck, conversion gap, or operational risk does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Design / EARS Requirements
+      placeholder: |
+        - WHEN <trigger>, THE SYSTEM SHALL <behavior>.
+        - Acceptance criteria & affected tests:
+    validations:
+      required: true
