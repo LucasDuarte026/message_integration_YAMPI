@@ -20,6 +20,7 @@ Este diretório contém os scripts utilitários Shell e Python para execução d
 | 🐳 **`query_all.sh`** | Bash | Executa consulta SQL direta no container Docker. | `make db-query` |
 | 🗑️ **`delete_by_id.sh`** | Bash | Exclui um registro do banco via ID. | `make db-del` |
 | 🐍 **`search_status.py`** | Python | Utilitário interno para consultas em `email_status_table`. | - |
+| 🛡️ **`security_audit.sh`** | Bash | Orquestrador DevSecOps (TruffleHog, Semgrep, Trivy e SkillSpector). | `make security-audit` |
 
 ---
 
@@ -64,4 +65,22 @@ docker compose exec -it db psql -U "$DB_USER" -d "$DB_NAME" -c 'SELECT * FROM em
 
 # Processar ambos (STG + STC)
 ./scripts/run_local.sh all
+```
+
+---
+
+### 4. Auditoria de Segurança DevSecOps (`security_audit.sh`)
+
+```bash
+# Executar bateria completa (TruffleHog + Semgrep + Trivy + SkillSpector)
+make security-audit
+
+# Executar verificação rápida pré-commit/pré-push (Segredos + SAST + Skills)
+make security-quick
+
+# Executar camadas individuais
+make security-secrets  # TruffleHog (histórico Git e arquivos)
+make security-sast     # Semgrep (análise estática Python/Flask/SQL)
+make security-infra    # Trivy (requirements.txt, Dockerfile e Docker Compose)
+make security-skills   # SkillSpector (auditoria de skills em .agents/skills/)
 ```

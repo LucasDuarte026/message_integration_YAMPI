@@ -3,7 +3,7 @@
 # Read the current version from VERSION file to tag the Docker image
 export APP_VERSION := $(shell cat VERSION)
 
-.PHONY: help build up down logs restart sh run-all run-orders run-carts db-query db-find db-del db-search-orders db-search-carts
+.PHONY: help build up down logs restart sh run-all run-orders run-carts db-query db-find db-del db-search-orders db-search-carts security-audit security-quick security-secrets security-sast security-infra security-skills
 
 help: ## Show this help message
 	@echo "Usage: make [command]"
@@ -62,3 +62,23 @@ db-search-orders: ## Search for records with Orders status (STG)
 
 db-search-carts: ## Search for records with Abandoned Cart status (STC)
 	./scripts/search_stc.sh
+
+# --- [ SECURITY & DEVSECOPS ] ---
+
+security-audit: ## Run full DevSecOps security suite (TruffleHog + Semgrep + Trivy + SkillSpector)
+	./scripts/security_audit.sh all
+
+security-quick: ## Run fast pre-commit/pre-push security checks (Secrets + SAST + Skills)
+	./scripts/security_audit.sh quick
+
+security-secrets: ## Scan Git history and project files for leaked secrets via TruffleHog
+	./scripts/security_audit.sh secrets
+
+security-sast: ## Run static code analysis (SAST) on Python/Flask code via Semgrep
+	./scripts/security_audit.sh sast
+
+security-infra: ## Scan dependencies, Dockerfile and Compose configs via Trivy
+	./scripts/security_audit.sh infra
+
+security-skills: ## Audit active agent skills for prompt injection/exfiltration via SkillSpector
+	./scripts/security_audit.sh skills
