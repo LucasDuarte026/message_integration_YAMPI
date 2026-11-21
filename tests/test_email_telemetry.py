@@ -17,6 +17,7 @@ import src.main as app_main
 from src.core import logging_config, macros
 from src.core.config import Config
 from src.core.telemetry import (
+    EMAIL_TYPE_BY_TEMPLATE,
     METRIC_EMAIL_DISPATCH_FAILED,
     METRIC_EMAIL_DISPATCH_SENT,
     METRIC_EMAIL_DISPATCH_STARTED,
@@ -29,6 +30,7 @@ from src.core.telemetry import (
     record_email_dispatch_failed,
     record_email_dispatch_sent,
     record_email_dispatch_started,
+    resolve_email_type,
     sanitize_error_message,
     start_smtp_span,
 )
@@ -1053,3 +1055,116 @@ def test_main_close_resources_chama_flush_telemetry():
 
     with patch.object(app_main, "flush_telemetry", side_effect=RuntimeError("Erro flush")):
         app_main._close_resources(mock_repo, mock_provider)
+
+
+# ------------------------------------------------------------------------------
+# Cenário 11: Flag semântica email.type no Sentry (mapeamento, métricas e spans)
+# ------------------------------------------------------------------------------
+
+
+def test_resolve_email_type_mapeia_todos_os_templates_e_fallback():
+    """Garante mapeamento completo dos 9 templates e fallback seguro para valores desconhecidos."""
+    esperado = {
+        "pedido_aprovado": "order_payment_confirmed",
+        "pedido_pendente": "order_payment_pending",
+        "pedido_a_caminho": "order_shipped_tracking",
+        "cupom_pedido_1": "order_recovery_coupon_10",
+        "cupom_pedido_2": "order_recovery_coupon_15",
+        "cupom_pedido_3": "order_recovery_coupon_20",
+        "carrinho_abandonado_cupom4": "cart_abandoned_reminder",
+        "carrinho_abandonado_cupom5": "cart_recovery_coupon_1",
+        "carrinho_abandonado_cupom6": "cart_recovery_coupon_2",
+    }
+    assert EMAIL_TYPE_BY_TEMPLATE == esperado
+    for template_name, expected_type in esperado.items():
+        assert resolve_email_type(template_name) == expected_type
+
+    assert resolve_email_type("template_inexistente") == "unknown"
+    assert resolve_email_type(None) == "unknown"
+    assert resolve_email_type("") == "unknown"
+    assert resolve_email_type("pedido_aprovado", email_type="custom_override") == "custom_override"
+
+
+@patch("src.ports.smtp_email_provider.time.sleep")
+@patch("src.ports.smtp_email_provider.smtplib.SMTP_SSL")
+def test_smtp_provider_emite_email_type_em_metricas_e_span(
+    mock_smtp_ssl, mock_sleep, sentry_dummy_transport, tmp_path
+):
+    """Chamada direta ao SMTPEmailProvider inclui email.type em started, sent e span SMTP."""
+    srv = MagicMock()
+    srv.noop.return_value = (250, b"OK")
+    srv.sendmail.return_value = {}
+    mock_smtp_ssl.return_value = srv
+
+    provider = _criar_provider(tmp_path)
+    with sentry_sdk.start_transaction(name="tx_email_type_direto"):
+        ok = provider.send_email_message(
+            "cliente@exemplo.com",
+            "Assunto",
+            "<p>Corpo</p>",
+            plain_text="Corpo",
+            is_promotional=False,
+            email_type="order_payment_confirmed",
+        )
+    assert ok is True
+    flush_telemetry(timeout=2.0)
+
+    started = sentry_dummy_transport.metrics_by_name(METRIC_EMAIL_DISPATCH_STARTED)
+    sent = sentry_dummy_transport.metrics_by_name(METRIC_EMAIL_DISPATCH_SENT)
+    assert len(started) == 1
+    assert len(sent) == 1
+    assert _attr_val(started[0], "email.type") == "order_payment_confirmed"
+    assert _attr_val(sent[0], "email.type") == "order_payment_confirmed"
+
+    txs = sentry_dummy_transport.transactions()
+    assert len(txs) == 1
+    spans = txs[0].get("spans", [])
+    smtp_spans = [s for s in spans if s.get("op") == "email.smtp.send"]
+    assert len(smtp_spans) == 1
+    assert "order_payment_confirmed" in smtp_spans[0].get("description", "")
+    assert smtp_spans[0]["data"]["email.type"] == "order_payment_confirmed"
+
+
+@patch("src.ports.smtp_email_provider.time.sleep")
+@patch("src.ports.smtp_email_provider.smtplib.SMTP_SSL")
+def test_notification_service_propaga_email_type_para_sentry_em_pedidos_e_carrinhos(
+    mock_smtp_ssl, mock_sleep, sentry_dummy_transport, tmp_path, monkeypatch
+):
+    """NotificationService propaga email.type para métricas do Sentry em pedidos e carrinhos."""
+    srv = MagicMock()
+    srv.noop.return_value = (250, b"OK")
+    srv.sendmail.return_value = {}
+    mock_smtp_ssl.return_value = srv
+
+    monkeypatch.setattr(macros, "MACRO_ENABLE_LOCAL_HTML_SAVING", False)
+    monkeypatch.setattr(macros, "MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH", False)
+    monkeypatch.setattr(macros, "MACRO_FORCE_TEST_EMAIL_RECIPIENT", False)
+
+    provider = _criar_provider(tmp_path)
+    cfg = Config(YAMPI_USER_TOKEN="tok", YAMPI_USER_SECRET_KEY="sec")
+    service = NotificationService(provider, cfg)
+
+    order_event = OrderTransitionEvent(
+        order_id="101",
+        order_number="PED-101",
+        new_stg=2,
+        customer_data={"email": "comprador@exemplo.com", "first_name": "Ana"},
+        order_data={"total_price": "199.90", "items": {"data": []}, "transactions": {"data": []}},
+    )
+    cart_event = CartTransitionEvent(
+        cart_id="cart-202",
+        new_stc=15,
+        customer_data={"email": "visitante@exemplo.com", "first_name": "Bruno"},
+        cart_data={"checkout_url": "https://loja.exemplo.com/checkout/202", "items": {"data": []}},
+    )
+
+    with sentry_sdk.start_transaction(name="tx_notification_service_email_type"):
+        assert service.handle_transition(order_event, "pedido_pendente") is True
+        assert service.handle_cart_transition(cart_event, "carrinho_abandonado_cupom4") is True
+
+    flush_telemetry(timeout=2.0)
+
+    sent = sentry_dummy_transport.metrics_by_name(METRIC_EMAIL_DISPATCH_SENT)
+    assert len(sent) == 2
+    sent_types = [_attr_val(m, "email.type") for m in sent]
+    assert sent_types == ["order_payment_pending", "cart_abandoned_reminder"]

@@ -205,6 +205,7 @@ class SMTPEmailProvider(MessageProviderProtocol):
         raw_email: str,
         masked_email: str,
         retry_history: List[Dict[str, Any]],
+        email_type: Optional[str] = None,
     ) -> str:
         """Registra metadados sanitizados e breadcrumb de uma tentativa SMTP falha."""
         sanitized_err = sanitize_error_message(
@@ -228,6 +229,7 @@ class SMTPEmailProvider(MessageProviderProtocol):
             smtp_code=smtp_details.get("smtp_code"),
             channel=channel,
             recipient_domain=recipient_domain,
+            email_type=email_type,
         )
         return sanitized_err
 
@@ -238,13 +240,20 @@ class SMTPEmailProvider(MessageProviderProtocol):
         html_body: str,
         plain_text: Optional[str] = None,
         is_promotional: bool = False,
+        email_type: Optional[str] = None,
     ) -> bool:
         masked_email = self._mask_email(email)
         channel = "promotional" if is_promotional else "transactional"
+        resolved_email_type = (
+            email_type.strip()
+            if isinstance(email_type, str) and email_type.strip()
+            else "unknown"
+        )
         recipient_domain = extract_recipient_domain(email)
         base_metric_attrs: Dict[str, Any] = {
             "email.provider": "smtp",
             "email.channel": channel,
+            "email.type": resolved_email_type,
             "email.recipient_domain": recipient_domain,
             "smtp.host": self.host,
             "smtp.port": self.port,
@@ -334,13 +343,14 @@ class SMTPEmailProvider(MessageProviderProtocol):
                 for attempt in range(1, MACRO_SMTP_MAX_RETRIES + 1):
                     try:
                         with start_smtp_span(
-                            f"SMTP sendmail ({channel})",
+                            f"SMTP sendmail ({channel} | {resolved_email_type})",
                             data={
                                 "smtp.host": self.host,
                                 "smtp.port": self.port,
                                 "smtp.attempt": attempt,
                                 "smtp.account_slot": account_slot,
                                 "email.channel": channel,
+                                "email.type": resolved_email_type,
                             },
                         ):
                             self._connect(active_server_attr, active_user, active_password)
@@ -379,6 +389,7 @@ class SMTPEmailProvider(MessageProviderProtocol):
                             raw_email=email,
                             masked_email=masked_email,
                             retry_history=retry_history,
+                            email_type=resolved_email_type,
                         )
                         logger.warning(
                             f"[SMTP] Conexão caiu na tentativa {attempt}/{MACRO_SMTP_MAX_RETRIES}: {sanitized_err}"
@@ -394,6 +405,7 @@ class SMTPEmailProvider(MessageProviderProtocol):
                             raw_email=email,
                             masked_email=masked_email,
                             retry_history=retry_history,
+                            email_type=resolved_email_type,
                         )
                         logger.warning(
                             f"[SMTP] Erro transitório na tentativa {attempt}/{MACRO_SMTP_MAX_RETRIES} para {masked_email}: {sanitized_err}"
@@ -431,12 +443,14 @@ class SMTPEmailProvider(MessageProviderProtocol):
                     tags={
                         "email.provider": "smtp",
                         "email.channel": channel,
+                        "email.type": resolved_email_type,
                         "smtp.account_slot": account_slot,
                     },
                     smtp_context={
                         "host": self.host,
                         "port": self.port,
                         "channel": channel,
+                        "email_type": resolved_email_type,
                         "account_slot": account_slot,
                         "attempts": MACRO_SMTP_MAX_RETRIES,
                         "max_retries": MACRO_SMTP_MAX_RETRIES,
@@ -465,11 +479,16 @@ class SMTPEmailProvider(MessageProviderProtocol):
             capture_email_dispatch_error(
                 e,
                 failure_stage="smtp_fatal",
-                tags={"email.provider": "smtp", "email.channel": channel},
+                tags={
+                    "email.provider": "smtp",
+                    "email.channel": channel,
+                    "email.type": resolved_email_type,
+                },
                 smtp_context={
                     "host": self.host,
                     "port": self.port,
                     "channel": channel,
+                    "email_type": resolved_email_type,
                     "recipient_domain": recipient_domain,
                 },
                 raw_email=email,

@@ -25,6 +25,33 @@ METRIC_EMAIL_DISPATCH_STARTED = "email.dispatch.started"
 METRIC_EMAIL_DISPATCH_SENT = "email.dispatch.sent"
 METRIC_EMAIL_DISPATCH_FAILED = "email.dispatch.failed"
 
+EMAIL_TYPE_BY_TEMPLATE: Dict[str, str] = {
+    "pedido_aprovado": "order_payment_confirmed",
+    "pedido_pendente": "order_payment_pending",
+    "pedido_a_caminho": "order_shipped_tracking",
+    "cupom_pedido_1": "order_recovery_coupon_10",
+    "cupom_pedido_2": "order_recovery_coupon_15",
+    "cupom_pedido_3": "order_recovery_coupon_20",
+    "carrinho_abandonado_cupom4": "cart_abandoned_reminder",
+    "carrinho_abandonado_cupom5": "cart_recovery_coupon_1",
+    "carrinho_abandonado_cupom6": "cart_recovery_coupon_2",
+}
+
+
+def resolve_email_type(
+    template_name: Optional[str],
+    email_type: Optional[str] = None,
+) -> str:
+    """
+    Resolve a flag semântica `email.type` para observabilidade no Sentry a partir
+    de um valor explícito ou do mapeamento oficial por `template_name`.
+    """
+    if isinstance(email_type, str) and email_type.strip():
+        return email_type.strip()
+    if isinstance(template_name, str) and template_name.strip():
+        return EMAIL_TYPE_BY_TEMPLATE.get(template_name.strip(), "unknown")
+    return "unknown"
+
 
 def extract_recipient_domain(email: Optional[str]) -> str:
     """
@@ -225,12 +252,14 @@ def email_dispatch_scope(
     order_number: Optional[str] = None,
     cart_id: Optional[str] = None,
     recipient_domain: str = "unknown",
+    email_type: Optional[str] = None,
 ) -> Iterator[None]:
     """
     Abre um escopo isolado do Sentry para enriquecer métricas, spans e erros do disparo
     sem expor PII. Falhas do Sentry SDK nunca interrompem o fluxo nem silenciam exceções de negócio.
     """
     channel = "promotional" if is_promotional else "transactional"
+    resolved_email_type = resolve_email_type(template_name, email_type)
     safe_domain = (
         recipient_domain.strip().lower()
         if isinstance(recipient_domain, str) and recipient_domain.strip()
@@ -241,6 +270,7 @@ def email_dispatch_scope(
     context_dict: Dict[str, Any] = {
         "flow": flow,
         "template_name": template_name,
+        "email_type": resolved_email_type,
         "stage": stage,
         "channel": channel,
         "dispatch_kind": dispatch_kind,
@@ -263,6 +293,7 @@ def email_dispatch_scope(
             if scope is not None:
                 scope.set_tag("email.flow", flow)
                 scope.set_tag("email.template", template_name)
+                scope.set_tag("email.type", resolved_email_type)
                 scope.set_tag("email.stage", stage)
                 scope.set_tag("email.channel", channel)
                 scope.set_tag("email.dispatch_kind", dispatch_kind)
@@ -270,6 +301,7 @@ def email_dispatch_scope(
                 if hasattr(scope, "set_attribute"):
                     scope.set_attribute("email.flow", flow)
                     scope.set_attribute("email.template", template_name)
+                    scope.set_attribute("email.type", resolved_email_type)
                     scope.set_attribute("email.stage", stage)
                     scope.set_attribute("email.channel", channel)
                     scope.set_attribute("email.dispatch_kind", dispatch_kind)
@@ -368,6 +400,7 @@ def add_smtp_retry_breadcrumb(
     smtp_code: Optional[int],
     channel: str,
     recipient_domain: str,
+    email_type: Optional[str] = None,
 ) -> None:
     """Registra breadcrumb estruturado para cada tentativa SMTP que falhou."""
     try:
@@ -380,6 +413,8 @@ def add_smtp_retry_breadcrumb(
             "channel": channel,
             "recipient_domain": recipient_domain,
         }
+        if isinstance(email_type, str) and email_type.strip():
+            data["email_type"] = email_type.strip()
         if smtp_code is not None:
             data["smtp_code"] = smtp_code
         sentry_sdk.add_breadcrumb(
