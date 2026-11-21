@@ -5,6 +5,24 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [6.8.0] - 2026-11-21 (Suíte DevSecOps Automatizada Pré-Push e Tag Semântica `email.type` na Telemetria Sentry - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado (Segurança & DevSecOps)
+- **Orquestração Automatizada em 4 Camadas ([`scripts/security_audit.sh`](./scripts/security_audit.sh) e [`Makefile`](./Makefile))**:
+  - Integrada a suíte DevSecOps com **TruffleHog** (varredura de segredos verificados no histórico Git e arquivos), **Semgrep** (SAST `p/python`, `p/flask`, `p/secrets` em `src/` e `scripts/`), **Trivy** (CVEs em `requirements.txt` com fallback automático de cache para `/dev/shm/trivy-cache` e inspeção de `Dockerfile` / `docker-compose*.yml`) e **SkillSpector** (auditoria de skills de agentes com baseline verificado).
+  - Adicionados os alvos `security-audit`, `security-quick`, `security-secrets`, `security-sast`, `security-infra` e `security-skills` no [`Makefile`](./Makefile) e documentação correspondente em [`scripts/README.md`](./scripts/README.md).
+  - Integrado o gate obrigatório pré-commit e pré-push na skill `version_control` e adicionada a suíte de validação [`tests/test_security_audit_cli.py`](./tests/test_security_audit_cli.py).
+
+### Adicionado (Telemetria & Observabilidade Sentry)
+- **Dimensão Semântica `email.type` nos Disparos de E-mail (`src/core/telemetry.py`, `src/domain/interfaces.py`, `src/ports/`, `src/services/notification_service.py`)**:
+  - Adicionado o mapeamento canônico `EMAIL_TYPE_BY_TEMPLATE` e a função `resolve_email_type()` em `src/core/telemetry.py`.
+  - Propagado `email.type` no contrato `MessageProviderProtocol`, no `DryRunMessageProvider`, nos spans `email.smtp.send`, *breadcrumbs* `smtp.retry`, métricas e capturas de erro do `SMTPEmailProvider` e nos fluxos de pedidos/carrinhos do `NotificationService`.
+  - Atualizados os READMEs internos (`src/core/README.md`, `src/domain/README.md`, `src/ports/README.md`) e ampliados os testes em `tests/test_email_telemetry.py`, `tests/test_abandoned_cart.py` e `tests/test_orders.py` (`123 passed` na suíte completa).
+
+---
+
 ## [6.7.0] - 2026-11-20 (Entregabilidade RFC 2046/5322/8058, Roteamento Dual SMTP, Otimização WebP 75% e Telemetria Sentry Application Metrics - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
