@@ -1,0 +1,57 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in workers, SMTP delivery, PostgreSQL state tracking, or Sentry telemetry.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue.
+        **LGPD & Security Reminder:** Never paste `.env` files, API tokens, SMTP passwords, Sentry DSNs, real customer emails, or CPFs into this form. Mask all sensitive data before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Release Version
+      description: Version from the `VERSION` file or Docker image tag.
+      placeholder: "e.g., 7.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      options:
+        - Orders Worker (STG)
+        - Abandoned Cart Worker (STC)
+        - SMTP Email Provider / MIME Builder
+        - PostgreSQL Repository / Pool
+        - Sentry Telemetry / Crons
+        - Webhook Server (WhatsApp)
+        - Docker / Makefile / DevSecOps Scripts
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Clear and concise summary of what went wrong versus what was expected.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Run '...'
+        2. Trigger state transition STG/STC '...'
+        3. Observe log/Sentry output '...'
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized Logs / Test Output
+      description: Paste relevant sanitized stacktraces or pytest output (zero PII/secrets).
+      render: text
+    validations:
+      required: false
