@@ -19,7 +19,8 @@ emails_from_container/
 db_backups/
 containers/
 logs*
-.agents/local_index/
+.agents/
+.vscode/
 *.tar.gz
 .agents_export/
 graphify-out/
@@ -27,3 +28,4 @@ src/templates/emails/assets/images/
 src/templates/emails/mocks/
 src/templates/emails/html_compiled/mock_*.html
 email_assets/
+scripts/trufflehog_audit/

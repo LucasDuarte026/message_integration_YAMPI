@@ -19,9 +19,12 @@ class DryRunMessageProvider(MessageProviderProtocol):
         html_body: str,
         plain_text: Optional[str] = None,
         is_promotional: bool = False,
+        email_type: Optional[str] = None,
     ) -> bool:
         logger.info("="*40)
         logger.info(f"[DRY-RUN] Enviando Email para: {email}")
+        if email_type:
+            logger.info(f"[DRY-RUN] Tipo de E-mail: {email_type}")
         logger.info(f"[DRY-RUN] Assunto: {subject}")
         logger.info("="*40)
         

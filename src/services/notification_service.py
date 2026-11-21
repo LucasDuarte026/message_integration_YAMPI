@@ -20,6 +20,7 @@ from src.core.telemetry import (
     extract_recipient_domain,
     record_email_dispatch_failed,
     record_email_dispatch_started,
+    resolve_email_type,
     sanitize_error_message,
 )
 
@@ -68,6 +69,7 @@ class NotificationService:
         event: Any,
         *,
         template_name: str,
+        email_type: str,
         channel: str,
         recipient_domain: str,
         recipient_email: Optional[str],
@@ -95,6 +97,7 @@ class NotificationService:
                 {
                     "email.provider": "template_builder",
                     "email.channel": channel,
+                    "email.type": email_type,
                     "email.recipient_domain": recipient_domain,
                 }
             )
@@ -102,6 +105,7 @@ class NotificationService:
                 {
                     "email.provider": "template_builder",
                     "email.channel": channel,
+                    "email.type": email_type,
                     "email.recipient_domain": recipient_domain,
                     "email.failure_stage": "template_build",
                     "email.error_type": type(exc).__name__,
@@ -110,7 +114,7 @@ class NotificationService:
             capture_email_dispatch_error(
                 exc,
                 failure_stage="template_build",
-                tags={"email.channel": channel},
+                tags={"email.channel": channel, "email.type": email_type},
                 raw_email=recipient_email,
                 extra_raw_emails=extra_emails,
             )
@@ -137,6 +141,7 @@ class NotificationService:
 
         is_promotional = template_name in {"cupom_pedido_1", "cupom_pedido_2", "cupom_pedido_3"}
         channel = "promotional" if is_promotional else "transactional"
+        email_type = resolve_email_type(template_name)
         recipient_email = self._resolve_recipient_email(event.customer_data)
         recipient_domain = extract_recipient_domain(recipient_email)
         cart_id = self._extract_cart_id_from_order(event.order_data)
@@ -153,11 +158,13 @@ class NotificationService:
             order_number=str(event.order_number),
             cart_id=cart_id,
             recipient_domain=recipient_domain,
+            email_type=email_type,
         ):
             content = self._build_email_content(
                 builder,
                 event,
                 template_name=template_name,
+                email_type=email_type,
                 channel=channel,
                 recipient_domain=recipient_domain,
                 recipient_email=recipient_email,
@@ -186,6 +193,7 @@ class NotificationService:
                     html_body,
                     plain_text=plain_text,
                     is_promotional=is_promotional,
+                    email_type=email_type,
                 )
                 if success:
                     logger.info(f"[NotificationService] E-mail STG {event.new_stg} ({template_name}) enviado para pedido ID: # {event.order_id} (Nº {event.order_number})")
@@ -216,6 +224,7 @@ class NotificationService:
                 order_number=str(event.order_number),
                 cart_id=cart_id,
                 recipient_domain=extract_recipient_domain(self.config.TEST_EMAIL_RECIPIENT),
+                email_type=email_type,
             ):
                 self.provider.send_email_message(
                     self.config.TEST_EMAIL_RECIPIENT,
@@ -223,6 +232,7 @@ class NotificationService:
                     html_body,
                     plain_text=plain_text,
                     is_promotional=is_promotional,
+                    email_type=email_type,
                 )
         return True
 
@@ -238,6 +248,7 @@ class NotificationService:
             return False
 
         channel = "promotional"
+        email_type = resolve_email_type(template_name)
         recipient_email = self._resolve_recipient_email(event.customer_data)
         recipient_domain = extract_recipient_domain(recipient_email)
 
@@ -252,11 +263,13 @@ class NotificationService:
             dispatch_kind="primary",
             cart_id=str(event.cart_id),
             recipient_domain=recipient_domain,
+            email_type=email_type,
         ):
             content = self._build_email_content(
                 builder,
                 event,
                 template_name=template_name,
+                email_type=email_type,
                 channel=channel,
                 recipient_domain=recipient_domain,
                 recipient_email=recipient_email,
@@ -285,6 +298,7 @@ class NotificationService:
                     html_body,
                     plain_text=plain_text,
                     is_promotional=True,
+                    email_type=email_type,
                 )
                 if success:
                     logger.info(f"[NotificationService] E-mail STC {event.new_stc} ({template_name}) enviado para carrinho ID: {event.cart_id}")
@@ -314,6 +328,7 @@ class NotificationService:
                 dispatch_kind="duplicate",
                 cart_id=str(event.cart_id),
                 recipient_domain=extract_recipient_domain(self.config.TEST_EMAIL_RECIPIENT),
+                email_type=email_type,
             ):
                 self.provider.send_email_message(
                     self.config.TEST_EMAIL_RECIPIENT,
@@ -321,6 +336,7 @@ class NotificationService:
                     html_body,
                     plain_text=plain_text,
                     is_promotional=True,
+                    email_type=email_type,
                 )
         return True
 

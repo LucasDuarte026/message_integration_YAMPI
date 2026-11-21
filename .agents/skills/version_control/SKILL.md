@@ -22,12 +22,17 @@ Sempre que o usuário solicitar para "commitar", "fazer release", ou "iniciar o 
    - Informe a branch atual.
    - Se estiver na `main`, recomende a não commitar direto (a menos que explicitamente mandado forçar).
    - Sugira e mostre o comando para criar uma branch semântica: `git switch -c <branch>`.
-3. **Auditoria de Segurança & Conformidade LGPD (Obrigatória)**:
+3. **Auditoria de Segurança DevSecOps & Conformidade LGPD (Obrigatória)**:
+   - Execute (ou exija a execução de) `make security-audit` (ou `make security-quick` para checagem rápida durante desenvolvimento), cobrindo as 4 camadas essenciais:
+     1. **TruffleHog** (`make security-secrets`): varredura de segredos e chaves ativas no histórico do Git e nos arquivos.
+     2. **Semgrep** (`make security-sast`): análise estática SAST em `src/` e `scripts/` (SQLi, Flask, Jinja2, SSRF).
+     3. **Trivy** (`make security-infra`): varredura de CVEs e misconfigurations em `requirements.txt`, `Dockerfile` e `docker-compose*.yml`.
+     4. **SkillSpector** (`make security-skills`): auditoria contra *prompt injection* e exfiltração nas skills em `.agents/skills/`.
    - Inspecione minuciosamente os diffs de todos os arquivos modificados aplicando as diretrizes do `security-reviewer`.
    - Detecte chaves de API, senhas, tokens, DSNs, `.env`, arquivos de dump ou credenciais sensíveis.
    - Garanta a proteção de Dados Pessoais Sensíveis / PII de acordo com a LGPD (mascaramento de e-mails, não exposição de CPFs ou dados cadastrais em logs e mensagens).
    - Verifique ausência de injeções (SQLi) e higienização de logs/debugs (`print()`, `pdb`, `breakpoint()`).
-   - Se qualquer violação for encontrada, emita alerta CRÍTICO e bloqueie a sugestão de commit até a devida correção.
+   - Se qualquer violação for encontrada na suíte automatizada ou na revisão do diff, emita alerta CRÍTICO e bloqueie a sugestão de commit até a devida correção.
 4. **Classificação SemVer e Automação**:
    - Avalie as mudanças (PATCH, MINOR, MAJOR) justificando o impacto.
    - Prepare proativamente as edições no arquivo `VERSION` e `CHANGELOG.md` para a nova versão.
@@ -36,8 +41,9 @@ Sempre que o usuário solicitar para "commitar", "fazer release", ou "iniciar o 
    - Isole o que entra no commit (relacionado à feature/esforço) do que fica de fora (ex: documentações futuras e testes sujos isolados).
 6. **Síntese de Diffs e Commit**:
    - Cruze o `git diff` e `git diff --cached` para criar mensagens ricas de commit, resumindo pontos técnicos específicos reais que estão sendo versionados.
-7. **Push Seguros**:
-   - Forneça os próximos passos para subir as alterações após o commit.
+7. **Push Seguros (Gate Pré-Push Obrigatório)**:
+   - **ANTES** de liberar o comando `git push origin <branch>`, valide obrigatoriamente se a suíte de testes (`./.venv/bin/python -m pytest`) e a bateria completa de segurança (`make security-audit`) passaram sem alertas críticos.
+   - Forneça os próximos passos para subir as alterações após o commit e a validação do gate.
 
 ---
 
@@ -46,6 +52,7 @@ Sempre que o usuário solicitar para "commitar", "fazer release", ou "iniciar o 
 Você DEVE obrigatoriamente fornecer o **bloco de comando shell pronto para copiar/colar em TODAS as etapas da sua resposta**. O desenvolvedor nunca deve ter que adivinhar ou digitar os comandos manualmente.
 
 - **Inspeção / Branch**: `git switch -c <branch>`
+- **Auditoria DevSecOps (Pré-Commit / Pré-Push)**: `make security-audit` (ou `make security-quick`)
 - **Seleção de Arquivos**: `git add <arquivos>` (Forneça explicitamente o comando na seção de arquivos. Evite `git add .`).
 - **Commit Seguro**: MÚLTIPLOS FLAGS `-m` para evitar erros de Bracketed Paste Mode (ex: `[200~`).
   Exemplo: `git commit -m "feat(core): titulo" -m "- detalhe exato 1" -m "- detalhe exato 2"`
@@ -74,9 +81,18 @@ Utilize os prefixos padrão da indústria:
 
 ---
 
-## 5. Regra Estrita de Segurança e Conformidade LGPD Pré-Commit
+## 5. Regra Estrita de Segurança DevSecOps e Conformidade LGPD Pré-Commit e Pré-Push
 
-O assistente de versionamento NUNCA deve sugerir o commit de arquivos sem antes aplicar a checagem do agente de segurança (`security-reviewer`):
+O assistente de versionamento NUNCA deve sugerir o commit ou o push de arquivos sem antes aplicar o gate automatizado (`make security-audit`) e a checagem do agente de segurança (`security-reviewer`):
+
+| Ferramenta | Alvo no Projeto | Comando Isolado |
+| :--- | :--- | :--- |
+| **TruffleHog** | Histórico Git e arquivos locais (segredos ativos) | `make security-secrets` |
+| **Semgrep** | Análise estática SAST em `src/` e `scripts/` | `make security-sast` |
+| **Trivy** | CVEs e misconfigurations em `requirements.txt`, `Dockerfile` e `docker-compose*.yml` | `make security-infra` |
+| **SkillSpector** | Auditoria de skills em `.agents/skills/` | `make security-skills` |
+
+Checklist manual complementar obrigatório:
 - **Vazamento de Segredos**: Proibido commitar `.env`, tokens da Yampi, senhas de SMTP, credenciais de banco de dados ou DSNs privados.
 - **Conformidade LGPD**: Verificar se nenhum log novo ou alterado expõe CPFs de clientes, e-mails não mascarados, telefones ou dados cadastrais em texto claro.
 - **Data Scrubbing**: Garantir que dados de exceção enviados para telemetria externa (Sentry) mantenham filtros de PII desativados (`send_default_pii=False`).

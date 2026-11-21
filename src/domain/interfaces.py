@@ -27,10 +27,12 @@ class MessageProviderProtocol(ABC):
         html_body: str,
         plain_text: Optional[str] = None,
         is_promotional: bool = False,
+        email_type: Optional[str] = None,
     ) -> bool:
         """
-        Envia um e-mail com corpo HTML, alternativa em texto puro (RFC 2046)
-        e sinalização de conteúdo promocional para cabeçalhos RFC 8058.
+        Envia um e-mail com corpo HTML, alternativa em texto puro (RFC 2046),
+        sinalização de conteúdo promocional para cabeçalhos RFC 8058 e
+        identificador semântico opcional `email_type` para telemetria.
         """
         pass
 

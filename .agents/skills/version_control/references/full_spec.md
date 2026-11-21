@@ -392,16 +392,23 @@ git status
 
 ---
 
-## 9. Nunca assumir que o staging está correto (Auditoria de Segurança & LGPD Obrigatória)
+## 9. Nunca assumir que o staging está correto (Auditoria de Segurança DevSecOps & LGPD Obrigatória)
 
-Antes de sugerir o staging (`git add`) ou o commit final, o agente DEVE executar uma varredura preventiva de segurança e conformidade LGPD baseada no `security-reviewer`:
+Antes de sugerir o staging (`git add`) ou o commit final, o agente DEVE executar o gate automatizado de segurança (`make security-audit` ou `make security-quick`) e uma varredura preventiva de conformidade LGPD baseada no `security-reviewer`:
 
 ```bash
+make security-audit
 git diff
 git diff --cached
 ```
 
-O agente deve auditar:
+Ferramentas obrigatórias executadas pelo gate `make security-audit`:
+1. **TruffleHog (`make security-secrets`)**: varredura de segredos e credenciais ativas no histórico do Git e nos arquivos.
+2. **Semgrep (`make security-sast`)**: análise estática SAST em `src/` e `scripts/` (SQLi, Flask, Jinja2, SSRF).
+3. **Trivy (`make security-infra`)**: varredura de CVEs e misconfigurations em `requirements.txt`, `Dockerfile` e `docker-compose*.yml`.
+4. **SkillSpector (`make security-skills`)**: auditoria de segurança contra *prompt injection* e exfiltração nas skills de `.agents/skills/`.
+
+Além disso, o agente deve auditar manualmente nos diffs:
 1. **Segredos e Credenciais**: Chaves de API, tokens da Yampi, senhas de SMTP, credenciais de banco de dados, arquivos `.env`, chaves privadas (`*.pem`, `*.key`) ou endpoints sensíveis.
 2. **Conformidade LGPD & Proteção de PII**: Garantir que nenhum arquivo novo ou modificado exponha CPFs de clientes, e-mails não mascarados, telefones ou dados bancários em texto claro (especialmente em logs ou mensagens).
 3. **Data Scrubbing na Telemetria**: Garantir que configurações de monitoramento externo (Sentry) mantenham filtros de PII ativados (`send_default_pii=False`).
@@ -852,11 +859,20 @@ O agente deve verificar se o commit contém exatamente a mudança esperada.
 
 ---
 
-## 24. Push Explícito e Seguro
+## 24. Push Explícito e Seguro (Gate Pré-Push Obrigatório)
 
 Sempre fornecer comandos completos e explícitos de Push (`git push origin <branch>`) e Pull (`git pull origin <branch>`), declarando o repositório remoto e a branch de forma transparente para evitar qualquer envio para branches incorretas.
 
-Depois do commit:
+**Checklist obrigatório antes de liberar o `git push`:**
+1. Executar a suíte completa de testes unitários e de integração (`./.venv/bin/python -m pytest`).
+2. Executar a bateria completa de segurança DevSecOps (`make security-audit`: TruffleHog, Semgrep, Trivy e SkillSpector) e confirmar ausência de falhas críticas.
+
+```bash
+./.venv/bin/python -m pytest
+make security-audit
+```
+
+Somente após a aprovação de ambos os gates, liberar o comando de push:
 
 ```bash
 git push origin <branch>
