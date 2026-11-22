@@ -30,7 +30,8 @@ class PostgresStateRepository(StateRepositoryProtocol):
             MACRO_PG_POOL_MIN_CONN, 
             MACRO_PG_POOL_MAX_CONN, 
             self.database_url, 
-            cursor_factory=RealDictCursor
+            cursor_factory=RealDictCursor,
+            application_name="message_integration_app",
         )
         self._init_db()
 
@@ -73,6 +74,13 @@ class PostgresStateRepository(StateRepositoryProtocol):
                     cur.execute(create_idx_cpf_sku)
                     cur.execute(create_idx_order_number)
                 conn.commit()
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute("CREATE EXTENSION IF NOT EXISTS pg_stat_statements;")
+                    conn.commit()
+                except Exception as ext_err:
+                    conn.rollback()
+                    logger.warning(f"Não foi possível habilitar a extensão pg_stat_statements automaticamente: {ext_err}")
             logger.info("Banco de dados PostgreSQL inicializado com sucesso de acordo com a Especificação 04.")
         except Exception as e:
             logger.error(f"Erro ao inicializar banco de dados PostgreSQL: {e}")

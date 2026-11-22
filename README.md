@@ -1,7 +1,7 @@
 # 🚀 Message Integration Yampi
 
-[![Release Status](https://img.shields.io/badge/Release-v7.0.0%20STABLE-success?style=for-the-badge&logo=rocket)](https://github.com/LucasDuarte026/message_integration_YAMPI/releases)
-[![Tests](https://img.shields.io/badge/Tests-123%20Tests%20(85%25%2B%20Cov)-brightgreen?style=for-the-badge&logo=pytest)](./docs/testing_guidelines.md)
+[![Release Status](https://img.shields.io/badge/Release-v7.1.0%20STABLE-success?style=for-the-badge&logo=rocket)](https://github.com/LucasDuarte026/message_integration_YAMPI/releases)
+[![Tests](https://img.shields.io/badge/Tests-140%20Tests%20(85%25%2B%20Cov)-brightgreen?style=for-the-badge&logo=pytest)](./docs/testing_guidelines.md)
 [![DevSecOps](https://img.shields.io/badge/DevSecOps-4--Layer%20Automated%20Gate-critical?style=for-the-badge&logo=securityscorecard)](./SECURITY.md)
 [![Python Version](https://img.shields.io/badge/Python-3.12%2B-blue?style=for-the-badge&logo=python)](https://www.python.org/)
 [![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Hexagonal-orange?style=for-the-badge)](./docs/architecture.md)

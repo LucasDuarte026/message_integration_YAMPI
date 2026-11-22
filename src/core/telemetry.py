@@ -24,6 +24,8 @@ except ImportError:  # pragma: no cover - fallback caso o pacote não esteja ins
 METRIC_EMAIL_DISPATCH_STARTED = "email.dispatch.started"
 METRIC_EMAIL_DISPATCH_SENT = "email.dispatch.sent"
 METRIC_EMAIL_DISPATCH_FAILED = "email.dispatch.failed"
+METRIC_DAEMON_CYCLE_COMPLETED = "daemon.cycle.completed"
+METRIC_DAEMON_CYCLE_DURATION = "daemon.cycle.duration"
 
 EMAIL_TYPE_BY_TEMPLATE: Dict[str, str] = {
     "pedido_aprovado": "order_payment_confirmed",
@@ -458,6 +460,31 @@ def record_email_dispatch_sent(attributes: Optional[Dict[str, Any]] = None) -> N
 def record_email_dispatch_failed(attributes: Optional[Dict[str, Any]] = None) -> None:
     """Registra incremento do contador `email.dispatch.failed`."""
     _record_counter(METRIC_EMAIL_DISPATCH_FAILED, attributes)
+
+
+def record_daemon_cycle_metrics(
+    status: str,
+    duration_seconds: float,
+    monitor_slug: str = "yampi-daemon-cycle",
+) -> None:
+    """Emite contador e distribuição de duração do ciclo do daemon no Sentry (Zero-Crash)."""
+    try:
+        if sentry_sdk is None or not hasattr(sentry_sdk, "metrics"):
+            return
+        attrs = {
+            "monitor.slug": monitor_slug,
+            "status": status,
+        }
+        sentry_sdk.metrics.count(METRIC_DAEMON_CYCLE_COMPLETED, 1, attributes=attrs)
+        if hasattr(sentry_sdk.metrics, "distribution"):
+            sentry_sdk.metrics.distribution(
+                METRIC_DAEMON_CYCLE_DURATION,
+                max(0.0, float(duration_seconds)),
+                unit="second",
+                attributes=attrs,
+            )
+    except Exception:
+        pass
 
 
 _REDACTED_FRAME_VAR_KEYS = frozenset(

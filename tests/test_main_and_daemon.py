@@ -320,3 +320,128 @@ def test_webhook_server_routes():
     resp_err = client.post("/webhook", json={"entry": None})
     assert resp_err.status_code == 200
 
+
+def test_record_daemon_cycle_metrics_emite_count_e_distribution():
+    """Garante que record_daemon_cycle_metrics emite count e distribution com atributos esperados."""
+    from src.core import telemetry
+
+    mock_metrics = MagicMock()
+    mock_sentry = SimpleNamespace(metrics=mock_metrics)
+
+    with patch.object(telemetry, "sentry_sdk", mock_sentry):
+        telemetry.record_daemon_cycle_metrics(status="ok", duration_seconds=1.75)
+        telemetry.record_daemon_cycle_metrics(
+            status="error",
+            duration_seconds=0.5,
+            monitor_slug="custom-daemon-slug",
+        )
+
+    mock_metrics.count.assert_any_call(
+        "daemon.cycle.completed",
+        1,
+        attributes={"monitor.slug": "yampi-daemon-cycle", "status": "ok"},
+    )
+    mock_metrics.distribution.assert_any_call(
+        "daemon.cycle.duration",
+        1.75,
+        unit="second",
+        attributes={"monitor.slug": "yampi-daemon-cycle", "status": "ok"},
+    )
+    mock_metrics.count.assert_any_call(
+        "daemon.cycle.completed",
+        1,
+        attributes={"monitor.slug": "custom-daemon-slug", "status": "error"},
+    )
+    mock_metrics.distribution.assert_any_call(
+        "daemon.cycle.duration",
+        0.5,
+        unit="second",
+        attributes={"monitor.slug": "custom-daemon-slug", "status": "error"},
+    )
+
+
+def test_record_daemon_cycle_metrics_respeita_zero_crash_e_normaliza_duracao_negativa():
+    """Garante política Zero-Crash em falhas do Sentry SDK/ausência de métricas e clamp de duração negativa para 0.0."""
+    from src.core import telemetry
+
+    # Sem sentry_sdk disponível
+    with patch.object(telemetry, "sentry_sdk", None):
+        telemetry.record_daemon_cycle_metrics(status="ok", duration_seconds=2.0)
+
+    # sentry_sdk sem atributo metrics
+    with patch.object(telemetry, "sentry_sdk", SimpleNamespace()):
+        telemetry.record_daemon_cycle_metrics(status="ok", duration_seconds=2.0)
+
+    # Falha em metrics.count não deve propagar exceção
+    mock_metrics_erro_count = MagicMock()
+    mock_metrics_erro_count.count.side_effect = RuntimeError("falha simulada no count")
+    with patch.object(telemetry, "sentry_sdk", SimpleNamespace(metrics=mock_metrics_erro_count)):
+        telemetry.record_daemon_cycle_metrics(status="error", duration_seconds=1.0)
+
+    # Falha em metrics.distribution não deve propagar exceção
+    mock_metrics_erro_dist = MagicMock()
+    mock_metrics_erro_dist.distribution.side_effect = RuntimeError("falha simulada no distribution")
+    with patch.object(telemetry, "sentry_sdk", SimpleNamespace(metrics=mock_metrics_erro_dist)):
+        telemetry.record_daemon_cycle_metrics(status="ok", duration_seconds=1.0)
+
+    # Duração negativa deve ser normalizada para 0.0
+    mock_metrics_neg = MagicMock()
+    with patch.object(telemetry, "sentry_sdk", SimpleNamespace(metrics=mock_metrics_neg)):
+        telemetry.record_daemon_cycle_metrics(status="ok", duration_seconds=-3.5)
+
+    mock_metrics_neg.distribution.assert_called_once_with(
+        "daemon.cycle.duration",
+        0.0,
+        unit="second",
+        attributes={"monitor.slug": "yampi-daemon-cycle", "status": "ok"},
+    )
+
+
+def test_daemon_main_registra_metricas_ok_e_error_com_flush_telemetry():
+    """Valida que daemon.main() registra métricas com status='ok' e status='error' + flush_telemetry em falha."""
+    import src.daemon as daemon_mod
+
+    fake_time = SimpleNamespace(
+        perf_counter=MagicMock(side_effect=[10.0, 12.5, 20.0, 21.25]),
+        sleep=MagicMock(side_effect=[None, KeyboardInterrupt()]),
+    )
+
+    with patch.object(daemon_mod, "run_all", side_effect=[None, RuntimeError("Erro de ciclo")]) as mock_run_all, \
+         patch.object(daemon_mod, "time", fake_time), \
+         patch.object(daemon_mod.sentry_sdk.crons, "monitor") as mock_monitor, \
+         patch.object(daemon_mod, "record_daemon_cycle_metrics") as mock_record_metrics, \
+         patch.object(daemon_mod, "flush_telemetry") as mock_flush:
+        mock_monitor.return_value.__enter__.return_value = None
+        mock_monitor.return_value.__exit__.return_value = False
+
+        with pytest.raises(KeyboardInterrupt):
+            daemon_mod.main()
+
+    assert mock_run_all.call_count == 2
+    assert mock_record_metrics.call_count == 2
+    assert mock_record_metrics.call_args_list[0].kwargs == {
+        "status": "ok",
+        "duration_seconds": pytest.approx(2.5),
+        "monitor_slug": macros.MACRO_SENTRY_CRON_MONITOR_SLUG,
+    }
+    assert mock_record_metrics.call_args_list[1].kwargs == {
+        "status": "error",
+        "duration_seconds": pytest.approx(1.25),
+        "monitor_slug": macros.MACRO_SENTRY_CRON_MONITOR_SLUG,
+    }
+    mock_flush.assert_called_once_with()
+
+
+def test_core_readme_documenta_metricas_daemon_sem_links_locais():
+    """Garante que src/core/README.md documenta as métricas do daemon e não contém file:// nem /home/."""
+    from pathlib import Path
+
+    readme_path = Path(__file__).resolve().parent.parent / "src" / "core" / "README.md"
+    conteudo = readme_path.read_text(encoding="utf-8")
+
+    assert "METRIC_DAEMON_CYCLE_COMPLETED" in conteudo
+    assert "METRIC_DAEMON_CYCLE_DURATION" in conteudo
+    assert "record_daemon_cycle_metrics" in conteudo
+    assert "file://" not in conteudo
+    assert "/home/" not in conteudo
+
