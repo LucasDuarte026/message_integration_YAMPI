@@ -3,7 +3,7 @@
 # Read the current version from VERSION file to tag the Docker image
 export APP_VERSION := $(shell cat VERSION)
 
-.PHONY: help build up down logs restart sh run-all run-orders run-carts db-query db-find db-del db-search-orders db-search-carts security-audit security-quick security-secrets security-sast security-infra security-skills
+.PHONY: help build up down logs restart sh run-all run-orders run-carts db-query db-find db-del db-search-orders db-search-carts db-logs db-stats security-audit security-quick security-secrets security-sast security-infra security-skills
 
 help: ## Show this help message
 	@echo "Usage: make [command]"
@@ -19,7 +19,7 @@ build: ## Build the application Docker image using VERSION file
 
 up: ## Start containers in the background
 	@echo "Starting containers version $${APP_VERSION}..."
-	@mkdir -p containers/logs containers/emails
+	@mkdir -p containers/logs/postgres containers/emails 2>/dev/null || true
 	docker compose up -d
 
 down: ## Stop and remove containers and networks
@@ -62,6 +62,13 @@ db-search-orders: ## Search for records with Orders status (STG)
 
 db-search-carts: ## Search for records with Abandoned Cart status (STC)
 	./scripts/search_stc.sh
+
+db-logs: ## Show recent PostgreSQL server logs (JSON and plain text) from containers/logs/postgres
+	@ls -lh containers/logs/postgres/ 2>/dev/null || echo "Nenhum arquivo de log encontrado em containers/logs/postgres/"
+	@tail -n 50 containers/logs/postgres/*.json containers/logs/postgres/*.log 2>/dev/null || true
+
+db-stats: ## Query pg_stat_statements for top slowest and most frequent SQL queries
+	docker compose exec db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c "SELECT calls, round(total_exec_time::numeric, 2) AS total_ms, round(mean_exec_time::numeric, 2) AS mean_ms, rows, left(query, 100) AS query_sample FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 15;"'
 
 # --- [ SECURITY & DEVSECOPS ] ---
 

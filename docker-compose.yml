@@ -12,6 +12,71 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./containers/logs/postgres:/var/log/postgresql
+    # Ajusta dono/permissão da pasta de logs (UID 70 no Alpine) e remove arquivos semanais > 28 dias (~4 arquivos / 30 dias)
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "mkdir -p /var/log/postgresql && chown -R postgres:postgres /var/log/postgresql && chmod 755 /var/log/postgresql && find /var/log/postgresql -type f -name 'postgresql-*' -mtime +28 -delete && (while true; do sleep 86400; find /var/log/postgresql -type f -name 'postgresql-*' -mtime +28 -delete >/dev/null 2>&1; done) & exec docker-entrypoint.sh \"$$@\""
+      - -- # Repassa os argumentos do bloco command como $@ para o docker-entrypoint.sh
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements,auto_explain # Pré-carrega módulos de estatísticas de queries e planos automáticos
+      - -c
+      - logging_collector=on # Redireciona logs para arquivos em disco (desativa saída contínua no stderr do Docker)
+      - -c
+      - log_destination=stderr,jsonlog # Gera simultaneamente log legível (.log) e JSON Lines estruturado (.json)
+      - -c
+      - log_directory=/var/log/postgresql
+      - -c
+      - log_filename=postgresql-week-%V # Um arquivo por semana ISO (rotacionado de 7 em 7 dias, retido por 4 semanas)
+      - -c
+      - log_truncate_on_rotation=on # Sobrescreve o arquivo correspondente ao rotacionar no mesmo nome
+      - -c
+      - log_rotation_age=7d # Rotaciona o arquivo de 7 em 7 dias
+      - -c
+      - log_rotation_size=50MB # Limite máximo semanal de segurança antes de rotacionar por tamanho
+      - -c
+      - log_file_mode=0644 # Permite leitura no host sem sudo (padrão do Postgres seria 0600)
+      - -c
+      - log_timezone=UTC # Alinhado ao padrão UTC-First do app.log
+      - -c
+      - log_min_duration_statement=200ms # Registra queries lentas (>= 200ms)
+      - -c
+      - log_min_duration_sample=50ms # Limiar mínimo para amostragem de queries medianas
+      - -c
+      - log_statement_sample_rate=0.10 # Amostra 10% das queries entre 50ms e 200ms para evitar sobrecarga de disco
+      - -c
+      - log_statement=ddl # Audita comandos de alteração de schema (CREATE, ALTER, DROP)
+      - -c
+      - log_lock_waits=on # Registra contenção de locks (ex.: SELECT ... FOR UPDATE aguardando outro worker)
+      - -c
+      - deadlock_timeout=1s # Tempo de espera de lock antes de logar e verificar deadlock
+      - -c
+      - log_temp_files=0 # Loga qualquer arquivo temporário em disco (sinaliza work_mem insuficiente)
+      - -c
+      - log_checkpoints=on # Registra checkpoints para correlacionar picos de escrita/I/O
+      - -c
+      - log_autovacuum_min_duration=500ms # Registra autovacuums lentos (>= 500ms)
+      - -c
+      - "log_line_prefix=%m [%p] %q%u@%d " # Prefixo do .log: timestamp UTC, PID e usuário@banco
+      - -c
+      - auto_explain.log_min_duration=500ms # Anexa plano de execução (EXPLAIN) para queries >= 500ms
+      - -c
+      - auto_explain.log_analyze=off # Evita overhead de execução real (ANALYZE) em runtime
+      - -c
+      - auto_explain.log_buffers=on # Inclui uso de buffers (RAM vs. disco) no plano
+      - -c
+      - auto_explain.log_wal=on # Inclui volume de WAL gerado no plano
+      - -c
+      - auto_explain.log_format=json # Formata o plano em JSON para parear com jsonlog
+      - -c
+      - auto_explain.log_nested_statements=on # Captura planos também dentro de funções/procedures
+      - -c
+      - pg_stat_statements.track=all # Contabiliza todas as queries (inclusive aninhadas)
+      - -c
+      - pg_stat_statements.track_utility=on # Inclui comandos utilitários (CREATE INDEX, VACUUM) nas estatísticas
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
       interval: 5s
@@ -25,6 +90,11 @@ services:
         reservations:
           cpus: '0.20' # Reserva mínima garantida de 0.20 vCPU
           memory: 128M # Reserva mínima garantida de 128 MB RAM
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   # Serviço da Aplicação
   app:

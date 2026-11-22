@@ -178,7 +178,7 @@ Para acompanhar a execução do código passo a passo e depurar chamadas de fun�
 
 ### 📁 Logs do Projeto (Bind Mount Local)
 A aplicação grava logs automaticamente no arquivo local `containers/logs/app.log` (mapeado via volume de `./containers/logs` para `/app/local_data/logs`).
-*   **Visualizar logs no Host em tempo real:**
+*   **Visualizar logs da aplicação no Host em tempo real:**
     ```bash
     tail -f containers/logs/app.log
     ```
@@ -189,4 +189,17 @@ A aplicação grava logs automaticamente no arquivo local `containers/logs/app.l
     
     # Se quiser capturar também o stderr (erros do python/flask):
     docker compose exec app python src/main.py abandoned-carts >> containers/logs/custom.log 2>&1
+    ```
+
+#### 🐘 Logs Persistentes e Diagnóstico do PostgreSQL 15
+O servidor PostgreSQL 15 persiste logs estruturados e em texto plano no diretório local `containers/logs/postgres/` (mapeado de `./containers/logs/postgres` para `/var/log/postgresql`):
+*   **Arquivos gerados:** `postgresql-week-<semana>.log` (`stderr`) e `postgresql-week-<semana>.json` (`jsonlog`), com rotação a cada 7 dias (`log_filename=postgresql-week-%V`, `log_rotation_age=7d`, teto de `50MB`) e retenção circular de 4 arquivos semanais (~30 dias, com poda automática de arquivos acima de 28 dias).
+*   **Rastreamento e planos de execução:** Queries lentas acima de `200ms` (além de amostragem de 10% acima de `50ms`), comandos DDL, esperas de lock (`deadlock_timeout=1s`), arquivos temporários, checkpoints e autovacuum são registrados nos logs. O módulo `auto_explain` registra automaticamente planos de execução em formato JSON (com buffers, WAL e instruções aninhadas) para queries que excedam `500ms`.
+*   **Inspecionar logs do PostgreSQL pelo Makefile:**
+    ```bash
+    make db-logs
+    ```
+*   **Consultar estatísticas acumuladas das queries mais lentas e frequentes (`pg_stat_statements`):**
+    ```bash
+    make db-stats
     ```

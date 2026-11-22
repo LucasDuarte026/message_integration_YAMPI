@@ -14,6 +14,7 @@ from src.core.macros import (
     MACRO_DEFAULT_LOG_PATH,
     MACRO_SENTRY_CRON_MONITOR_SLUG
 )
+from src.core.telemetry import record_daemon_cycle_metrics, flush_telemetry
 
 try:
     import sentry_sdk
@@ -38,6 +39,7 @@ def main():
     
     while True:
         try:
+            cycle_start = time.perf_counter()
             logger.info("--- [DAEMON] Iniciando novo ciclo de processamento ---")
             if sentry_sdk and hasattr(sentry_sdk, "crons"):
                 monitor_config = {
@@ -60,8 +62,19 @@ def main():
             else:
                 run_all()
             logger.info("--- [DAEMON] Ciclo concluído com sucesso ---")
+            record_daemon_cycle_metrics(
+                status="ok",
+                duration_seconds=time.perf_counter() - cycle_start,
+                monitor_slug=MACRO_SENTRY_CRON_MONITOR_SLUG,
+            )
         except Exception as e:
             logger.error(f"[DAEMON] Erro não tratado durante o ciclo: {e}", exc_info=True)
+            record_daemon_cycle_metrics(
+                status="error",
+                duration_seconds=time.perf_counter() - cycle_start,
+                monitor_slug=MACRO_SENTRY_CRON_MONITOR_SLUG,
+            )
+            flush_telemetry()
             
         logger.info(f"[DAEMON] Dormindo por {MACRO_DAEMON_SLEEP_INTERVAL_SEG} segundos...")
         time.sleep(MACRO_DAEMON_SLEEP_INTERVAL_SEG)

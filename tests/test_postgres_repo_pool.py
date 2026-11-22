@@ -1,8 +1,10 @@
+import logging
 import pytest
 from unittest.mock import patch, MagicMock
 from src.ports.postgres_repo import PostgresStateRepository
 import concurrent.futures
 from datetime import datetime
+import psycopg2
 import psycopg2.extras
 
 @patch("src.ports.postgres_repo.ThreadedConnectionPool")
@@ -146,3 +148,78 @@ def test_postgres_repo_exception_handling(mock_pool_class):
     mock_pool_class.return_value = mock_pool_instance
     with pytest.raises(RuntimeError, match="Erro simulado no Postgres"):
         PostgresStateRepository("fake_db_url")
+
+
+@patch("src.ports.postgres_repo.ThreadedConnectionPool")
+def test_pool_configura_application_name_corretamente(mock_pool_class):
+    """Garante que o ThreadedConnectionPool é instanciado com application_name='message_integration_app'."""
+    mock_pool_instance = MagicMock()
+    mock_pool_class.return_value = mock_pool_instance
+
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_pool_instance.getconn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_conn.cursor.return_value.__exit__.return_value = False
+
+    PostgresStateRepository("fake_db_url")
+
+    mock_pool_class.assert_called_once()
+    assert mock_pool_class.call_args.kwargs.get("application_name") == "message_integration_app"
+
+
+@patch("src.ports.postgres_repo.ThreadedConnectionPool")
+def test_init_db_habilita_pg_stat_statements_e_faz_commit(mock_pool_class):
+    """Garante que _init_db executa CREATE EXTENSION IF NOT EXISTS pg_stat_statements e realiza commit."""
+    mock_pool_instance = MagicMock()
+    mock_pool_class.return_value = mock_pool_instance
+
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_pool_instance.getconn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_conn.cursor.return_value.__exit__.return_value = False
+
+    PostgresStateRepository("fake_db_url")
+
+    queries_executadas = [chamada.args[0] for chamada in mock_cursor.execute.call_args_list]
+    assert "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" in queries_executadas
+    assert mock_conn.commit.call_count == 2
+    mock_conn.rollback.assert_not_called()
+    assert mock_pool_instance.getconn.call_count == 1
+    assert mock_pool_instance.putconn.call_count == 1
+
+
+@patch("src.ports.postgres_repo.ThreadedConnectionPool")
+def test_init_db_faz_rollback_e_loga_warning_se_pg_stat_statements_falhar(mock_pool_class, caplog):
+    """Garante que falha apenas em pg_stat_statements faz rollback, registra warning e não quebra a inicialização."""
+    mock_pool_instance = MagicMock()
+    mock_pool_class.return_value = mock_pool_instance
+
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_pool_instance.getconn.return_value = mock_conn
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+    mock_conn.cursor.return_value.__exit__.return_value = False
+
+    def simular_falha_apenas_na_extensao(sql, *args, **kwargs):
+        if "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;" in sql:
+            raise psycopg2.Error("extensão indisponível")
+
+    mock_cursor.execute.side_effect = simular_falha_apenas_na_extensao
+
+    with caplog.at_level(logging.WARNING, logger="src.ports.postgres_repo"):
+        repo = PostgresStateRepository("fake_db_url")
+
+    assert repo is not None
+    assert mock_conn.commit.call_count == 1
+    mock_conn.rollback.assert_called_once()
+    assert mock_pool_instance.getconn.call_count == 1
+    assert mock_pool_instance.putconn.call_count == 1
+    mock_pool_instance.putconn.assert_called_once_with(mock_conn)
+
+    avisos = [reg for reg in caplog.records if reg.levelno == logging.WARNING]
+    assert any(
+        "pg_stat_statements" in aviso.message and "extensão indisponível" in aviso.message
+        for aviso in avisos
+    )
