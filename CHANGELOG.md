@@ -5,6 +5,30 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [7.1.0] - 2026-11-22 (Observabilidade Estruturada PostgreSQL 15 & Application Metrics do Daemon no Sentry - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado (Observabilidade & Diagnóstico Interno SQL / PostgreSQL 15)
+- **Logs Estruturados e Planos de Execução em Container ([`docker-compose.yml`](./docker-compose.yml) e [`docker-compose.prod.yml`](./docker-compose.prod.yml))**:
+  - Configurado coletor persistente (`logging_collector=on`) gravando saída dupla nativa do PostgreSQL 15 (`stderr,jsonlog` — arquivos `.log` e `.json`) em `./containers/logs/postgres:/var/log/postgresql`, com preparação automática de permissão no boot (`UID 70` / `postgres:postgres` e `log_file_mode=0644`) compatível com `no-new-privileges:true`.
+  - Configurada rotação semanal de **7 em 7 dias** (`log_filename=postgresql-week-%V`, `log_rotation_age=7d`, `log_rotation_size=50MB`, `log_truncate_on_rotation=on`) com poda automática no `entrypoint` para arquivos acima de 28 dias, mantendo retenção circular de 4 arquivos semanais (~30 dias) em UTC.
+  - Ativado diagnóstico SQL para futuras otimizações: `shared_preload_libraries=pg_stat_statements,auto_explain`, rastreamento de queries lentas (`>= 200ms` + amostragem de 10% acima de `50ms`), auditoria de DDL (`log_statement=ddl`), contenção de locks (`log_lock_waits=on`, `deadlock_timeout=1s`), arquivos temporários (`log_temp_files=0`), checkpoints, autovacuum lento e planos de execução JSON automáticos via `auto_explain` (`>= 500ms`, com buffers e WAL).
+- **Identificação de Conexões & Estatísticas Agregadas ([`src/ports/postgres_repo.py`](./src/ports/postgres_repo.py) e [`src/ports/README.md`](./src/ports/README.md))**:
+  - Pool `ThreadedConnectionPool` agora identifica as sessões com `application_name="message_integration_app"` para rastreio nos logs JSON do PostgreSQL 15.
+  - `_init_db()` habilita de forma resiliente `CREATE EXTENSION IF NOT EXISTS pg_stat_statements;` após o commit principal das tabelas/índices, executando `rollback()` e `logger.warning` em caso de indisponibilidade sem interromper a aplicação.
+- **Atalhos Consultivos e Documentação Operacional ([`Makefile`](./Makefile) e [`docs/docker_cheatsheet.md`](./docs/docker_cheatsheet.md))**:
+  - Adicionados os alvos `make db-logs` (inspeção dos logs `.json` e `.log` em `containers/logs/postgres/`) e `make db-stats` (consulta top-15 de queries em `pg_stat_statements` usando `$POSTGRES_USER` e `$POSTGRES_DB` internos do container `db`), além de ajuste tolerante no `make up` para diretórios criados pelo daemon Docker.
+
+### Adicionado (Telemetria do Ciclo do Daemon no Sentry)
+- **Métricas de Execução e Latência de `yampi-daemon-cycle` ([`src/core/telemetry.py`](./src/core/telemetry.py), [`src/daemon.py`](./src/daemon.py) e [`src/core/README.md`](./src/core/README.md))**:
+  - Adicionadas as constantes `METRIC_DAEMON_CYCLE_COMPLETED` (`daemon.cycle.completed`) e `METRIC_DAEMON_CYCLE_DURATION` (`daemon.cycle.duration`) e o helper Zero-Crash `record_daemon_cycle_metrics()`.
+  - `src/daemon.py` mede o tempo de cada ciclo via `time.perf_counter()`, emitindo o contador (`status="ok"` ou `"error"`) e a distribuição de duração em segundos com `monitor.slug="yampi-daemon-cycle"` (mais `flush_telemetry()` em exceções), mantendo intacto o único Cron Monitor do plano Sentry e liberando a plotagem no Custom Dashboard via dataset *Application Metrics*.
+
+### Adicionado (Testes)
+- **Suíte de Testes Expandida ([`tests/test_postgres_logging_config.py`](./tests/test_postgres_logging_config.py), [`tests/test_postgres_repo_pool.py`](./tests/test_postgres_repo_pool.py) e [`tests/test_main_and_daemon.py`](./tests/test_main_and_daemon.py))**:
+  - Adicionados 17 novos testes cobrindo infraestrutura Compose, Makefile, documentação sem links locais, `application_name`, `pg_stat_statements` e métricas do daemon (`140 passed` no total).
+
 ## [7.0.0] - 2026-11-21 (Lançamento Oficial Major v7.0.0: Vitrine Visual de Observabilidade Sentry APM & Crons, Governança Enterprise GitHub, Suíte DevSecOps 4 Camadas e Telemetria Semântica `email.type` - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
