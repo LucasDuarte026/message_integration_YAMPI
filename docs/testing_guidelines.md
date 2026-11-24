@@ -21,7 +21,7 @@ tests/
 ├── test_postgres_repo_pool.py   # Pool, COALESCE(LEAST(...)), update_stg/stc e falhas SQL.
 ├── test_smtp_email_provider.py  # Mascaramento LGPD, CID inline, WebP/assets_dir, retries e close().
 ├── test_email_plain_text.py     # Geração da alternativa text/plain (RFC 2046) no BaseEmailBuilder.
-├── test_dual_sender_routing.py  # Roteamento dual (oficial@ vs comercial@), fallback e concorrência.
+├── test_dual_sender_routing.py  # Roteamento dual (transactional@ vs promotions@), fallback e concorrência.
 ├── test_email_telemetry.py      # Contadores Sentry, isolamento ThreadPoolExecutor, traceback e LGPD.
 ├── test_logging_config.py       # Criação de pastas e SafeRotatingFileHandler.
 ├── test_main_and_daemon.py      # Orquestração, _close_resources, Sentry idempotente, builders e webhook.

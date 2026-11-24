@@ -65,7 +65,7 @@ A aplicação segue os princípios da **Clean Architecture** e **Hexagonal Archi
 - **Tolerância a Falhas e Duplicidade:** O uso estrito do banco de dados relacional atua como uma máquina de estados (STG/STC). As transações garantem que gargalos de API ou execuções paralelas de workers não gerem duplicidade ou *race conditions*.
 - **PostgreSQL Connection Pooling (`psycopg2.pool.ThreadedConnectionPool`):** As conexões com o PostgreSQL utilizam um pool thread-safe de 1 a 20 conexões reutilizadas via context managers (`_get_connection()`), prevenindo sobrecarga de conexões TCP e falhas de resolução de DNS interno do Docker em alta concorrência.
 - **Controle de Vazão e Resiliência SMTP:** A infraestrutura de envio utiliza *Connection Pooling*, *Throttling* centralizado (travas de `threading.Lock`) e *Exponential Backoff* para evitar banimentos por SPAM nos provedores de e-mail e falhas por *Timeouts*.
-- **Roteamento Dual SMTP (`oficial@` vs. `comercial@`) & Entregabilidade RFC 2046/5322/8058:** O [`SMTPEmailProvider`](../src/ports/smtp_email_provider.py) isola envios transacionais (`_server`) e promocionais (`_promo_server` via `PROMO_SMTP_*` com fallback automático), gera alternativa `text/plain` antes do HTML (`BaseEmailBuilder.build_with_plain_text`), injeta `Message-ID`, `Date`, `Reply-To` e `List-Unsubscribe: One-Click` (promocionais), e carrega ativos WebP 75% de forma modular via `EMAIL_ASSETS_DIR`.
+- **Roteamento Dual SMTP (`transactional@` vs. `promotions@`) & Entregabilidade RFC 2046/5322/8058:** O [`SMTPEmailProvider`](../src/ports/smtp_email_provider.py) isola envios transacionais (`_server`) e promocionais (`_promo_server` via `PROMO_SMTP_*` com fallback automático), gera alternativa `text/plain` antes do HTML (`BaseEmailBuilder.build_with_plain_text`), injeta `Message-ID`, `Date`, `Reply-To` e `List-Unsubscribe: One-Click` (promocionais), e carrega ativos WebP otimizados de forma modular via `EMAIL_ASSETS_DIR`.
 - **Telemetria Sentry Application Metrics & Traceback LGPD (`src/core/telemetry.py`):** Emite contadores de início (`email.dispatch.started`), entrega SMTP confirmada (`email.dispatch.sent`, após validar ausência de `refused` e antes do *throttling*) e falha (`email.dispatch.failed`), correlacionando cada disparo por `trace_id` com *traceback* completo, contexto de negócio e sanitização LGPD em `frame["vars"]`.
 - **Auto-documentação Estrita:** Exigência de que regras e contratos guiem o desenvolvimento. 
 > [!CAUTION]
@@ -144,13 +144,13 @@ O arquivo [config.py](../src/core/config.py) e os módulos de inicialização ([
 | `SMTP_PASSWORD` | Senha ou Token de App do e-mail SMTP. | `None` | **Sim (Modo Produção)** |
 | `SMTP_HOST` | Host do servidor de e-mail. | `smtp.gmail.com` | Não |
 | `SMTP_PORT` | Porta do servidor SMTP (`465` para SSL ou `587` para STARTTLS). | `587` | Não |
-| `SMTP_FROM` | E-mail remetente exibido no cabeçalho dos avisos transacionais (`oficial@elevemeloja.com.br`). | `SMTP_USER` | Não |
-| `PROMO_SMTP_USER` / `PROMO_SMTP_PASSWORD` / `PROMO_SMTP_FROM` | Credenciais opcionais para disparos promocionais (`comercial@elevemeloja.com.br`). | `None` (usa principal) | Não |
+| `SMTP_FROM` | E-mail remetente exibido no cabeçalho dos avisos transacionais (`transactional@yourstore.com`). | `SMTP_USER` | Não |
+| `PROMO_SMTP_USER` / `PROMO_SMTP_PASSWORD` / `PROMO_SMTP_FROM` | Credenciais opcionais para disparos promocionais (`promotions@yourstore.com`). | `None` (usa principal) | Não |
 | `EMAIL_ASSETS_DIR` | Diretório modular das imagens da marca (não versionadas no Git; anexar em `src/templates/emails/assets/images/` e usar `/app/email_assets` no Docker). | `src/templates/emails/assets/images` | Não |
-| `EMAIL_FROM_NAME` | Nome amigável exibido no cabeçalho `From`. | `Eleveme` | Não |
-| `EMAIL_REPLY_TO` | Endereço de resposta (`Reply-To`) para atendimento. | `"Atendimento Eleveme" <comercial@elevemeloja.com.br>` | Não |
-| `EMAIL_MESSAGE_ID_DOMAIN` | Domínio utilizado para gerar o cabeçalho `Message-ID` (RFC 5322). | `elevemeloja.com.br` | Não |
-| `EMAIL_UNSUBSCRIBE_URL` / `EMAIL_UNSUBSCRIBE_MAILTO` | Endpoints de descadastramento One-Click (RFC 8058) em fluxos promocionais. | `https://elevemeloja.com.br/unsubscribe` | Não |
+| `EMAIL_FROM_NAME` | Nome amigável exibido no cabeçalho `From`. | `YourBrand` | Não |
+| `EMAIL_REPLY_TO` | Endereço de resposta (`Reply-To`) para atendimento. | `"Customer Support" <promotions@yourstore.com>` | Não |
+| `EMAIL_MESSAGE_ID_DOMAIN` | Domínio utilizado para gerar o cabeçalho `Message-ID` (RFC 5322). | `yourstore.com` | Não |
+| `EMAIL_UNSUBSCRIBE_URL` / `EMAIL_UNSUBSCRIBE_MAILTO` | Endpoints de descadastramento One-Click (RFC 8058) em fluxos promocionais. | `https://yourstore.com/unsubscribe` | Não |
 | **Sentry Configs** | | | |
 | `SENTRY_DSN` | DSN do projeto no Sentry para monitoramento em nuvem. | `None` | Não |
 | `TRACES_SAMPLE_RATE` | Taxa de amostragem de transações APM (`0.0` a `1.0`). | `1.0` | Não |

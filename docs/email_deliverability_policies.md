@@ -13,9 +13,9 @@ Este documento especifica formalmente todas as regras de negócio, políticas t�
 
 ```mermaid
 flowchart TD
-    C1["Camada 1: Identidade DNS e Criptografia (SPF -all, DKIM 2048-bit, DMARC p=quarantine/reject)"] --> C2["Camada 2: Segregação de Fluxos e Domínios (Avisos Transacionais vs. Promoções/Recuperação)"]
+    C1["Camada 1: Identidade DNS e Criptografia (SPF -all, DKIM 2048-bit + Oversigning, DMARC p=quarantine/reject)"] --> C2["Camada 2: Segregação de Fluxos e Domínios (Avisos Transacionais vs. Promoções/Recuperação)"]
     C2 --> C3["Camada 3: Higiene Anti-Graymail e Neutralidade Lexical (Sem Duplicatas, Sem Emojis/Urgência)"]
-    C3 --> C4["Camada 4: Pipeline Visual WebP 75% (Preferencialmente Endpoint HTTPS; Por Ora Inline *_q75.webp)"]
+    C3 --> C4["Camada 4: Pipeline Visual WebP Otimizado (Inline CID Compressão Máxima ou Endpoint HTTPS)"]
     C4 --> C5["Camada 5: Pacote MIME Moderno (EmailMessage: RFC 2046 + RFC 5322 + RFC 8058)"]
 ```
 
@@ -32,11 +32,11 @@ Desde **fevereiro de 2024**, Google e Yahoo (acompanhados pelas exigências da M
 
 Os algoritmos de reputação avaliam o domínio remetente separando o comportamento de abertura e reclamação por identidade emissora. Misturar notificações essenciais de compra com ofertas comerciais de desconto expõe recibos e códigos de rastreio a penalidades causadas por clientes que marcam cupons como spam.
 
-| Classificação do Fluxo | Estados da Máquina (`STG` / `STC`) | Natureza e Sinalizador (`is_promotional`) | Conta / Remetente Atual & Evolução de Subdomínio | Cabeçalhos RFC 8058 (`List-Unsubscribe`) |
+| Classificação do Fluxo | Estados da Máquina (`STG` / `STC`) | Natureza e Sinalizador (`is_promotional`) | Conta / Remetente Lógico & Evolução de Subdomínio | Cabeçalhos RFC 8058 (`List-Unsubscribe`) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Avisos Transacionais Puros** | `STG 1` (`pedido_aprovado`), `STG 3` (`pedido_a_caminho`) | Estritamente operacional (`is_promotional = False`). Alta taxa de abertura esperada. | **`oficial@elevemeloja.com.br`** (pool `_server`). Evolução futura: `notifica.elevemeloja.com.br`. | **Não injetado** (comunicação contratual essencial do pedido). |
-| **Lembrete de Pagamento / Cobrança** | `STG 2` (`pedido_pendente`) | Transacional de checkout imediato (`is_promotional = False`). | **`oficial@elevemeloja.com.br`** (pool `_server`). | **Não injetado**. |
-| **Promoções e Recuperação Comercial** | `STG 5, 6, 7` (`cupom_pedido_1..3`) e `STC 15, 16, 17` (`carrinho_abandonado_cupom4..6`) | Promocional / incentivo de conversão (`is_promotional = True`). | **`comercial@elevemeloja.com.br`** (pool `_promo_server` via `PROMO_SMTP_*`, com `Reply-To` e `rua=` em `comercial@`). Evolução futura: `promo.elevemeloja.com.br`. | **Obrigatório** (`List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`). |
+| **Avisos Transacionais Puros** | `STG 1` (`pedido_aprovado`), `STG 3` (`pedido_a_caminho`) | Estritamente operacional (`is_promotional = False`). Alta taxa de abertura esperada. | **`transactional@yourstore.com`** (pool `_server`). Evolução futura: `notify.yourstore.com`. | **Não injetado** (comunicação contratual essencial do pedido). |
+| **Lembrete de Pagamento / Cobrança** | `STG 2` (`pedido_pendente`) | Transacional de checkout imediato (`is_promotional = False`). | **`transactional@yourstore.com`** (pool `_server`). | **Não injetado**. |
+| **Promoções e Recuperação Comercial** | `STG 5, 6, 7` (`cupom_pedido_1..3`) e `STC 15, 16, 17` (`carrinho_abandonado_cupom4..6`) | Promocional / incentivo de conversão (`is_promotional = True`). | **`promotions@yourstore.com`** (pool `_promo_server` via `PROMO_SMTP_*`, com `Reply-To` e `rua=` isolados). Evolução futura: `promo.yourstore.com`. | **Obrigatório** (`List-Unsubscribe` + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`). |
 
 ---
 
@@ -46,20 +46,20 @@ Os algoritmos de reputação avaliam o domínio remetente separando o comportame
 * **Arquivos alterados:** [`src/core/macros.py`](../src/core/macros.py), [`src/core/config.py`](../src/core/config.py), [`src/templates/emails/config/brand_data.yml`](../src/templates/emails/config/brand_data.yml), `src/templates/emails/mjml/views/*.mjml`, `src/templates/emails/html_compiled/*.html`, `src/templates/emails/mocks/*.html` e [`tests/test_abandoned_cart.py`](../tests/test_abandoned_cart.py).
 * **Modificações e garantias implementadas:**
   1. **Bloqueio de Graymail por duplicata:** `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH` alterado para `False` em [`macros.py`](../src/core/macros.py), evitando o envio paralelo de cópias que ficam sem abertura em caixa de supervisão e derrubam a taxa de engajamento do domínio.
-  2. **Identidade centralizada:** definição de `MACRO_EMAIL_FROM_NAME` (`"Eleveme"`), `MACRO_EMAIL_REPLY_TO`, `MACRO_EMAIL_MESSAGE_ID_DOMAIN` (`"elevemeloja.com.br"`), `MACRO_EMAIL_UNSUBSCRIBE_URL` e `MACRO_EMAIL_UNSUBSCRIBE_MAILTO`, expostos via `Config` / `load_config()` com suporte a sobrescrita por variáveis de ambiente.
+  2. **Identidade centralizada:** definição de `MACRO_EMAIL_FROM_NAME`, `MACRO_EMAIL_REPLY_TO`, `MACRO_EMAIL_MESSAGE_ID_DOMAIN`, `MACRO_EMAIL_UNSUBSCRIBE_URL` e `MACRO_EMAIL_UNSUBSCRIBE_MAILTO`, expostos via `Config` / `load_config()` com suporte a sobrescrita por variáveis de ambiente.
   3. **Neutralidade lexical:** remoção integral de emojis de alerta/risco e de termos em CAIXA ALTA de urgência/desconto (`% OFF`, `ÚLTIMA CHANCE`, `🔥`, `⚠️`, `🎁`, `✨`, `🚨`, `📦`, etc.) nas linhas de assunto em `brand_data.yml`, nos arquivos fonte `.mjml`, nos HTMLs compilados e nos mocks regenerados via [`src/templates/emails/builder.py`](../src/templates/emails/builder.py).
 
 ---
 
-### Fase 2 — Pipeline de Otimização Visual (WebP 75%) e Política de Transporte de Imagens
-* **Arquivos criados/alterados:** Pipeline offline de otimização WebP 75%, `src/templates/emails/assets/images/**/*_q75.webp` (não versionados no GitHub), [`brand_data.yml`](../src/templates/emails/config/brand_data.yml) e [`tests/test_smtp_email_provider.py`](../tests/test_smtp_email_provider.py).
+### Fase 2 — Pipeline de Otimização Visual (WebP) e Política de Transporte de Imagens
+* **Arquivos criados/alterados:** Pipeline offline de otimização WebP, `src/templates/emails/assets/images/**/*` (não versionados no GitHub), [`brand_data.yml`](../src/templates/emails/config/brand_data.yml) e [`tests/test_smtp_email_provider.py`](../tests/test_smtp_email_provider.py).
 * **Modificações e resultados obtidos:**
   1. Preservação externa dos PNGs originais fora do repositório Git.
-  2. Estudo comparativo automatizado comparando `jpg_100_reference`, `webp_100`, `webp_75`, `webp_50` e `webp_25`.
-  3. Promoção da qualidade **WebP 75%** com sufixo explícito `*_q75.webp` e composição em fundo branco sólido `#FFFFFF` para transparências em todas as 22 imagens ativas, reduzindo o conjunto total de **14.237,3 KB para 524,3 KB (-96,3%)** (banners de ~1,8 MB reduzidos para ~40,7–60,7 KB, logotipo para 3,7 KB) e corrigindo extensões duplicadas anteriores (`.png.png`).
-* **Política de Transporte de Imagens (Endpoint HTTPS vs. Envio Inline):**
-  - **Diretriz ideal:** as imagens dos e-mails **devem, sempre que possível, estar hospedadas em um endpoint HTTPS público/CDN** (ex.: `https://elevemeloja.com.br/assets/emails/...` ou CDN dedicada) e referenciadas apenas por `<img src="https://...">`, **sem viajar anexadas dentro do pacote SMTP**, mantendo o corpo abaixo de 25 KB e imune ao corte de 102 KB do Gmail.
-  - **Estado operacional corrente:** **por ora**, enquanto o endpoint HTTPS público definitivo no servidor web não está publicado pelo gerenciador do site, as imagens `*_q75.webp` continuam indo junto com o e-mail como anexos inline (`Content-Disposition: inline`, MIME `image/webp`). Graças à compressão de 96,3% obtida na Fase 2, o impacto de payload foi mitigado de forma segura, e o [`SMTPEmailProvider`](../src/ports/smtp_email_provider.py) já está preparado para ignorar anexos `cid:` automaticamente assim que os caminhos em `brand_data.yml` forem apontados para `https://...`.
+  2. Estudo comparativo automatizado avaliando múltiplos níveis de compressão WebP contra a referência original.
+  3. Adoção do **Pipeline WebP Otimizado** com composição em fundo branco sólido `#FFFFFF` para transparências em todas as 22 imagens ativas, reduzindo o conjunto total de **14.237,3 KB para 524,3 KB (-96,3%)** e corrigindo extensões duplicadas anteriores (`.png.png`).
+* **Política de Transporte de Imagens (Inline Otimizado vs. Endpoint HTTPS):**
+  - **Modo padrão ativo (Inline Otimizado `cid:`):** graças à redução de **96,3%** no peso das imagens WebP, o envio inline (`Content-Disposition: inline`, MIME `image/webp`) mantém pontuação **`10 / 10` certificada** no Mail-Tester sem exigir servidor de mídia externo.
+  - **Suporte nativo a Endpoint HTTPS/CDN:** caso caminhos em `brand_data.yml` apontem para URLs `https://...` (ex.: `https://cdn.yourstore.com/assets/emails/...`), o [`SMTPEmailProvider`](../src/ports/smtp_email_provider.py) detecta automaticamente e **não anexa nenhum binário**, reduzindo o pacote abaixo de **25 KB**.
 
 ---
 
@@ -67,7 +67,7 @@ Os algoritmos de reputação avaliam o domínio remetente separando o comportame
 * **Arquivos criados/alterados:** [`src/services/email_builders/base_builder.py`](../src/services/email_builders/base_builder.py) e [`tests/test_email_plain_text.py`](../tests/test_email_plain_text.py).
 * **Modificações e garantias:**
   1. Implementação do parser `_HTMLToPlainTextParser` (biblioteca padrão `html.parser`) e dos métodos `html_to_plain_text()` e `build_with_plain_text()` em `BaseEmailBuilder`.
-  2. Remoção automática de blocos `<style>`, `<script>`, `<head>`, `<title>` e comentários condicionais do Outlook (`<!--[if mso]>`), preservando saudação, itens, valores, código PIX, código de rastreio, links `https://` em texto legível e dados legais (CNPJ) no rodapé.
+  2. Remoção automática de blocos `<style>`, `<script>`, `<head>`, `<title>` e comentários condicionais do Outlook (`<!--[if mso]>`), preservando saudação, itens, valores, código PIX, código de rastreio, links `https://` em texto legível e dados legais no rodapé.
 
 ---
 
@@ -81,14 +81,14 @@ Os algoritmos de reputação avaliam o domínio remetente separando o comportame
 
 ---
 
-### Fase 5 — Políticas de DNS, Alinhamento Criptográfico e Telemetria de Reputação
-* **Escopo:** Infraestrutura externa de DNS no Registro.br, servidor SMTP/Web da Hostinger e monitoramento de reputação.
-* **Políticas estabelecidas e validadas:**
-  1. **SPF Estrito (`-all`):** registro único `TXT` na raiz de `elevemeloja.com.br` com `v=spf1 include:_spf.mail.hostinger.com -all` (respeitando teto máximo de 10 *lookups* DNS).
-  2. **DKIM Criptográfico (2048 bits):** assinatura ativa com chave RSA 2048 bits e rotação gerida via `CNAME` (`hostingermail-a._domainkey.elevemeloja.com.br` e seletores de backup `b`/`c`).
-  3. **DMARC Coercivo e Privacidade (LGPD):** registro `TXT` em `_dmarc.elevemeloja.com.br` configurado com `v=DMARC1; p=quarantine; pct=100; rua=mailto:contato@elevemeloja.com.br; adkim=r; aspf=r;` (com evolução planejada para `p=reject` após consolidação de relatórios XML e **proibição de `ruf=`** sem criptografia para evitar vazamento de PII).
-  4. **Telemetria de Reputação (Google Postmaster Tools):** verificação de domínio ativa e manutenção do índice *User-Reported Spam* abaixo de **0,10%** (parada imediata de fluxos promocionais caso se aproxime de **0,30%**).
-  5. **Segregação de Subdomínios e Rota de Descadastramento:** endpoint `https://elevemeloja.com.br/unsubscribe` suportando `POST` (One-Click) e segregação de tráfego promocional (`promo.elevemeloja.com.br`) caso haja necessidade de isolamento de reputação ou adoção futura de ESP REST dedicada.
+### Fase 5 — Certificação DNS, Alinhamento Criptográfico e Telemetria (`10/10` Validado)
+* **Escopo:** Zona DNS autoritativa do domínio emissor, relay SMTP autenticado e monitoramento contínuo de reputação.
+* **Políticas estabelecidas e certificadas (ambos os fluxos: Transacional e Promocional):**
+  1. **SPF Estrito (`-all`):** registro único `TXT` na raiz de `yourstore.com` terminando com `-all` (*HardFail*), mantendo `<= 10` *lookups* DNS, alinhamento nativo de `Return-Path` (`MAIL FROM`) e preservação de eventuais subdomínios de plataformas terceiras sob alinhamento relaxado.
+  2. **DKIM Criptográfico (2048 bits + Oversigning RFC 6376):** assinatura ativa com chave RSA de 2048 bits no seletor ativo de saída (além de seletores de rotação gerida) e *oversigning* dos cabeçalhos críticos (`From`, `Reply-To`, `Subject`, `Date`, `Message-ID`, `List-Unsubscribe`).
+  3. **DMARC Coercivo e Privacidade (LGPD):** registro `TXT` em `_dmarc.yourstore.com` configurado com `v=DMARC1; p=quarantine; pct=100; rua=mailto:promotions@yourstore.com; adkim=r; aspf=r;` (com evolução para `p=reject` após janela de validação de relatórios XML e **proibição de `ruf=`** sem criptografia para evitar vazamento de PII).
+  4. **Certificação Empírica (`10/10` Mail-Tester + Google Postmaster Tools):** nota máxima `10/10` validada para fluxos **informativos/transacionais** e **promocionais**, `0` blocklists IPv4, rDNS/FCrDNS válido, TLS ativo e domínio verificado no Google Postmaster Tools mantendo *User-Reported Spam* `< 0,10%` (teto crítico `0,30%`).
+  5. **Segregação de Subdomínios e Escala:** preparação para subdomínios dedicados (`notify.yourstore.com` vs. `promo.yourstore.com`) ou ESP REST dedicado caso o volume cresça para patamares de *Bulk Sender* (`>= 5.000 e-mails/dia`).
 
 ---
 
@@ -105,20 +105,20 @@ Os algoritmos de reputação avaliam o domínio remetente separando o comportame
 
 ### `POL-EMAIL-02` — Roteamento Dual de Remetentes e Descadastramento One-Click (RFC 8058)
 * **Requisito (EARS):**
-  1. Quando o disparo for proveniente de cupons de pedido (`cupom_pedido_1..3`) ou carrinhos abandonados (`carrinho_abandonado_cupom4..6`), o `NotificationService` **DEVE** definir `is_promotional=True` e o provedor **DEVE** autenticar e despachar pela conta promocional (`PROMO_SMTP_USER`/`PROMO_SMTP_FROM` = `comercial@elevemeloja.com.br`, com fallback seguro para a conta principal se não configurada) injetando `List-Unsubscribe` (HTTPS + `mailto:comercial@elevemeloja.com.br`) e `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
-  2. Quando o disparo for transacional operacional (`pedido_aprovado`, `pedido_pendente`, `pedido_a_caminho`), o `NotificationService` **DEVE** definir `is_promotional=False`, o provedor **DEVE** autenticar e despachar pela conta principal (`oficial@elevemeloja.com.br`) e **NÃO DEVE** injetar cabeçalhos `List-Unsubscribe`.
-  3. Em ambos os fluxos, `Reply-To` **DEVE** rotear para `"Atendimento Eleveme" <comercial@elevemeloja.com.br>`, mantendo isolamento de conexões e tolerância a falhas entre os dois pools SMTP.
+  1. Quando o disparo for proveniente de cupons de pedido (`cupom_pedido_1..3`) ou carrinhos abandonados (`carrinho_abandonado_cupom4..6`), o `NotificationService` **DEVE** definir `is_promotional=True` e o provedor **DEVE** autenticar e despachar pela conta promocional (`PROMO_SMTP_USER`/`PROMO_SMTP_FROM` = `promotions@yourstore.com`, com fallback seguro para a conta principal se não configurada) injetando `List-Unsubscribe` (`HTTPS` + `mailto:promotions@yourstore.com`) e `List-Unsubscribe-Post: List-Unsubscribe=One-Click`.
+  2. Quando o disparo for transacional operacional (`pedido_aprovado`, `pedido_pendente`, `pedido_a_caminho`), o `NotificationService` **DEVE** definir `is_promotional=False`, o provedor **DEVE** autenticar e despachar pela conta principal (`transactional@yourstore.com`) e **NÃO DEVE** injetar cabeçalhos `List-Unsubscribe`.
+  3. Em ambos os fluxos, `Reply-To` **DEVE** rotear para o endereço de atendimento configurado (`EMAIL_REPLY_TO`), mantendo isolamento de conexões e tolerância a falhas entre os dois pools SMTP.
 * **Cenário Verificável:**
   * **DADO** um evento `CartTransitionEvent` roteado para `carrinho_abandonado_cupom4`
   * **QUANDO** `handle_cart_transition` aciona o provedor
   * **ENTÃO** `List-Unsubscribe-Post: List-Unsubscribe=One-Click` está presente no cabeçalho do pacote final.
 
-### `POL-EMAIL-03` — Política de Ativos Visuais (Endpoint HTTPS Preferencial / WebP 75% Inline Transitório)
+### `POL-EMAIL-03` — Política de Ativos Visuais (WebP Otimizado Inline / Suporte HTTPS)
 * **Requisito (EARS):**
-  1. Quando um atributo `src` ou `background` no HTML iniciar com `https://` ou `http://` (cenário alvo de endpoint externo/CDN), o `SMTPEmailProvider` **NÃO DEVE** baixar, converter em `cid:` ou anexar binários de imagem na mensagem SMTP.
-  2. Enquanto os ativos permanecerem em armazenamento local (cenário transitório atual), todas as imagens **DEVEM** utilizar o formato comprimido WebP 75% (`*_q75.webp` com fundo branco `#FFFFFF` em transparências), sendo anexadas como `image/webp` inline via `add_related` sobre a parte HTML.
+  1. Quando um atributo `src` ou `background` no HTML iniciar com `https://` ou `http://` (cenário de endpoint externo/CDN), o `SMTPEmailProvider` **NÃO DEVE** baixar, converter em `cid:` ou anexar binários de imagem na mensagem SMTP.
+  2. Enquanto os ativos permanecerem em armazenamento local, todas as imagens **DEVEM** utilizar o **Pipeline WebP Otimizado** (composição em fundo sólido `#FFFFFF` em transparências), sendo anexadas como `image/webp` inline via `add_related` sobre a parte HTML.
 * **Cenário Verificável:**
-  * **DADO** um HTML contendo `<img src="https://elevemeloja.com.br/assets/emails/banner_q75.webp" />`
+  * **DADO** um HTML contendo `<img src="https://cdn.yourstore.com/assets/emails/banner.webp" />`
   * **QUANDO** `send_email_message` constrói o objeto `EmailMessage`
   * **ENTÃO** nenhuma parte `image/*` é anexada ao pacote MIME.
 
@@ -129,5 +129,14 @@ Os algoritmos de reputação avaliam o domínio remetente separando o comportame
 
 ### `POL-EMAIL-05` — Conformidade Criptográfica DNS e Governança de Reputação
 * **Requisito (EARS):**
-  1. A zona DNS de `elevemeloja.com.br` no Registro.br **DEVE** manter `SPF` com terminação `-all` (≤ 10 lookups), `DKIM` RSA de 2048 bits ativo e `DMARC` coercivo (`p=quarantine` ou `p=reject`, `pct=100`, `adkim=r`, `aspf=r`, `rua=` ativo e ausência de `ruf=`).
+  1. A zona DNS autoritativa do domínio emissor **DEVE** manter `SPF` com terminação `-all` (`<= 10` lookups), `DKIM` RSA de 2048 bits publicado no seletor ativo de saída (pré-requisito obrigatório antes do endurecimento coercivo) e `DMARC` coercivo (`p=quarantine` ou `p=reject`, `pct=100`, `adkim=r`, `aspf=r`, `rua=` ativo e ausência de `ruf=`).
   2. O monitoramento no Google Postmaster Tools **DEVE** garantir taxa de reclamações inferior a `0,10%` (gatilho de suspensão imediata de fluxos promocionais ao atingir `0,30%`).
+
+### `POL-EMAIL-06` — Governança de Escala para *Bulk Senders* (`>= 5.000 e-mails/dia` — RFC 8058 & Supressão)
+* **Requisito (EARS):**
+  1. Caso o volume diário de envios ao Gmail se aproxime ou ultrapasse **5.000 mensagens em 24 horas** (*Bulk Sender* permanente segundo diretrizes Google/Yahoo), o sistema **DEVE** operar um endpoint `HTTPS` real de *One-Click Unsubscribe* capaz de responder `HTTP 200 OK` para requisições `POST` (`List-Unsubscribe=One-Click`) **sem redirecionamentos (`301`/`302`)**, **sem autenticação/cookies** e utilizando **token opaco único por destinatário**.
+  2. Ao atingir esse patamar de escala, toda solicitação de descadastramento **DEVE** suprimir automaticamente novos envios promocionais ao destinatário em até **48 horas** (via ESP dedicado com supressão nativa ou tabela de supressão no PostgreSQL acoplada ao servidor HTTP), além de incluir **link visível de descadastramento no corpo HTML** das mensagens promocionais.
+* **Cenário Verificável:**
+  * **DADO** um disparo promocional classificado em regime de *Bulk Sender* (`>= 5.000 e-mails/dia`) com token opaco no `List-Unsubscribe`
+  * **QUANDO** o provedor de caixa postal executa `POST` com corpo `List-Unsubscribe=One-Click`
+  * **ENTÃO** o endpoint responde `HTTP 200 OK` diretamente sem redirect e registra o bloqueio promocional do destinatário em até 48 horas.

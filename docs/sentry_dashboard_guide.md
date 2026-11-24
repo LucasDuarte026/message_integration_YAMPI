@@ -155,7 +155,7 @@ Todos os dados enviados para métricas, spans, tags e contextos respeitam estrit
 | `email.cart_id` | Atributo de Scope/Métrica, Contexto `email_dispatch` | `str` (quando presente) | ID do carrinho (extraído de `metadata.data` em pedidos ou `cart_id` em carrinhos). |
 | `email.recipient_domain` | Atributo de Scope/Métrica, Contexto `email_dispatch` | ex.: `"gmail.com"`, `"unknown"` | Domínio em minúsculas após o último `@` (zero PII). |
 | `email.provider` | Atributo de Métrica, Tag em erro SMTP | `"smtp"` \| `"template_builder"` | Componente onde o evento ocorreu. |
-| `smtp.host` / `smtp.port` | Atributo de Métrica, Span, Contexto `smtp_dispatch` | ex.: `"smtp.hostinger.com"`, `465` | Servidor e porta SMTP utilizados. |
+| `smtp.host` / `smtp.port` | Atributo de Métrica, Span, Contexto `smtp_dispatch` | ex.: `"smtp.yourprovider.com"`, `465` | Servidor e porta SMTP utilizados. |
 | `smtp.account_slot` | Atributo de Métrica (`sent`/`failed`), Tag, Span, Contexto `smtp_dispatch` | `"primary"` \| `"promo"` | Pool SMTP selecionado pelo roteamento dual. |
 | `smtp.attempts` | Atributo de Métrica (`sent`/`failed`), Contexto `smtp_dispatch` | `1..MACRO_SMTP_MAX_RETRIES` | Quantidade de tentativas executadas até sucesso ou esgotamento. |
 | `smtp.code` | Atributo de Métrica (`failed`), Tag de Issue, Contexto `smtp_dispatch` | ex.: `535`, `550` (quando aplicável) | Código numérico da resposta SMTP extraído da exceção. |
