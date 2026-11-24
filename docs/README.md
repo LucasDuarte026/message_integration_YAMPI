@@ -8,7 +8,7 @@ O projeto segue estritamente a **Clean Architecture (Arquitetura Hexagonal)**. A
 
 - `src/core/`: Infraestrutura interna, cliente HTTP (`client.py`), configurações globais (`config.py`), utilitários UTC-First (`time_utils.py`), logging seguro com Sentry (`logging_config.py`), telemetria Zero-Crash de disparos de e-mail (`telemetry.py`) e macros (`macros.py`).
 - `src/domain/`: Contratos estritos (`interfaces.py`) e eventos de transição (`events.py`).
-- `src/ports/`: Adaptadores para operações de I/O (persistência PostgreSQL com pool e `COALESCE(LEAST(...))` em `postgres_repo.py`, provedor SMTP stateful com roteamento dual `oficial@`/`comercial@` em `smtp_email_provider.py` e mock dry-run em `message_provider.py`).
+- `src/ports/`: Adaptadores para operações de I/O (persistência PostgreSQL com pool e `COALESCE(LEAST(...))` em `postgres_repo.py`, provedor SMTP stateful com roteamento dual `transactional@`/`promotions@` em `smtp_email_provider.py` e mock dry-run em `message_provider.py`).
 - `src/services/`: Orquestração de notificações com escopos de telemetria (`notification_service.py`) e builders HTML/MJML (`email_builders/`).
 - `src/templates/`: Templates MJML, assets visuais, `brand_data.yml` e HTMLs compilados.
 - `src/workers/`: Rotinas concorrentes que executam os Casos de Uso (`orders.py` e `abandoned_cart.py`) usando `ThreadPoolExecutor`.

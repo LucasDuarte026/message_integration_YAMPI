@@ -90,7 +90,7 @@ Fornece os blocos de construção internos da nossa infraestrutura:
 
 ### 3. [`src/ports/`](../src/ports/README.md) (Adaptadores Externos)
 Onde as implementações de terceiros vivem, implementando os contratos do `domain`:
-- Provedores de envio de e-mail: `DryRunMessageProvider` (`message_provider.py`) e `SMTPEmailProvider` (`smtp_email_provider.py`, stateful com roteamento dual `oficial@` vs `comercial@`, `threading.Lock`, backoff, `EmailMessage` com `text/plain` + `text/html`, cabeçalhos RFC 5322/8058, suporte a `*_q75.webp` inline ou HTTPS externo, contadores Sentry + validação de `refused`, mascaramento LGPD e encerramento seguro via `close()`).
+- Provedores de envio de e-mail: `DryRunMessageProvider` (`message_provider.py`) e `SMTPEmailProvider` (`smtp_email_provider.py`, stateful com roteamento dual `transactional@` vs `promotions@`, `threading.Lock`, backoff, `EmailMessage` com `text/plain` + `text/html`, cabeçalhos RFC 5322/8058, suporte a WebP otimizado inline ou HTTPS externo, contadores Sentry + validação de `refused`, mascaramento LGPD e encerramento seguro via `close()`).
 - Persistência relacional: `PostgresStateRepository` (`postgres_repo.py`) com `ThreadedConnectionPool`, `FOR UPDATE`, proteção anti-regressão temporal `COALESCE(LEAST(...))` e `close()`.
 
 ### 4. [`src/workers/`](../src/workers/README.md) (Regras de Negócio e Use Cases)
@@ -155,7 +155,7 @@ O sistema passou por baterias empíricas de testes de estresse e longa exposiç�
 * **Por que Y MB RAM (512 MB por contêiner / 1 GB total)?** Oferece uma margem de segurança de **3x sobre o consumo de pico real (~177 MB)**, prevenindo completamente qualquer risco de *Out of Memory Kill (OOMKill)*.
 * **Armazenamento em Disco para Logs:** O consumo de disco para telemetria é rigorosamente limitado pelo mecanismo de rotação de arquivos (ex: estrutura de 5 logs de 200 MB = 1 GB total). A métrica de retenção é de **3,29 dias/GB** em modo DEBUG e **1.458,21 dias/GB** em modo INFO. Consulte a tabela detalhada em [Logs e Depuração no Project Overview](./project_overview.md#dimensionamento-retenção-e-capacidade-de-armazenamento-de-logs).
 * **Provedor de Nuvem Recomendado:**
-  * **Hostinger KVM 2** (2 vCPUs / 8 GB RAM) — R$ 42,99/mês (ou KVM 1 para MVP de custo reduzido por R$ 29,99/mês).
+  * **Cloud VPS KVM 2** (2 vCPUs / 8 GB RAM) — R$ 42,99/mês (ou KVM 1 para MVP de custo reduzido por R$ 29,99/mês).
   * **AWS EC2 `t3.medium`** (2 vCPUs / 4 GB RAM) ou **AWS ECS Fargate (2 vCPU / 4 GB RAM)**.
 
 

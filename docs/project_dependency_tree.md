@@ -82,7 +82,7 @@ A hierarquia de dependências flui de fora (Entrypoint) para dentro (Domain), ga
 - **O que faz:** Dita as regras do jogo. Define os `Protocols` (`YampiClientProtocol`, `MessageProviderProtocol`, `StateRepositoryProtocol`) e os DTOs (`OrderTransitionEvent`, `CartTransitionEvent`).
 
 ### Nível 2: Infraestrutura e Serviços (`src/core/`, `src/ports/` e `src/services/`)
-- **Quem são:** `client.py` (Yampi), `time_utils.py` (UTC-First), `postgres_repo.py` (PostgreSQL com pool e `COALESCE(LEAST(...))`), `smtp_email_provider.py` (SMTP stateful com roteamento dual `oficial@`/`comercial@`, `close()` e telemetria), `message_provider.py` (Dry-Run), `logging_config.py` (`SafeRotatingFileHandler` + Sentry idempotente), `telemetry.py` (contadores Sentry Zero-Crash, spans SMTP, escopos thread-safe e sanitização LGPD) e `notification_service.py` + `email_builders/` (renderização MJML/Jinja2).
+- **Quem são:** `client.py` (Yampi), `time_utils.py` (UTC-First), `postgres_repo.py` (PostgreSQL com pool e `COALESCE(LEAST(...))`), `smtp_email_provider.py` (SMTP stateful com roteamento dual `transactional@`/`promotions@`, `close()` e telemetria), `message_provider.py` (Dry-Run), `logging_config.py` (`SafeRotatingFileHandler` + Sentry idempotente), `telemetry.py` (contadores Sentry Zero-Crash, spans SMTP, escopos thread-safe e sanitização LGPD) e `notification_service.py` + `email_builders/` (renderização MJML/Jinja2).
 - **Do que dependem:** Do `domain/` e de bibliotecas externas (`psycopg2`, `requests`, `smtplib`, `jinja2`, `PyYAML`, `sentry-sdk`, `logging`).
 - **O que fazem:** Lidam com o mundo real (Internet, Banco de Dados, E-mail, Renderização, Telemetria e Logs).
 

@@ -5,6 +5,25 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [7.1.1] - 2026-11-23 (Certificação de Entregabilidade 10/10, Conformidade SDD & Sanitização Documental - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado (Vitrine de Certificação & Compliance)
+- **Certificação de Entregabilidade `10/10` e Matriz de Compliance ([`README.md`](./README.md) e `images/`):**
+  - Adicionada a seção **`Email Deliverability Certification (10/10) & Anti-Spam Compliance`** com evidências visuais lado a lado ([`images/mail_tester_com.png`](./images/mail_tester_com.png) e [`images/postMaster_errado.png`](./images/postMaster_errado.png)) comprovando nota **`10/10`** para ambos os fluxos (informativos/transacionais e promocionais).
+  - Incluída matriz completa cobrindo `SPF (RFC 7208 -all)`, `DKIM (RFC 6376, 2048-bit RSA + Oversigning)`, `DMARC (RFC 7489, p=quarantine/p=reject sem ruf=)`, `One-Click Unsubscribe (RFC 8058 / RFC 2369)`, `Honor Unsubscribe & Spam Rate Gate (< 0,10%)`, `MIME (RFC 5322 / RFC 2046)`, `TLS / FCrDNS / rDNS / IP Reputation`, `SpamAssassin (-0.2) / Anti-Graymail` e isolamento dual SMTP.
+  - Substituída a badge de segurança no topo do `README.md` pela badge **`Deliverability 10/10 Certified | RFC Compliant`**, simplificada a seção de governança de segurança e lastreados os benchmarks de mercado da introdução com fontes reais citadas (`Baymard Institute`, `Klaviyo`, `Validity` e `Gorgias`).
+
+### Modificado (Conformidade SDD & Sanitização Documental)
+- **Especificações SDD & Governança *Bulk Sender* ([`docs/email_deliverability_policies.md`](./docs/email_deliverability_policies.md) e [`docs/sdd_specs.md`](./docs/sdd_specs.md)):**
+  - Consolidada a certificação DNS/antispam (`10/10` + Google Postmaster Tools) na Fase 5, `POL-EMAIL-05` e `REQ-12`.
+  - Adicionado o requisito normativo **`POL-EMAIL-06`** definindo o gate obrigatório para *Bulk Senders* (`>= 5.000 e-mails/dia` no Gmail: endpoint `HTTPS POST` sem redirect/login com token opaco, supressão automática em até 48h e link visível no corpo HTML).
+- **Sanitização Pública (`README.md`, `docs/*` e `CHANGELOG.md`):**
+  - Removidas referências específicas de marca, contas de envio, provedores e sufixos internos na documentação pública, mantendo o código-fonte em produção (`src/`) intacto.
+
+---
+
 ## [7.1.0] - 2026-11-22 (Observabilidade Estruturada PostgreSQL 15 & Application Metrics do Daemon no Sentry - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
@@ -70,7 +89,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ---
 
-## [6.7.0] - 2026-11-20 (Entregabilidade RFC 2046/5322/8058, Roteamento Dual SMTP, Otimização WebP 75% e Telemetria Sentry Application Metrics - STABLE)
+## [6.7.0] - 2026-11-20 (Entregabilidade RFC 2046/5322/8058, Roteamento Dual SMTP, Otimização WebP e Telemetria Sentry Application Metrics - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
 
@@ -79,12 +98,12 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
   - Implementado o módulo central Zero-Crash `src/core/telemetry.py` com três contadores oficiais via `sentry_sdk.metrics.count`: `email.dispatch.started` (1x ao iniciar), `email.dispatch.sent` (imediatamente após `sendmail()` confirmar aceitação sem `refused` e antes do *throttling*) e `email.dispatch.failed` (em falhas de `template_build`, `smtp_retries_exhausted` ou `smtp_fatal`).
   - Adicionados spans `email.smtp.send` por tentativa SMTP (`start_smtp_span`), *breadcrumbs* `smtp.retry` (`add_smtp_retry_breadcrumb`), isolamento thread-safe por disparo via `email_dispatch_scope` (`primary` vs `duplicate`, com `order_id`, `order_number`, `cart_id`, `template_name`, `stage` e `recipient_domain`), captura única de exceções preservando *traceback* completo + `retry_history` sanitizado e deduplicação automática (`DedupeIntegration` + `logger.warning` no `NotificationService`).
   - Aplicada defesa em profundidade LGPD (`_build_pii_sanitizer_processor` + `_sanitize_frame_vars`) redigindo incondicionalmente variáveis locais sensíveis em `frame["vars"]` (HTML, `customer_data`, `event`, tokens) e múltiplos e-mails, além de `flush_telemetry()` em `_close_resources()` (`src/main.py`) e ao término de `src/debug_main.py`.
-- **Roteamento Dual de Remetentes SMTP (`oficial@` vs. `comercial@`)**:
+- **Roteamento Dual de Remetentes SMTP (`transactional@` vs. `promotions@`)**:
   - Configurados dois pools SMTP independentes no `SMTPEmailProvider` (`_server` para avisos transacionais e `_promo_server` via `PROMO_SMTP_USER`/`PROMO_SMTP_PASSWORD`/`PROMO_SMTP_FROM` para cupons e recuperação de carrinhos), protegidos por `threading.Lock`, com fallback transparente para `_server`, isolamento de falhas entre canais e encerramento de ambos em `close()`.
   - Suporte via `.env` / `Config` (`src/core/config.py`, `.env.example`) para `PROMO_SMTP_*`, `EMAIL_FROM_NAME`, `EMAIL_REPLY_TO`, `EMAIL_MESSAGE_ID_DOMAIN`, `EMAIL_UNSUBSCRIBE_URL`, `EMAIL_UNSUBSCRIBE_MAILTO` e `EMAIL_ASSETS_DIR`.
-- **Modernização MIME & Entregabilidade (RFC 2046 / 5322 / 8058 e WebP 75% Modular)**:
+- **Modernização MIME & Entregabilidade (RFC 2046 / 5322 / 8058 e WebP Modular)**:
   - Migrado `SMTPEmailProvider` para `email.message.EmailMessage` com alternativa `text/plain` gerada por `_HTMLToPlainTextParser` / `build_with_plain_text()` (`src/services/email_builders/base_builder.py`) precedendo `text/html`, cabeçalhos `Message-ID`, `Date`, `From`, `Reply-To` e `List-Unsubscribe: One-Click` em fluxos promocionais, além de validação explícita de `refused` retornado por `sendmail()`.
-  - Higienização lexical dos assuntos e templates (`brand_data.yml`, `src/templates/emails/mjml/`, `html_compiled/`), desativação do envio duplicado por padrão (`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = False`) contra *Graymail*, externalização dos ativos WebP 75% (`EMAIL_ASSETS_DIR` + volume `/app/email_assets:ro` em `docker-compose.yml` / `docker-compose.prod.yml` + `.gitignore`) e remoção dos PNGs legados e mocks HTML do repositório.
+  - Higienização lexical dos assuntos e templates (`brand_data.yml`, `src/templates/emails/mjml/`, `html_compiled/`), desativação do envio duplicado por padrão (`MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH = False`) contra *Graymail*, externalização dos ativos WebP otimizados (`EMAIL_ASSETS_DIR` + volume `/app/email_assets:ro` em `docker-compose.yml` / `docker-compose.prod.yml` + `.gitignore`) e remoção dos PNGs legados e mocks HTML do repositório.
 
 ### Testes e Qualidade
 - **Expansão da Suíte Pytest (`107 passed`, `7 subtests`, `85%` de cobertura global em `src/`)**:
@@ -257,7 +276,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ### Adicionado / Modificado
 - **Throttling e Pooling de Conexões SMTP (`src/ports/smtp_email_provider.py`)**:
-  - Implementada manutenção de conexão única (Connection Pooling) para evitar desconexões bruscas (Timeouts) do provedor Hostinger por excesso de requests concorrentes.
+  - Implementada manutenção de conexão única (Connection Pooling) para evitar desconexões bruscas (Timeouts) do provedor SMTP por excesso de requests concorrentes.
   - Adicionado `threading.Lock()` e delay estratégico de 2.0s entre disparos, contendo o fluxo de multithreading num funil controlado (Rate Limit).
   - Integrado mecanismo de Retry com **Exponential Backoff** (3 tentativas: 5s, 10s, 15s) no handshake e disparo SMTP.
 - **Prevenção de Transições Fantasmas na Máquina de Estados (`src/workers/abandoned_cart.py` e `src/workers/orders.py`)**:
@@ -294,7 +313,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 - **Envio de E-mail em Duplicata para Supervisão (`src/services/notification_service.py` & `src/core/macros.py`)**:
   - Criada a nova macro `MACRO_ENABLE_DUPLICATE_EMAIL_DISPATCH` que permite enviar simultaneamente uma cópia idêntica de cada e-mail disparado para um cliente real em produção para o e-mail de supervisão (`TEST_EMAIL_RECIPIENT`).
 - **Resiliência do Runner de Debug (`src/debug_main.py`)**:
-  - Atualizado `debug_main.py` para respeitar dinamicamente a macro `MACRO_ENABLE_REAL_EMAIL_DISPATCH`, permitindo homologar disparos reais via SMTP Hostinger diretamente nos testes locais.
+  - Atualizado `debug_main.py` para respeitar dinamicamente a macro `MACRO_ENABLE_REAL_EMAIL_DISPATCH`, permitindo homologar disparos reais via provedor SMTP diretamente nos testes locais.
 - **Documentação Técnica (`docs/README.md`)**:
   - Atualizada a central de documentação com seções explicativas cobrindo o algoritmo de retentativas HTTP e o envio em duplicata para supervisão.
 
@@ -306,7 +325,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ### Adicionado / Modificado
 - **Limites de Recursos Definitivos (`docker-compose.yml`)**:
-  - Definidos limites definitivos e reservas de recursos para garantir estabilidade operacional e previsibilidade de custos em nuvem (Hostinger KVM / AWS).
+  - Definidos limites definitivos e reservas de recursos para garantir estabilidade operacional e previsibilidade de custos em nuvem (Cloud VPS KVM / AWS).
   - **`app` (Aplicação)**: `limits` = 1.50 vCPU / 512 MB RAM | `reservations` = 0.50 vCPU / 256 MB RAM.
   - **`db` (PostgreSQL)**: `limits` = 0.80 vCPU / 512 MB RAM | `reservations` = 0.20 vCPU / 128 MB RAM.
   - Comentários detalhados adicionados no `docker-compose.yml` justificando cada limite com base nos testes empíricos de carga.
@@ -320,7 +339,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 > [!NOTE]
 > ⚠️ **AVISO DE PRODUÇÃO (NÃO OFICIAL PARA ENVIO REAL)**:
-> Esta versão é **estável** em termos de arquitetura, estabilidade e gerenciamento de recursos. No entanto, o envio oficial de e-mails para clientes reais via servidor Hostinger SMTP **ainda não está ativado** (`MACRO_ENABLE_REAL_EMAIL_DISPATCH = False` e `MACRO_FORCE_TEST_EMAIL_RECIPIENT = True` em `src/core/macros.py`).
+> Esta versão é **estável** em termos de arquitetura, estabilidade e gerenciamento de recursos. No entanto, o envio oficial de e-mails para clientes reais via provedor SMTP **ainda não está ativado** (`MACRO_ENABLE_REAL_EMAIL_DISPATCH = False` e `MACRO_FORCE_TEST_EMAIL_RECIPIENT = True` em `src/core/macros.py`).
 
 ---
 
