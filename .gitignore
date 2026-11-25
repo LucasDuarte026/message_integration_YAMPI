@@ -29,3 +29,4 @@ src/templates/emails/mocks/
 src/templates/emails/html_compiled/mock_*.html
 email_assets/
 scripts/trufflehog_audit/
+research/

@@ -5,6 +5,26 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
+## [7.1.2] - 2026-11-25 (Carrossel Visual Full-Width v0, Benchmarks Auditados 2025–2026, Precisão de Polling & Evidências Sentry APM - STABLE)
+
+### 📌 Status da Release: **ESTÁVEL (STABLE)**
+
+### Adicionado (Vitrine Visual do README & Higiene do Repositório)
+- **Carrossel Visual Full-Width no Topo do [`README.md`](./README.md) (`images/resume/`):**
+  - Gerado o carrossel animado 24-bit [`images/resume/showcase_carousel.webp`](./images/resume/showcase_carousel.webp) (`1600×1000`, `20` frames, `loop=0`, `2.2 MB`) com as 5 pranchas de arquitetura e provas de produção (`hero_featured_1200x627.png` e `plate_1` a `plate_4`), inserido como primeiro elemento visual do `README.md` em largura máxima (`width="100%"`) compatível com o sanitizer HTML do GitHub.
+  - Adicionada barra de navegação direta para cada prancha em alta resolução e galeria recolhível (`<details>`) exibindo todas as 5 imagens estáticas em `width="100%"`.
+- **Higiene do Repositório ([`.gitignore`](./.gitignore)):**
+  - Adicionado `research/` ao `.gitignore` para manter artefatos locais de pesquisa fora do rastreamento público.
+
+### Alterado (Documentação, Rigor Estatístico & Evidências de Produção)
+- **Endurecimento de Benchmarks 2025–2026 & Alinhamento Arquitetural ([`README.md`](./README.md)):**
+  - Consolidados benchmarks globais e brasileiros com fontes auditadas 2025–2026: **Baymard Institute** (`70.22%`, 50 estudos), **Dynamic Yield** (`79.53%–80.45%` mobile vs. `68.62%–69.56%` desktop), **Opinion Box 2026** / **E-commerce Radar** (`79%–82%` Brasil, `82%` retorno via cupom, `27%` abandono por cupom quebrado), **Nuvemshop** (`49%` PIX), **Banco Central** (`55.2%`), **PagBrasil** (`~75%` conversão PIX), **Klaviyo 2026** (`3.33%` conversão média, `$6.77–$13.70` RPR, `~41%` da receita atribuída), **Validity 2026** (`87.2%` global, `89.0%` Brasil, `77.4%` Microsoft), **Microsoft Maio 2025 (`550 5.7.515`)**, **Gorgias** (`18%–33%` WISMO puro / `~51%` combinado, `$12.40` custo manual US) e **Deloitte Digital 2026** (`$7.80` custo global/contato).
+  - Adicionado bloco recolhível **Audited Industry & RFC References (2025–2026)** com links primários (incluindo IETF RFC 5321 §6.1, RFC 5322, RFC 2046 e RFC 8058).
+  - Corrigida a terminologia para refletir com exatidão o motor de **polling na API REST V2 da Yampi** com congelamento determinístico (`order_id IS NOT NULL`), idempotência de evento de negócio (`SELECT ... FOR UPDATE`) com semântica `at-least-once` de SMTP (RFC 5321 §6.1), e certificação estática de protocolo (`10/10` Mail-Tester) vs. colocação em caixa de entrada.
+  - Removida menção de versão fixa na badge de release do `README.md` (`Release: STABLE`).
+- **Atualização das Capturas de Produção (`images/sentry_dashboard.png` e `images/crontab.png`):**
+  - Sincronizados os contadores e percentis no `README.md` com a janela contínua de produção (`1,041` iniciados, `1,030` submissões SMTP aceitas sem destinatários recusados, `0` issues não resolvidas, `397K` spans de I/O, `5.80s` P50 / `12.89s` P95).
+
 ## [7.1.1] - 2026-11-23 (Certificação de Entregabilidade 10/10, Conformidade SDD & Sanitização Documental - STABLE)
 
 ### 📌 Status da Release: **ESTÁVEL (STABLE)**
