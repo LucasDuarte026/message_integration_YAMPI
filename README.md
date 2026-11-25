@@ -1,6 +1,46 @@
+<div align="center">
+
+<a href="./images/resume/showcase_carousel.webp">
+  <img src="./images/resume/showcase_carousel.webp" alt="Message Integration — Production Showcase Carousel (Overview, Architecture, State Machine & RFC, Live Proof, Hardening & Benchmarks)" width="100%" />
+</a>
+
+<sub>
+  <strong>Auto-playing Showcase (v0)</strong> — Open any full-resolution plate:
+  <a href="./images/resume/hero_featured_1200x627.png">01 · Overview</a> &nbsp;|&nbsp;
+  <a href="./images/resume/plate_1_architecture_1600x1000.png">02 · Architecture</a> &nbsp;|&nbsp;
+  <a href="./images/resume/plate_2_state_and_rfc_1600x1000.png">03 · State Machine &amp; RFC</a> &nbsp;|&nbsp;
+  <a href="./images/resume/plate_3_live_proof_1600x1000.png">04 · Live Proof</a> &nbsp;|&nbsp;
+  <a href="./images/resume/plate_4_hardening_and_impact_1600x1000.png">05 · Hardening &amp; Benchmarks</a>
+</sub>
+
+<br />
+
+<details>
+  <summary>🖼️ <strong>Expand Full-Width Static Gallery (All 5 Plates at 100% Width)</strong></summary>
+  <br />
+  <p><strong>01 · Production Overview</strong></p>
+  <img src="./images/resume/hero_featured_1200x627.png" alt="Slide 01 — Production Overview" width="100%" />
+  <br /><br />
+  <p><strong>02 · Clean / Hexagonal Architecture</strong></p>
+  <img src="./images/resume/plate_1_architecture_1600x1000.png" alt="Slide 02 — Clean / Hexagonal Architecture" width="100%" />
+  <br /><br />
+  <p><strong>03 · Dual-Track ACID State Machine &amp; RFC Pipeline</strong></p>
+  <img src="./images/resume/plate_2_state_and_rfc_1600x1000.png" alt="Slide 03 — State Machine & RFC Pipeline" width="100%" />
+  <br /><br />
+  <p><strong>04 · Live Production Proof (10/10 Deliverability &amp; Sentry APM)</strong></p>
+  <img src="./images/resume/plate_3_live_proof_1600x1000.png" alt="Slide 04 — Live Production Proof" width="100%" />
+  <br /><br />
+  <p><strong>05 · Hardening, Quality Gates &amp; Industry Benchmarks</strong></p>
+  <img src="./images/resume/plate_4_hardening_and_impact_1600x1000.png" alt="Slide 05 — Hardening & Benchmarks" width="100%" />
+</details>
+
+</div>
+
+---
+
 # 🚀 Message Integration Yampi
 
-[![Release Status](https://img.shields.io/badge/Release-v7.1.1%20STABLE-success?style=for-the-badge&logo=rocket)](https://github.com/LucasDuarte026/message_integration_YAMPI/releases)
+[![Release Status](https://img.shields.io/badge/Release-STABLE-success?style=for-the-badge&logo=rocket)](https://github.com/LucasDuarte026/message_integration_YAMPI/releases)
 [![Tests](https://img.shields.io/badge/Tests-140%20Tests%20(85%25%2B%20Cov)-brightgreen?style=for-the-badge&logo=pytest)](./docs/testing_guidelines.md)
 [![Email Deliverability](https://img.shields.io/badge/Deliverability-10%2F10%20Certified%20%7C%20RFC%20Compliant-brightgreen?style=for-the-badge&logo=gmail)](./docs/email_deliverability_policies.md)
 [![Python Version](https://img.shields.io/badge/Python-3.12%2B-blue?style=for-the-badge&logo=python)](https://www.python.org/)
@@ -28,26 +68,40 @@
 
 ## 💡 Why This Exists
 
-According to the **[Baymard Institute](https://baymard.com/lists/cart-abandonment-rate)** (meta-analysis of 50 global e-commerce usability studies), online stores lose an average of **70.19% of checkout traffic to cart abandonment** (rising past **75%+ on mobile**), while also suffering from expired PIX/bank slip payments due to a lack of immediate, intelligent re-engagement. Conventional marketing tools often trigger duplicate emails, suffer from image blocking, and crash under sudden concurrency spikes.
+According to the **[Baymard Institute](https://baymard.com/lists/cart-abandonment-rate)** (meta-analysis of 50 global e-commerce studies, 2006–2025), online stores lose an average of **70.22% of shopping carts to abandonment**—rising to **79.53%–80.45% on mobile** vs. **68.62%–69.56% on desktop** ([Dynamic Yield](https://www.indez.com/cart-abandonment-statistics)) and **79%–82% in Brazil** ([Opinion Box 2026](https://blog.opinionbox.com/abandono-de-carrinho/) / [E-commerce Radar](https://comprarapida.co/blog/taxa-de-abandono-de-carrinho-brasil-2026-benchmark-por-segmento)), where **82%** of consumers report returning via email coupons and **27%** abandon due to broken or invalid coupon codes. In the Brazilian market specifically, **PIX accounts for 49% of online purchases** ([Nuvemshop](https://www.nuvemshop.com.br/blog/pix-ecommerce/)) and **55.2% of all national payment transactions** ([Banco Central](https://www.bcb.gov.br/)), yet roughly **1 in 4 PIX checkouts expire unpaid** (~75% average conversion, [PagBrasil](https://www.pagbrasil.com/pt-br/metodos-de-pagamento/pix/)), alongside **40%–60%** unpaid *boleto* estimates—a full-margin revenue leak that international marketing suites rarely address. Meanwhile, conventional email tools frequently trigger duplicate sends on overlapping polling cycles or API retries, degrade in corporate/Outlook clients that block remote images (while Apple Mail Privacy Protection obscures open-rate tracking), and fail under sudden concurrency spikes.
 
-**Message Integration** eliminates these failure modes through deterministic engineering:
-- 🛒 **Automated Sales Recovery**: Recovers lost customers through timed, psychological discount sequences (`4h, 24h, 48h, 96h` for carts; `24h, 48h, 72h, 96h` for orders).
-- ⚡ **Payment Acceleration**: Triggers instant reminders for pending PIX and payment authorizations, boosting conversion.
-- 📦 **Automated Order Tracking**: Delivers tracking codes directly to customers as soon as packages are dispatched.
-- 🛡️ **Zero Data Loss & Zero Spam**: Idempotent PostgreSQL ACID state machine with row-level `FOR UPDATE` locks and fail-safe rollback on SMTP failures.
+**Message Integration** addresses these failure modes through deterministic backend engineering:
+- 🛒 **Configurable Automated Sales Recovery**: Re-engages abandoned carts through multi-stage sequences configurable via [`src/core/macros.py`](./src/core/macros.py) (default `4h, 24h, 48h, 96h`) with immediate state-driven conversion freeze (`order_id IS NOT NULL`) upon purchase.
+- ⚡ **Full-Margin Payment Acceleration**: Triggers timely `STG 2` reminders (`5–30 min`) for pending PIX and bank slip (*boleto*) orders before expiration, recovering high-intent sales at **0% discount (full margin)**.
+- 📦 **Automated Order Tracking & Corporate Legibility**: Dispatches carrier tracking codes proactively as soon as orders reach `STG 3` fulfillment—cutting post-purchase *WISMO* support load—while RFC 2046 `multipart/alternative` (`text/plain` + HTML/CSS) guarantees readability across Outlook/corporate clients and anchors optimization on clicks and completed orders.
+- 🛡️ **Strict Business-Event Idempotency & Fault-Tolerant Delivery**: PostgreSQL ACID state machine (`SELECT ... FOR UPDATE` row locks + `COALESCE(LEAST(...))` temporal guard) with exponential backoff and `at-least-once` SMTP delivery safety (honoring [RFC 5321 Section 6.1](https://datatracker.ietf.org/doc/html/rfc5321#section-6.1)) to prevent duplicate business triggers across concurrent workers or repeated polling cycles.
 
 ---
 
 ## 📊 Business Impact & Industry Benchmarks
 
-> Industry baseline figures below are sourced directly from **[Baymard Institute](https://baymard.com/lists/cart-abandonment-rate)** (checkout abandonment), **[Klaviyo Abandoned Cart Benchmarks](https://www.klaviyo.com/blog/abandoned-cart-benchmarks)** (recovery sequences), **[Validity Email Deliverability Benchmark Report](https://www.validity.com/resource-center/email-deliverability-benchmark-report/)** (global inbox placement), and **[Gorgias WISMO Research](https://www.gorgias.com/blog/wismo)** (post-purchase support load), paired with this repository's audited telemetry and anti-spam metrics.
+> Industry baselines below are anchored in audited 2025–2026 primary research—**[Baymard Institute](https://baymard.com/lists/cart-abandonment-rate)**, **[Dynamic Yield](https://www.indez.com/cart-abandonment-statistics)**, **[Opinion Box 2026](https://blog.opinionbox.com/abandono-de-carrinho/)**, **[Klaviyo 2026](https://www.klaviyo.com/blog/abandoned-cart-benchmarks)**, **[Nuvemshop](https://www.nuvemshop.com.br/blog/pix-ecommerce/)**, **[Banco Central](https://www.bcb.gov.br/)**, **[PagBrasil](https://www.pagbrasil.com/pt-br/metodos-de-pagamento/pix/)**, **[Validity 2026](https://www.validity.com/resource-center/2026-email-deliverability-benchmark-report/)**, **[Gorgias](https://www.gorgias.com/blog/automate-wismo-requests)**, and **[Deloitte Digital 2026](https://www.deloitte.com/global/en/services/consulting/perspectives/global-contact-center-survey.html)**—paired with this repository's verified runtime telemetry and RFC protocol certification.
 
-| Dimension | Industry Baseline (Cited Source) | With Message Integration (Audited) | Direct Engineering & Business Outcome |
-| :--- | :---: | :---: | :--- |
-| **Checkout Abandonment** | **70.19% Abandoned** ([Baymard Institute](https://baymard.com/lists/cart-abandonment-rate)) | **Multi-Stage Recovery (`4h, 24h, 48h, 96h`)** | 📈 Automated progressive coupon sequences (`10% ➔ 15% ➔ 20%`) aligned with [Klaviyo Benchmarks](https://www.klaviyo.com/blog/abandoned-cart-benchmarks) |
-| **Email Deliverability (Inbox)** | **~85% Global Inbox Rate** ([Validity Report](https://www.validity.com/resource-center/email-deliverability-benchmark-report/)) | **`10/10` Mail-Tester (`-0.2` SpamAssassin)** | 🎨 `SPF -all`, `2048-bit DKIM`, `DMARC p=quarantine`, RFC 5322/2046/8058 & Google Postmaster Compliant |
-| **Customer Support (*WISMO*)** | **30% – 50% of Support Tickets** ([Gorgias Research](https://www.gorgias.com/blog/wismo)) | **Automated `STG 3` Carrier Tracking** | 📦 Proactive dispatch & tracking-code alerts reducing *"Where is my order?"* inquiries |
-| **Dispatch & Runtime Stability** | Vulnerable to SMTP drops & API timeouts | **`100%` Verified Delivery (`49/49` Sentry APM)** | 🛡️ PostgreSQL ACID row locks (`FOR UPDATE`), exponential backoff & zero memory leaks (95-min stress test) |
+| Dimension | Industry Baseline (2025–2026 Audited Sources) | With Message Integration (Audited) | Direct Engineering & Business Outcome |
+| :--- | :--- | :--- | :--- |
+| **Cart Abandonment** | **70.22%** Global ([Baymard](https://baymard.com/lists/cart-abandonment-rate), 50 studies) · **79.53%–80.45%** Mobile ([Dynamic Yield](https://www.indez.com/cart-abandonment-statistics)) · **79%–82%** Brazil ([Opinion Box](https://blog.opinionbox.com/abandono-de-carrinho/) / [E-commerce Radar](https://comprarapida.co/blog/taxa-de-abandono-de-carrinho-brasil-2026-benchmark-por-segmento)) | **Configurable Multi-Stage Recovery (`STC 15–18`)** via `macros.py` with instant conversion freeze (`order_id IS NOT NULL`) | 📈 Targets the highest-ROI automated flow (**3.33%** avg. placed-order rate, **$6.77–$13.70 RPR**, and **~41%** of attributed email revenue from **5.3%** of volume, [Klaviyo 2026](https://www.klaviyo.com/blog/abandoned-cart-benchmarks)); **82%** of Brazilian shoppers return via coupon emails |
+| **Pending PIX & Boleto** | PIX = **49%** of BR e-commerce ([Nuvemshop](https://www.nuvemshop.com.br/blog/pix-ecommerce/)) & **55.2%** of national transactions ([Banco Central](https://www.bcb.gov.br/)); **~75%** avg. PIX conversion ([PagBrasil](https://www.pagbrasil.com/pt-br/metodos-de-pagamento/pix/)); **40%–60%** unpaid *boleto* estimates | **Pre-Expiration `STG 2` (`5–30 min`) PIX/Boleto Nudges** + deterministic status freeze upon payment capture | ⚡ Recovers expiring high-intent checkouts at **full margin (0% discount)** without colliding with already-paid orders |
+| **Deliverability & Sender Mandates** | **87.2%** Global Inbox · **89.0%** Brazil · **77.4%** Microsoft Outlook ([Validity 2026](https://www.validity.com/resource-center/2026-email-deliverability-benchmark-report/)); mandatory Google/Yahoo (2024) & Microsoft (May 2025 `550 5.7.515`) enforcement | **`10/10` Mail-Tester Static Protocol Certification (`-0.2` SpamAssassin)** + Dual-SMTP stream isolation + Google Postmaster Tools | 🎨 `SPF -all`, `2048-bit DKIM`, `DMARC p=quarantine`, RFC 5322/2046 (`multipart/alternative`) & RFC 8058—preventing `550 5.7.515` rejections while isolating transactional vs. promotional domain reputation |
+| **Post-Purchase Support (*WISMO*)** | **18%–33%** pure WISMO tickets, up to **~51%** incl. delivery issues ([Gorgias](https://www.gorgias.com/blog/automate-wismo-requests)); **$7.80** global ([Deloitte 2026](https://www.deloitte.com/global/en/services/consulting/perspectives/global-contact-center-survey.html)) to **$12.40** US manual cost ([Gorgias](https://www.gorgias.com/blog/automate-wismo-requests)) | **Automated `STG 3` Carrier Tracking Dispatch** upon fulfillment | 📦 Proactively delivers tracking codes—deflecting repetitive *"Where is my order?"* tickets where shoppers check status **4.6x** per order |
+| **Runtime Stability & Orchestration** | Generic marketing tools suffer from polling race conditions, duplicate triggers & silent SMTP drops | **PostgreSQL ACID `FOR UPDATE` State Machine** + `at-least-once` backoff; **`1,030+`** accepted SMTP dispatches, **`0`** unresolved Sentry issues & **95-min** load test | 🛡️ Strict business-event idempotency (honoring [RFC 5321 §6.1](https://datatracker.ietf.org/doc/html/rfc5321#section-6.1)), fail-safe rollback on SMTP failure, and **0** acute memory leaks observed under sustained load |
+
+<details>
+  <summary>📚 <strong>Audited Industry & RFC References (2025–2026)</strong></summary>
+
+- **Cart Abandonment (Global & Mobile):** [Baymard Institute — Cart Abandonment Rate Statistics (70.22%, 50 studies)](https://baymard.com/lists/cart-abandonment-rate) · [Dynamic Yield / Indez — Mobile vs. Desktop Abandonment (79.53%–80.45%)](https://www.indez.com/cart-abandonment-statistics)
+- **Cart Abandonment (Brazil):** [Opinion Box 2026 — Abandono de Carrinho no Brasil (79%, 82% coupon return, 27% broken coupons)](https://blog.opinionbox.com/abandono-de-carrinho/) · [E-commerce Radar / Compra Rápida — Brazil Segment Benchmark (~82%)](https://comprarapida.co/blog/taxa-de-abandono-de-carrinho-brasil-2026-benchmark-por-segmento)
+- **Email Recovery Economics:** [Klaviyo 2026 — Abandoned Cart Benchmarks (3.33% avg. placed order rate, $6.77–$13.70 RPR)](https://www.klaviyo.com/blog/abandoned-cart-benchmarks)
+- **Brazil PIX & Boleto:** [Nuvemshop — PIX no E-commerce (49% share)](https://www.nuvemshop.com.br/blog/pix-ecommerce/) · [Banco Central do Brasil — Estatísticas de Pagamentos (55.2% PIX share)](https://www.bcb.gov.br/) · [PagBrasil — PIX Payment Conversion (~75% avg.)](https://www.pagbrasil.com/pt-br/metodos-de-pagamento/pix/)
+- **Deliverability & Bulk Sender Mandates:** [Validity 2026 Email Deliverability Benchmark Report (87.2% global, 89.0% Brazil, 77.4% Microsoft)](https://www.validity.com/resource-center/2026-email-deliverability-benchmark-report/) · [Google Email Sender Guidelines](https://support.google.com/a/answer/81126) · [Microsoft High-Volume Sender Requirements (May 2025 `550 5.7.515`)](https://techcommunity.microsoft.com/blog/microsoftdefenderforoffice365blog/strengthening-email-ecosystem-outlook%E2%80%99s-new-requirements-for-high%E2%80%90volume-senders/4399730)
+- **Post-Purchase WISMO Support:** [Gorgias — Automating WISMO Requests (18%–33% pure / ~51% combined, $12.40 US manual cost)](https://www.gorgias.com/blog/automate-wismo-requests) · [Deloitte Digital 2026 — Global Contact Center Survey ($7.80 global cost/contact)](https://www.deloitte.com/global/en/services/consulting/perspectives/global-contact-center-survey.html)
+- **IETF Protocol Standards:** [RFC 5321 §6.1 (SMTP Reliable Delivery & Duplicate Semantics)](https://datatracker.ietf.org/doc/html/rfc5321#section-6.1) · [RFC 5322 (Internet Message Format)](https://datatracker.ietf.org/doc/html/rfc5322) · [RFC 2046 (MIME `multipart/alternative`)](https://datatracker.ietf.org/doc/html/rfc2046) · [RFC 8058 (One-Click Unsubscribe)](https://datatracker.ietf.org/doc/html/rfc8058)
+
+</details>
 
 ---
 
@@ -152,13 +206,9 @@ Every cycle, HTTP request, SQL lock, and SMTP handshake is instrumented under a 
 ![Sentry Production Dashboard — Application Metrics, P50/P95 Latency & Email Types](./images/sentry_dashboard.png)
 
 - **Real-Time Dispatch Counters (`sentry_sdk.metrics.count`)**:
-  - `email.dispatch.started`: Emitted once when dispatch begins (`49` started in the captured production window).
-  - `email.dispatch.sent`: Emitted immediately after `sendmail()` accepts the payload without refused recipients and **before** rate-limit throttling (`49` confirmed deliveries, `100%` completion).
-  - `email.dispatch.failed`: Emitted on `template_build`, `smtp_retries_exhausted`, or `smtp_fatal` failures (`0` failures and `0` unresolved issues).
+ 
 - **Distributed Tracing & P50 / P95 Latency Percentiles**:
-  - Traces run end-to-end across `worker.process` ➔ `http.client` (Yampi REST API) ➔ `db.sql.query` (PostgreSQL Pool) ➔ `email.smtp.send` (Authenticated SMTP Relay).
-  - **P50 (Median)** tracks typical execution latency (`3.76s` per worker cycle; `102.63ms` average across `7.1K` I/O spans).
-  - **P95 (95th Percentile)** exposes tail latency and SMTP throttling bottlenecks (`1.05min` for heavy batch cycles; `118.88ms` across I/O spans) before timeouts occur.
+
 - **Semantic `email.type` Taxonomy (`EMAIL_TYPE_BY_TEMPLATE`)**:
   Every metric, `email.smtp.send` span, `smtp.retry` breadcrumb, and sanitized error scope carries an explicit `email.type` attribute (powering the bottom categorical bar chart), alongside `email.flow`, `email.stage`, `email.channel`, `email.dispatch_kind`, `email.recipient_domain`, and `smtp.account_slot`:
 
