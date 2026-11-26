@@ -168,16 +168,11 @@ The **Yampi + Email Messaging Engine** and its authoritative **DNS zone** were a
 1. **Informational & Transactional Flows** (payment confirmations, PIX/payment reminders, and shipping tracking notifications).
 2. **Promotional & Sales Recovery Flows** (abandoned cart sequences and progressive recovery discount coupons).
 
-### 1. Mail-Tester 10/10 Audit (Informational & Promotional Flows) & Google Postmaster Tools
+### 1. Mail-Tester 10/10 Audit (Informational & Promotional Flows)
 
-Both independent sender streams (`transactional@` and `promotions@`) scored **`10/10`** in Mail-Tester with zero blocklist hits, zero broken links, and full cryptographic authentication, alongside continuous sender telemetry in **Google Postmaster Tools**:
+Both independent sender streams (`transactional@` and `promotions@`) scored **`10/10`** in Mail-Tester with zero blocklist hits, zero broken links, and full cryptographic authentication:
 
-| Mail-Tester `10/10` Certification (Transactional & Promotional) | Google Postmaster Tools Compliance Telemetry |
-| :---: | :---: |
-| ![Mail-Tester 10/10 Deliverability Certification](./images/mail_tester_com.png) | ![Google Postmaster Tools Compliance Status](./images/postMaster_errado.png) |
-
-> [!NOTE]
-> The Google Postmaster Tools screenshot above reflects the baseline capture prior to Google's daily telemetry refresh after DNS DKIM activation; live `SPF`, `DKIM (2048-bit)`, and `DMARC` validation are already certified at **`10/10`** in Mail-Tester across both sending channels.
+![Mail-Tester 10/10 Deliverability Certification](./images/mail_tester_com.png)
 
 ### 2. Complete Deliverability & Anti-Spam Compliance Matrix
 

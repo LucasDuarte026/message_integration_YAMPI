@@ -31,7 +31,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/lang/pt-BR/).
 
 ### Adicionado (Vitrine de Certificação & Compliance)
 - **Certificação de Entregabilidade `10/10` e Matriz de Compliance ([`README.md`](./README.md) e `images/`):**
-  - Adicionada a seção **`Email Deliverability Certification (10/10) & Anti-Spam Compliance`** com evidências visuais lado a lado ([`images/mail_tester_com.png`](./images/mail_tester_com.png) e [`images/postMaster_errado.png`](./images/postMaster_errado.png)) comprovando nota **`10/10`** para ambos os fluxos (informativos/transacionais e promocionais).
+  - Adicionada a seção **`Email Deliverability Certification (10/10) & Anti-Spam Compliance`** com evidência visual ([`images/mail_tester_com.png`](./images/mail_tester_com.png)) comprovando nota **`10/10`** para ambos os fluxos (informativos/transacionais e promocionais).
   - Incluída matriz completa cobrindo `SPF (RFC 7208 -all)`, `DKIM (RFC 6376, 2048-bit RSA + Oversigning)`, `DMARC (RFC 7489, p=quarantine/p=reject sem ruf=)`, `One-Click Unsubscribe (RFC 8058 / RFC 2369)`, `Honor Unsubscribe & Spam Rate Gate (< 0,10%)`, `MIME (RFC 5322 / RFC 2046)`, `TLS / FCrDNS / rDNS / IP Reputation`, `SpamAssassin (-0.2) / Anti-Graymail` e isolamento dual SMTP.
   - Substituída a badge de segurança no topo do `README.md` pela badge **`Deliverability 10/10 Certified | RFC Compliant`**, simplificada a seção de governança de segurança e lastreados os benchmarks de mercado da introdução com fontes reais citadas (`Baymard Institute`, `Klaviyo`, `Validity` e `Gorgias`).
 
